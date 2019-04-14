@@ -17,10 +17,11 @@
    K - start free running clock E and Q.
    c - one bus cycle. stopped at E=HIGH Q=LOW.
    s - print 6309 status.
+   d - set data bus, input 2 digit hex number.
    ? - print version.
 */
 
-const char * const VERSION = "* Cyborg09 Prototype1 0.2";
+const char * const VERSION = "* Cyborg09 Prototype1 0.3";
 
 #if defined(ARDUINO_AVR_ITSYBITSY32U4_5V)
 /* Adafruit ItsyBitsy 32u4 5V */
@@ -96,14 +97,15 @@ static uint8_t pinDataBus(const uint8_t bit) {
   return pgm_read_byte_near(DBUS + bit);
 }
 
-static void setDataBusDirection(const uint8_t mode) {
+static bool setDataBusDirection(const uint8_t mode) {
   if (mode == OUTPUT && digitalRead(RD_WR) == LOW) {
-    Serial.println("!! RW=LOW");
-    return;
+    Serial.println(" !! RW=LOW");
+    return false;
   }
   for (uint8_t bit = 0; bit < 8; bit++) {
     pinMode(pinDataBus(bit), mode);
   }
+  return true;
 }
 
 static void setDataBus(uint8_t data) {
@@ -178,18 +180,76 @@ static void clock(const bool value, const char *message) {
   Serial.println(message);
 }
 
-static void clockCycle() {
-  delay(1000);
+static void clockCycle(int8_t ms) {
+  delay(ms);
   clockE(LOW);
-  delay(10);
+  setDataBusDirection(INPUT);
+  delay(1);
   clockQ(HIGH);
-  delay(10);
+  delay(1);
   clockE(HIGH);
-  delay(10);
+  delay(1);
   clockQ(LOW);
 }
 
-void loop() {
+#define COMMAND    0
+#define HEX_NUMBER 1
+
+static char inCommand;
+static uint16_t hexNumber;
+
+static int readHexNumber(char command) {
+  inCommand = command;
+  Serial.print(command);
+  Serial.print('?');
+  hexNumber = 0;
+  return HEX_NUMBER;
+}
+
+static int handleHexNumber() {
+  if (inCommand == 'd') {
+    if (setDataBusDirection(OUTPUT)) {
+      setDataBus((uint8_t)hexNumber);
+      Serial.print(" Dn=0x");
+      Serial.println(getDataBus(), HEX);
+    }
+    printStatus();
+  }
+  return COMMAND;
+}
+
+static int cancelHexNumber() {
+  Serial.println(" cancel");
+  return COMMAND;
+}
+
+static int processHexNumber() {
+  char c = Serial.read();
+  if (isDigit(c)) {
+    hexNumber *= 16;
+    hexNumber += (c - '0');
+  } else if (isHexadecimalDigit(c)) {
+    hexNumber *= 16;
+    hexNumber += (c - (isUpperCase(c) ? 'A' : 'a')) + 10;
+  }
+  if (c == '\b' || c == 0x7f) {
+    c = '\b';
+    hexNumber /= 16;
+  }
+  if (c == 0x1b) {
+    return cancelHexNumber();
+  }
+  if (c == '\r' || c == '\n') {
+    return handleHexNumber();
+  }
+
+  if (c != -1) {
+    Serial.print(c);
+  }
+  return HEX_NUMBER;
+}
+
+static int processCommand() {
   char c = Serial.read();
   if (c == 's') printStatus();
   if (c == 'r') reset(LOW);
@@ -199,9 +259,24 @@ void loop() {
   if (c == 'k') clock(false, "Clock stop");
   if (c == 'K') clock(true,  "Clock running");
   if (c == 'c' || clockRunning) {
-    if (c == 'c') Serial.println("Clock step");
-    clockCycle();
+    bool step = (c == 'c');
+    clockCycle(step ? 1 : 1000);
     printStatus();
   }
+  if (c == 'd') return readHexNumber(c);
   if (c == '?') Serial.println(VERSION);
+  return COMMAND;
+}
+
+static int inputMode = COMMAND;
+
+void loop() {
+  switch (inputMode) {
+  case COMMAND:
+    inputMode = processCommand();
+    break;
+  case HEX_NUMBER:
+    inputMode = processHexNumber();
+    break;
+  }
 }
