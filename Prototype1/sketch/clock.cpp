@@ -4,33 +4,41 @@
 #include "pins.h"
 #include "pins_map.h"
 
-static bool clockRunning = false;
+class Clock Clock;
 
-bool isClockRunning() {
-  return clockRunning;
-}
+#define MSG_STOP F("Clock stop")
+#define MSG_RUN  F("Clock running")
 
-static void clockE(const uint8_t value) {
+static inline void clockE(const uint8_t value) {
   digitalWrite(CLK_E, value);
 }
 
-static void clockQ(const uint8_t value) {
+static inline void clockQ(const uint8_t value) {
   digitalWrite(CLK_Q, value);
 }
 
-void clock(const bool enable, const char *const message) {
-  clockRunning = enable;
-  Serial.println(message);
+bool Clock::isRunning() {
+  return _running;
 }
 
-void clockCycle(int16_t ms) {
+void Clock::stop() {
+  if (_running) Serial.println(MSG_STOP);
+  _running = false;
+}
+
+void Clock::run() {
+  if (!_running) Serial.println(MSG_RUN);
+  _running = true;
+}
+
+void Clock::cycle(uint16_t ms) {
   delay(ms);
   clockE(LOW);
-  setDataBusDirection(INPUT_PULLUP);
-  delay(1);
+  Pins.setDataBusDirection(INPUT_PULLUP);
+  delayMicroseconds(1);
   clockQ(HIGH);
-  delay(1);
+  delayMicroseconds(1);
   clockE(HIGH);
-  delay(1);
+  delayMicroseconds(1);
   clockQ(LOW);
 }
