@@ -1,0 +1,32 @@
+ATmega32U4                    ProMicro       ItsyBitsy
+--------------------------  -------------- ------------
+PB0/#SS/PCINT0              - D17/SS/RXLED - D17/SS/RXLED
+PB1/SCK/PCINT1              + D15/SCK      + SCK/D15
+PB2/MOSI/PCINT2             + D16/MOSI     + MO/D16
+PB3/MISO/PCINT3             + D14/MISO     + MI/D14
+PB4/PCINT4/ADC11            + D8/D26/A8    + D8/D26/A8
+PB5/PCINT5/ADC12/OC1A/#OC4B + D9/D27/A9    + D9/D27/A9
+PB6/PCINT6/ADC13/OC1B/OC4B  + D10/D28/A10  + D10/D28/A10
+PB7/PCINT7/#RTS/OC0A/OC1C   - D11          + D11
+
+PC6/ICP3/CLKO/OC4A          + D5           + D5
+PC7/OC3A/#OC4A              - D13          + D13
+
+PD0/#INT0/SCL/OC0B          + D3/SCL       + D3/SCL
+PD1/#INT1/SDA               + D2/SDA       + D2/SDA
+PD2/#INT2/RXD1              + RXI/D0       + D0/RX
+PD3/#INT3/TXD1              + TXO/D1       + D1/TX
+PD4/ICP1/ADC8               + D4/D24/A6    + D4/D24/A6
+PD5/XCK1/#CTS               - D30/TXLED    - D30/TXLED
+PD6/T1/#OC4D/ADC9           - D12/D29/A11  + D12/D29/A11
+PD7/T0/OC4D/ADC10           + D6/D25/A7    + D6/D25/A7
+
+PE2                         - HWB          - HWB
+PE6/INT6/AIN0               + D7           + D7
+
+PF0/ADC0                    - D23/A5       + A5/D23
+PF1/ADC1                    - D22/A4       + A4/D22
+PF4/TCK/ADC4                + A3/D21       + A3/D21
+PF5/TMS/ADC5                + A2/D20       + A2/D20
+PF6/TDO/ADC6                + A1/D19       + A1/D19
+PF7/TDI/ADC7                + A0/D18       + A0/D18
