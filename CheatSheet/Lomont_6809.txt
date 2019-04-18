@@ -500,24 +500,24 @@ xF        LBLE  SWI2  *CLRD *CLRW            STY   STY   STY
 NOTES:              e    m   d    i   e
 
 opcodes prefixed by
-L\H 0x 1x 2x  3x    4x    5x   6x 7x  8x    9x   Ax   Bx   Cx   Dx   Ex   Fx
-x0           *BAND                   *SUBE *SUBE*SUBE*SUBE*SUBF*SUBF*SUBF*SUBF
-x1           *BIAND                  *CMPE *CMPE*CMPE*CMPE*CMPF*CMPF*CMPF*CMPF
+L\H 0x 1x 2x  3x    4x    5x   6x 7x  8x   9x   Ax   Bx   Cx   Dx   Ex   Fx
+x0           *BAND                   *SUBE*SUBE*SUBE*SUBE*SUBF*SUBF*SUBF*SUBF
+x1           *BIAND                  *CMPE*CMPE*CMPE*CMPE*CMPF*CMPF*CMPF*CMPF
 x2           *BOR
-x3           *BIOR *COME *COMF        CMPU  CMPU CMPU CMPU
+x3           *BIOR *COME *COMF        CMPU CMPU CMPU CMPU
 x4           *BEOR
 x5           *BIEOR
-x6           *LDBT                   *LDE  *LDE *LDE *LDE *LDF *LDF *LDF *LDF
-x7           *STBT                         *STE *STE *STE
+x6           *LDBT                   *LDE *LDE *LDE *LDE *LDF *LDF *LDF *LDF
+x7           *STBT                        *STE *STE *STE
 x8           *TFM
 x9           *TFM
 xA           *TFM  *DECE *DECF
-xB           *TFM                    *ADDE *ADDE*ADDE*ADDE*ADDF*ADDF*ADDF*ADDF
-xC           *BITMD*INCE *INCF        CMPS  CMPS CMPS CMPS
-xD           *LDMD *TSTE *TSTF       *DIVD *DIVD*DIVD*DIVD
-xE                                   *DIVQ *DIVQ*DIVQ*DIVQ
-xF            SWI2 *CLRE *CLRF       *MULD *MULD*MULD*MULD
-NOTES:                                 m     d    i    e    m     d    i   e
+xB           *TFM                    *ADDE*ADDE*ADDE*ADDE*ADDF*ADDF*ADDF*ADDF
+xC           *BITMD*INCE *INCF        CMPS CMPS CMPS CMPS
+xD           *LDMD *TSTE *TSTF       *DIVD*DIVD*DIVD*DIVD
+xE                                   *DIVQ*DIVQ*DIVQ*DIVQ
+xF            SWI3 *CLRE *CLRF       *MULD*MULD*MULD*MULD
+NOTES:                                 m    d    i    e    m    d    i    e
 
 Notes:
 A - operate on register A    e - extended addressing   m - immediate addressing
