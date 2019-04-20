@@ -3,6 +3,7 @@
 
 #define DBUS_PULL_DOWN 1
 
+#include "clock.h"
 #include "pins.h"
 #include "pins_map.h"
 
@@ -33,6 +34,9 @@ void Pins::halt(uint8_t value) {
   setDigital(HALT, value, MSG_HALT);
 }
 
+bool Pins::isLic() const {
+  return digitalRead(LIC) == HIGH;
+}
 
 static uint8_t pinDataBus(uint8_t bit) {
   return pgm_read_byte_near(DBUS + bit);
@@ -72,7 +76,7 @@ void Pins::setDataBus(uint8_t data) {
   }
 }
 
-uint8_t Pins::getDataBus() {
+uint8_t Pins::getDataBus() const {
   uint8_t data = 0;
   for (uint8_t bit = 0; bit < 8; bit++) {
     data >>= 1;
@@ -89,7 +93,8 @@ static void printPinStatus(uint8_t pin, const __FlashStringHelper *name) {
   Serial.print(digitalRead(pin) ? 'H' : 'L');
 }
 
-static void Pins::printStatus() {
+static void Pins::printStatus() const {
+  Serial.print(Clock.getCycle(), DEC);
   printPinStatus(RESET, MSG_RES);
   printPinStatus(HALT,  MSG_HALT);
   printPinStatus(BA,    MSG_BA);

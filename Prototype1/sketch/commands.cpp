@@ -27,11 +27,24 @@
 
 class Commands Commands;
 
-static void handleSetDataBus(uint8_t values[], uint8_t num) {
-  if (Pins.setDataBusDirection(OUTPUT)) {
-    Pins.setDataBus(values[0]);
+static void handleDataBus(char command, uint8_t values[], uint8_t num) {
+  bool lic;
+  for (uint8_t i = 0; i < num; i++) {
+    lic = Pins.isLic();
+    Pins.setDataBusDirection(OUTPUT);
+    Pins.setDataBus(values[i]);
+    Pins.printStatus();
+    Clock.cycle(1);
   }
-  Pins.printStatus();
+  if (command == 'd' || lic) {
+    Pins.printStatus();
+    return;
+  }
+  do {
+    lic = Pins.isLic();
+    Clock.cycle(1);
+    Pins.printStatus();
+  } while (!lic);
 }
 
 void Commands::loop() {
@@ -43,7 +56,9 @@ void Commands::loop() {
   if (c == 'H') Pins.halt(HIGH);
   if (c == 'k') Clock.stop();
   if (c == 'K') Clock.run();
-  if (c == 'd') Input.readHex(c, handleSetDataBus);
+  if (c == 'd' || c == 'i') {
+    Input.readHex(c, handleDataBus);
+  }
   if (c == 'c') {
     Clock.cycle();
     Pins.printStatus();

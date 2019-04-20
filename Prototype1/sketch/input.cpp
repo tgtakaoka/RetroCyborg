@@ -65,6 +65,7 @@ Input::HexBuffer::State Input::HexBuffer::append(char c) {
 }
 
 void Input::readHex(char command, HexHandler handler) {
+  _command = command;
   _hexHandler = handler;
   Serial.print(command);
   Serial.print('?');
@@ -82,7 +83,7 @@ void Input::processHexNumbers() {
   case HexBuffer::State::FINISH:
     _values[_len++] = _buffer.hexValue();
     if (state == HexBuffer::State::FINISH || _len == sizeof(_values)) {
-      _hexHandler(_values, _len);
+      _hexHandler(_command, _values, _len);
       _mode = CHAR_COMMAND;
     } else {
       _buffer.reset();

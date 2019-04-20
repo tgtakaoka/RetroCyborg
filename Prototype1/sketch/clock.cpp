@@ -17,7 +17,7 @@ static inline void clockQ(const uint8_t value) {
   digitalWrite(CLK_Q, value);
 }
 
-bool Clock::isRunning() {
+bool Clock::isRunning() const {
   return _running;
 }
 
@@ -41,4 +41,5 @@ void Clock::cycle(uint16_t ms) {
   clockE(HIGH);
   delayMicroseconds(1);
   clockQ(LOW);
+  _cycle++;
 }

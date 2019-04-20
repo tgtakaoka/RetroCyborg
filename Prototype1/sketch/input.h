@@ -7,7 +7,7 @@ class Input {
 
 public:
   void loop();
-  typedef void (*HexHandler)(uint8_t values[], uint8_t num);
+  typedef void (*HexHandler)(char command, uint8_t values[], uint8_t num);
   void readHex(char command, HexHandler handler);
 
 private:
@@ -18,6 +18,7 @@ private:
 
   void processHexNumbers();
 
+  char _command;
   HexHandler _hexHandler;
   uint8_t _len;
   uint8_t _values[8];
