@@ -21,7 +21,7 @@ private:
   char _command;
   HexHandler _hexHandler;
   uint8_t _len;
-  uint8_t _values[8];
+  uint8_t _values[16];
 
   class HexBuffer {
   public:
