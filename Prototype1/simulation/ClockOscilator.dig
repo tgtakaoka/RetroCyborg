@@ -8,7 +8,7 @@
     </entry>
     <entry>
       <string>pinCount</string>
-      <int>4</int>
+      <int>8</int>
     </entry>
     <entry>
       <string>Description</string>
@@ -24,58 +24,15 @@
       <elementName>In</elementName>
       <elementAttributes>
         <entry>
-          <string>Description</string>
-          <string>When asserted to 0, hold outputs as E=1 and Q=0.</string>
-        </entry>
-        <entry>
           <string>Label</string>
-          <string>#HOLD</string>
+          <string>CLKx4</string>
         </entry>
         <entry>
           <string>pinNumber</string>
           <string>2</string>
         </entry>
-        <entry>
-          <string>InDefault</string>
-          <value v="1" z="false"/>
-        </entry>
       </elementAttributes>
-      <pos x="320" y="180"/>
-    </visualElement>
-    <visualElement>
-      <elementName>JK_FF_AS</elementName>
-      <elementAttributes/>
-      <pos x="480" y="60"/>
-    </visualElement>
-    <visualElement>
-      <elementName>JK_FF_AS</elementName>
-      <elementAttributes/>
-      <pos x="660" y="60"/>
-    </visualElement>
-    <visualElement>
-      <elementName>Const</elementName>
-      <elementAttributes>
-        <entry>
-          <string>Value</string>
-          <long>0</long>
-        </entry>
-      </elementAttributes>
-      <pos x="460" y="60"/>
-    </visualElement>
-    <visualElement>
-      <elementName>Const</elementName>
-      <elementAttributes>
-        <entry>
-          <string>Value</string>
-          <long>0</long>
-        </entry>
-      </elementAttributes>
-      <pos x="640" y="140"/>
-    </visualElement>
-    <visualElement>
-      <elementName>Not</elementName>
-      <elementAttributes/>
-      <pos x="380" y="180"/>
+      <pos x="580" y="280"/>
     </visualElement>
     <visualElement>
       <elementName>Out</elementName>
@@ -90,10 +47,65 @@
         </entry>
         <entry>
           <string>pinNumber</string>
-          <string>4</string>
+          <string>5</string>
         </entry>
       </elementAttributes>
-      <pos x="800" y="-20"/>
+      <pos x="1080" y="320"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Out</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Label</string>
+          <string>#E</string>
+        </entry>
+        <entry>
+          <string>pinNumber</string>
+          <string>6</string>
+        </entry>
+      </elementAttributes>
+      <pos x="1080" y="360"/>
+    </visualElement>
+    <visualElement>
+      <elementName>In</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Description</string>
+          <string>When asserted to 0, hold outputs as E=1 and Q=0.</string>
+        </entry>
+        <entry>
+          <string>Label</string>
+          <string>#HOLD</string>
+        </entry>
+        <entry>
+          <string>pinNumber</string>
+          <string>3</string>
+        </entry>
+        <entry>
+          <string>InDefault</string>
+          <value v="1" z="false"/>
+        </entry>
+      </elementAttributes>
+      <pos x="580" y="380"/>
+    </visualElement>
+    <visualElement>
+      <elementName>7473.dig</elementName>
+      <elementAttributes/>
+      <pos x="800" y="220"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Out</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Label</string>
+          <string>Q</string>
+        </entry>
+        <entry>
+          <string>pinNumber</string>
+          <string>7</string>
+        </entry>
+      </elementAttributes>
+      <pos x="1080" y="240"/>
     </visualElement>
     <visualElement>
       <elementName>Out</elementName>
@@ -104,167 +116,172 @@
         </entry>
         <entry>
           <string>Label</string>
-          <string>Q</string>
+          <string>#Q</string>
         </entry>
         <entry>
           <string>pinNumber</string>
-          <string>3</string>
+          <string>8</string>
         </entry>
       </elementAttributes>
-      <pos x="800" y="20"/>
-    </visualElement>
-    <visualElement>
-      <elementName>In</elementName>
-      <elementAttributes>
-        <entry>
-          <string>Label</string>
-          <string>CLKx4</string>
-        </entry>
-        <entry>
-          <string>pinNumber</string>
-          <string>1</string>
-        </entry>
-      </elementAttributes>
-      <pos x="320" y="100"/>
+      <pos x="1080" y="280"/>
     </visualElement>
   </visualElements>
   <wires>
     <wire>
-      <p1 x="420" y="80"/>
-      <p2 x="480" y="80"/>
+      <p1 x="740" y="320"/>
+      <p2 x="800" y="320"/>
     </wire>
     <wire>
-      <p1 x="720" y="80"/>
-      <p2 x="740" y="80"/>
+      <p1 x="900" y="320"/>
+      <p2 x="960" y="320"/>
     </wire>
     <wire>
-      <p1 x="580" y="80"/>
-      <p2 x="660" y="80"/>
+      <p1 x="960" y="320"/>
+      <p2 x="1080" y="320"/>
     </wire>
     <wire>
-      <p1 x="540" y="80"/>
-      <p2 x="560" y="80"/>
+      <p1 x="760" y="160"/>
+      <p2 x="940" y="160"/>
     </wire>
     <wire>
-      <p1 x="420" y="0"/>
-      <p2 x="740" y="0"/>
+      <p1 x="760" y="240"/>
+      <p2 x="800" y="240"/>
     </wire>
     <wire>
-      <p1 x="400" y="-20"/>
-      <p2 x="760" y="-20"/>
+      <p1 x="1000" y="240"/>
+      <p2 x="1080" y="240"/>
     </wire>
     <wire>
-      <p1 x="760" y="-20"/>
-      <p2 x="800" y="-20"/>
+      <p1 x="740" y="260"/>
+      <p2 x="800" y="260"/>
     </wire>
     <wire>
-      <p1 x="320" y="100"/>
-      <p2 x="380" y="100"/>
+      <p1 x="760" y="340"/>
+      <p2 x="800" y="340"/>
     </wire>
     <wire>
-      <p1 x="600" y="100"/>
-      <p2 x="660" y="100"/>
+      <p1 x="900" y="340"/>
+      <p2 x="940" y="340"/>
     </wire>
     <wire>
-      <p1 x="380" y="100"/>
-      <p2 x="480" y="100"/>
+      <p1 x="940" y="340"/>
+      <p2 x="1040" y="340"/>
     </wire>
     <wire>
-      <p1 x="320" y="180"/>
-      <p2 x="380" y="180"/>
+      <p1 x="760" y="440"/>
+      <p2 x="980" y="440"/>
     </wire>
     <wire>
-      <p1 x="420" y="180"/>
-      <p2 x="460" y="180"/>
+      <p1 x="660" y="360"/>
+      <p2 x="800" y="360"/>
     </wire>
     <wire>
-      <p1 x="460" y="180"/>
-      <p2 x="620" y="180"/>
+      <p1 x="1040" y="360"/>
+      <p2 x="1080" y="360"/>
     </wire>
     <wire>
-      <p1 x="580" y="20"/>
-      <p2 x="800" y="20"/>
+      <p1 x="900" y="280"/>
+      <p2 x="1000" y="280"/>
     </wire>
     <wire>
-      <p1 x="400" y="120"/>
-      <p2 x="480" y="120"/>
+      <p1 x="580" y="280"/>
+      <p2 x="660" y="280"/>
     </wire>
     <wire>
-      <p1 x="560" y="120"/>
-      <p2 x="660" y="120"/>
+      <p1 x="1040" y="280"/>
+      <p2 x="1080" y="280"/>
     </wire>
     <wire>
-      <p1 x="380" y="40"/>
-      <p2 x="600" y="40"/>
+      <p1 x="660" y="280"/>
+      <p2 x="800" y="280"/>
     </wire>
     <wire>
-      <p1 x="720" y="60"/>
-      <p2 x="760" y="60"/>
+      <p1 x="740" y="460"/>
+      <p2 x="1000" y="460"/>
     </wire>
     <wire>
-      <p1 x="540" y="60"/>
-      <p2 x="580" y="60"/>
+      <p1 x="740" y="140"/>
+      <p2 x="960" y="140"/>
     </wire>
     <wire>
-      <p1 x="460" y="60"/>
-      <p2 x="480" y="60"/>
+      <p1 x="700" y="300"/>
+      <p2 x="800" y="300"/>
     </wire>
     <wire>
-      <p1 x="620" y="60"/>
-      <p2 x="660" y="60"/>
+      <p1 x="900" y="300"/>
+      <p2 x="980" y="300"/>
     </wire>
     <wire>
-      <p1 x="460" y="140"/>
-      <p2 x="480" y="140"/>
+      <p1 x="980" y="300"/>
+      <p2 x="1040" y="300"/>
     </wire>
     <wire>
-      <p1 x="640" y="140"/>
-      <p2 x="660" y="140"/>
+      <p1 x="580" y="380"/>
+      <p2 x="700" y="380"/>
     </wire>
     <wire>
-      <p1 x="400" y="-20"/>
-      <p2 x="400" y="120"/>
+      <p1 x="700" y="380"/>
+      <p2 x="800" y="380"/>
     </wire>
     <wire>
-      <p1 x="560" y="80"/>
-      <p2 x="560" y="120"/>
+      <p1 x="960" y="140"/>
+      <p2 x="960" y="320"/>
     </wire>
     <wire>
-      <p1 x="740" y="0"/>
-      <p2 x="740" y="80"/>
+      <p1 x="1040" y="280"/>
+      <p2 x="1040" y="300"/>
     </wire>
     <wire>
-      <p1 x="580" y="20"/>
-      <p2 x="580" y="60"/>
+      <p1 x="1040" y="340"/>
+      <p2 x="1040" y="360"/>
     </wire>
     <wire>
-      <p1 x="580" y="60"/>
-      <p2 x="580" y="80"/>
+      <p1 x="740" y="140"/>
+      <p2 x="740" y="260"/>
     </wire>
     <wire>
-      <p1 x="420" y="0"/>
-      <p2 x="420" y="80"/>
+      <p1 x="740" y="320"/>
+      <p2 x="740" y="460"/>
     </wire>
     <wire>
-      <p1 x="760" y="-20"/>
-      <p2 x="760" y="60"/>
+      <p1 x="660" y="280"/>
+      <p2 x="660" y="360"/>
     </wire>
     <wire>
-      <p1 x="600" y="40"/>
-      <p2 x="600" y="100"/>
+      <p1 x="980" y="300"/>
+      <p2 x="980" y="440"/>
     </wire>
     <wire>
-      <p1 x="380" y="40"/>
-      <p2 x="380" y="100"/>
+      <p1 x="760" y="160"/>
+      <p2 x="760" y="240"/>
     </wire>
     <wire>
-      <p1 x="460" y="140"/>
-      <p2 x="460" y="180"/>
+      <p1 x="760" y="340"/>
+      <p2 x="760" y="440"/>
     </wire>
     <wire>
-      <p1 x="620" y="60"/>
-      <p2 x="620" y="180"/>
+      <p1 x="1000" y="240"/>
+      <p2 x="1000" y="280"/>
+    </wire>
+    <wire>
+      <p1 x="1000" y="280"/>
+      <p2 x="1000" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="940" y="160"/>
+      <p2 x="940" y="340"/>
+    </wire>
+    <wire>
+      <p1 x="700" y="300"/>
+      <p2 x="700" y="380"/>
     </wire>
   </wires>
-  <measurementOrdering/>
+  <measurementOrdering>
+    <string>CLKx4</string>
+    <string>#HOLD</string>
+    <string>E</string>
+    <string>#E</string>
+    <string>Q</string>
+    <string>#Q</string>
+  </measurementOrdering>
 </circuit>
