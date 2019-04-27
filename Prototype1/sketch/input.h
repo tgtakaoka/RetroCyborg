@@ -6,9 +6,10 @@
 class Input {
 
 public:
+  typedef void (*Uint8Handler)(uint8_t values[], uint8_t len);
+
   void loop();
-  typedef void (*HexHandler)(char command, uint8_t values[], uint8_t num);
-  void readHex(char command, HexHandler handler);
+  void readUint8(char command, Uint8Handler handler);
 
 private:
   enum Mode {
@@ -16,14 +17,13 @@ private:
     HEX_NUMBERS,
   } _mode = CHAR_COMMAND;
 
-  void processHexNumbers();
+  void processUint8();
 
-  char _command;
-  HexHandler _hexHandler;
+  Uint8Handler _handler;
   uint8_t _len;
   uint8_t _values[16];
 
-  class HexBuffer {
+  class Uint8Buffer {
   public:
     void reset();
     enum State {
@@ -35,7 +35,7 @@ private:
     };
     State append(char c);
     void set(uint8_t value);
-    uint8_t hexValue() { return _value; }
+    uint8_t value() { return _value; }
     static const uint8_t _max_len = 2;
 
   private:

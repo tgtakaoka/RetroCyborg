@@ -17,12 +17,16 @@ class Pins Pins;
 #define MSG_RW     F(" RW=")
 #define MSG_DBUS   F(" Dn=0x")
 #define MSG_DBUS_ERR F(" !!! RW=L")
+#define MSG_VECTOR F(" V")
+#define MSG_WRITE  F(" W")
+#define MSG_READ   F(" R")
+#define MSG_INST   F(" I")
 
 static uint8_t pinDataBus(uint8_t bit) {
   return pgm_read_byte_near(DBUS + bit);
 }
 
-static uint8_t getDbus() {
+uint8_t Pins::Dbus::getDbus() {
   uint8_t data = 0;
   for (uint8_t bit = 0; bit < 8; bit++) {
     data >>= 1;
@@ -34,11 +38,16 @@ static uint8_t getDbus() {
   return data;
 }
 
-static void setDbus(uint8_t dir, uint8_t data) {
+void Pins::Dbus::begin() {
+  setDbus(INPUT, 0);
+}
+
+void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
   if (dir == OUTPUT && digitalRead(RD_WR) == LOW) {
     Serial.println("!! R/W is LOW");
     return;
   }
+  _dir = dir;
   for (uint8_t bit = 0; bit < 8; bit++) {
     uint8_t pin = pinDataBus(bit);
     pinMode(pin, dir);
@@ -55,30 +64,47 @@ static void setDbus(uint8_t dir, uint8_t data) {
     data >>= 1;
   }
 }
+void Pins::Dbus::input() {
+  if (_dir == INPUT) return;
+  setDbus(INPUT, 0);
+}
 
-bool Pins::Status::equals(const Status& o) const {
-  return _reset == o._reset
-         && _halt ==  o._halt
-         && _ba ==    o._ba
-         && _bs ==    o._bs
-         && _lic ==   o._lic
-         && _avma ==  o._avma
-         && _busy ==  o._busy
-         && _rw ==    o._rw
-         && _dbus ==  o._dbus;
+void Pins::Dbus::output() {
+  if (_valid) {
+    _valid = false;
+    setDbus(OUTPUT, _data);
+  } else {
+    input();
+  }
+}
+
+void Pins::Dbus::set(uint8_t data) {
+  _data = data;
+  _valid = true;
 }
 
 void Pins::Status::get() {
-  _cycle = Pins::_cycle;
-  _reset = digitalRead(RESET);
-  _halt  = digitalRead(HALT);
-  _ba    = digitalRead(BA);
-  _bs    = digitalRead(BS);
-  _lic   = digitalRead(LIC);
-  _avma  = digitalRead(AVMA);
-  _busy  = digitalRead(BUSY);
-  _rw    = digitalRead(RD_WR);
-  _dbus  = getDbus();
+  reset = digitalRead(RESET);
+  halt  = digitalRead(HALT);
+  ba    = digitalRead(BA);
+  bs    = digitalRead(BS);
+  lic   = digitalRead(LIC);
+  avma  = digitalRead(AVMA);
+  busy  = digitalRead(BUSY);
+  rw    = digitalRead(RD_WR);
+  dbus  = Dbus::getDbus();
+}
+
+bool Pins::unchanged() const {
+  return _signals.reset == _previous.reset
+         && _signals.halt ==  _previous.halt
+         && _signals.ba ==    _previous.ba
+         && _signals.bs ==    _previous.bs
+         && _signals.lic ==   _previous.lic
+         && _signals.avma ==  _previous.avma
+         && _signals.busy ==  _previous.busy
+         && _signals.rw ==    _previous.rw
+         && _signals.dbus ==  _previous.dbus;
 }
 
 static void printPin(uint8_t value, const __FlashStringHelper *name) {
@@ -86,99 +112,136 @@ static void printPin(uint8_t value, const __FlashStringHelper *name) {
   Serial.print(value ? 'H' : 'L');
 }
 
-void Pins::Status::print(bool nl) const {
+void Pins::print() const {
   Serial.print(_cycle);
-  printPin(_reset, MSG_RES);
-  printPin(_halt,  MSG_HALT);
-  printPin(_ba,    MSG_BA);
-  printPin(_bs,    MSG_BS);
-  printPin(_lic,   MSG_LIC);
-  printPin(_avma,  MSG_AVMA);
-  printPin(_busy,  MSG_BUSY);
-  printPin(_rw,    MSG_RW);
+  printPin(_signals.reset, MSG_RES);
+  printPin(_signals.halt,  MSG_HALT);
+  printPin(_signals.ba,    MSG_BA);
+  printPin(_signals.bs,    MSG_BS);
+  printPin(_signals.lic,   MSG_LIC);
+  printPin(_signals.avma,  MSG_AVMA);
+  printPin(_signals.busy,  MSG_BUSY);
+  printPin(_signals.rw,    MSG_RW);
   Serial.print(MSG_DBUS);
-  printHex2(_dbus);
-  if (busWrite()) {
-    Serial.print(' ');
-    Serial.print('W');
-  }
+  printHex2(_signals.dbus);
   if (vectorFetch()) {
-    Serial.print(' ');
-    Serial.print('V');
-    Serial.print(busBusy() ? 'H' : 'L');
+    Serial.print(MSG_VECTOR);
+  } else if (running()) {
+    if (writeCycle()) {
+      Serial.print(MSG_WRITE);
+    } else if (readCycle()) {
+      if (_signals.inst) {
+        Serial.print(MSG_INST);
+      } else {
+        Serial.print(MSG_READ);
+      }
+    }
   }
-  if (nl) Serial.println();
-  else Serial.print(' ');
+  Serial.println();
 }
 
-void Pins::reset(uint8_t value) {
-  digitalWrite(RESET, value);
+bool Pins::inHalt() const {
+  return _signals.ba && _signals.bs;
 }
 
-void Pins::halt(uint8_t value) {
-  digitalWrite(HALT, value);
+bool Pins::vectorFetch() const {
+  return !_signals.ba && _signals.bs;
 }
 
-void Pins::setVector(uint8_t vh, uint8_t vl) {
-  _vector_high = vh;
-  _vector_low = vl;
+bool Pins::running() const {
+  return !_signals.ba && !_signals.bs;
 }
 
-void Pins::Dbus::input() {
-  if (_dir == INPUT) return;
-  setDbus(INPUT, 0);
-  _dir = INPUT;
+bool Pins::lastInstCycle() const {
+  return _signals.lic && _signals.avma;
 }
 
-void Pins::Dbus::output() {
-  if (!_data_valid) return;
-  setDbus(OUTPUT, _data);
-  _data_valid = false;
-  _dir = OUTPUT;
+bool Pins::writeCycle() const {
+  return _previous.avma && !_signals.rw;
 }
 
-void Pins::Dbus::set(uint8_t data) {
-  _data = data;
-  _data_valid = true;
+bool Pins::readCycle() const {
+  return _previous.avma && _signals.rw;
 }
 
-uint16_t Pins::_cycle;
+void Pins::reset() {
+  digitalWrite(RESET, LOW);
+  cycle();
+  print();
+  digitalWrite(RESET, HIGH);
+  cycle();
+  print();
+  digitalWrite(HALT, HIGH);
+  cycle();
+  print();
+  digitalWrite(HALT, LOW);
+  do {
+    cycle();
+    print();
+  } while (!inHalt());
+}
 
-void Pins::cycle(Status& pins) {
+void Pins::setData(uint8_t data) {
+  _dbus.set(data);
+}
+
+void Pins::setVector(uint16_t vector) {
+  _vector = vector;
+}
+
+void Pins::cycle() {
   _cycle++;
+  _previous = _signals;
   digitalWrite(CLK_Q, HIGH);
   digitalWrite(CLK_E, HIGH);
   digitalWrite(CLK_Q, LOW);
-  pins.get();
-  if (pins.running()) {
-    if (pins.busWrite()) {
+  _signals.get();
+  if (running()) {
+    if (writeCycle()) {
       _dbus.input();
-    } else {
+    } else if (readCycle()) {
+      _signals.inst = _dbus.valid();
       _dbus.output();
     }
-  } else if (pins.vectorFetch()) {
-    if (pins.busBusy()) {
-      _dbus.set(_vector_high);
+  } else if (vectorFetch()) {
+    if (_signals.busy) {
+      _dbus.set(_vector >> 8);
       _dbus.output();
     } else {
-      _dbus.set(_vector_low);
+      _dbus.set(_vector);
       _dbus.output();
     }
   } else {
     _dbus.input();
   }
-  pins.get();
+  _signals.get();
   digitalWrite(CLK_E, LOW);
   _dbus.input();
 }
 
-void Pins::print(bool nl) const {
-  Status pins;
-  pins.get();
-  pins.print(nl);
+void Pins::unhalt() {
+  digitalWrite(HALT, HIGH);
+  do {
+    cycle();
+    print();
+    digitalWrite(HALT, LOW);
+  } while (!running() || !lastInstCycle());
 }
 
-void Pins::begin(Status& pins) {
+void Pins::execInst(uint8_t inst[], uint8_t len) {
+  unhalt();
+  for (uint8_t i = 0; i < len; i++) {
+    setData(inst[i]);
+    cycle();
+    print();
+  }
+  while (!lastInstCycle()) {
+    cycle();
+    print();
+  }
+}
+
+void Pins::begin() {
   pinMode(RESET, OUTPUT);
   digitalWrite(RESET, LOW);
   pinMode(HALT,  OUTPUT);
@@ -198,7 +261,7 @@ void Pins::begin(Status& pins) {
   pinMode(RAM_E, OUTPUT);
   digitalWrite(RAM_E, HIGH);
 
-  setDbus(INPUT, 0);
+  _dbus.begin();
 
-  pins.get();
+  _previous.get();
 }

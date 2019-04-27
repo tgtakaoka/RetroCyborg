@@ -12,18 +12,14 @@
 #include "input.h"
 #include "pins.h"
 
-static struct Pins::Status previous_cycle;
-
 void setup() {
   Serial.begin(9600);
-  Pins.begin(previous_cycle);
+  Pins.begin();
 }
 
 void loop() {
   Input.loop();
-  struct Pins::Status pins;
-  Pins.cycle(pins);
-  if (!pins.inHalt() && !pins.equals(previous_cycle))
-    pins.print();
-  previous_cycle = pins;
+  Pins.cycle();
+  if (!Pins.inHalt() && !Pins.unchanged())
+    Pins.print();
 }

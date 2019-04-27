@@ -11,6 +11,7 @@
 #include <Arduino.h>
 
 #include "commands.h"
+#include "hex.h"
 #include "input.h"
 #include "pins.h"
 
@@ -18,57 +19,21 @@
 
 class Commands Commands;
 
-static void handleInstruction(char command, uint8_t values[], uint8_t num) {
-  struct Pins::Status pins;
-  Pins.halt(HIGH);
-  do {
-    Pins.cycle(pins);
-    pins.print();
-    Pins.halt(LOW);
-  } while (!pins.running() || !pins.lastInstCycle());
-
-  for (uint8_t i = 0; i < num; i++) {
-    Pins.setData(values[i]);
-    Pins.cycle(pins);
-    pins.print(false);
-    Serial.println('I');
-  }
-  while (!pins.lastInstCycle()) {
-    Pins.cycle(pins);
-    pins.print();
-  }
+static void handleInstruction(uint8_t values[], uint8_t len) {
+  Pins.execInst(values, len);
 }
 
-static void handleVector(char command, uint8_t values[], uint8_t num) {
-  Pins.setVector(values[0], values[1]);
-}
-
-static void handleReset() {
-  Pins::Status pins;
-  Pins.reset(LOW);
-  Pins.cycle(pins);
-  pins.print();
-  Pins.reset(HIGH);
-  Pins.cycle(pins);
-  pins.print();
-  Pins.halt(HIGH);
-  Pins.cycle(pins);
-  pins.print();
-  Pins.halt(LOW);
-  do {
-    Pins.cycle(pins);
-    pins.print();
-  } while (!pins.inHalt());
+static void handleVector(uint8_t values[], uint8_t len) {
+  if (len != 2) return;
+  Pins.setVector(toUint16(values));
 }
 
 void Commands::loop() {
   const char c = Serial.read();
   if (c == -1) return;
   if (c == 's') Pins.print();
-  if (c == 'R') handleReset();
-  if (c == 'h') Pins.halt(LOW);
-  if (c == 'H') Pins.halt(HIGH);
-  if (c == 'i') Input.readHex(c, handleInstruction);
-  if (c == 'v') Input.readHex(c, handleVector);
+  if (c == 'R') Pins.reset();
+  if (c == 'i') Input.readUint8(c, handleInstruction);
+  if (c == 'v') Input.readUint8(c, handleVector);
   if (c == '?') Serial.println(VERSION);
 }

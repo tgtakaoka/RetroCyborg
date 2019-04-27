@@ -5,65 +5,62 @@
 
 class Pins {
 
-public:  
-  class Status {
-  public:
-    bool inHalt() const { return !_halt && _ba && _bs; }
-    bool running() const { return !_ba && !_bs; }
-    bool lastInstCycle() const { return _lic && _avma; }
-    bool vectorFetch() const { return !_ba && _bs; }
-    bool busBusy() const { return _busy; }
-    bool busWrite() const { return !_rw; }
-    bool equals(const Status& o) const;
-    void print(bool nl = true) const;
+public:
+  void begin();
+  void reset();
+  void cycle();
+  void print() const;
+  void setData(uint8_t data);
+  void setVector(uint16_t vector);
 
-  private:
-    friend class Pins;
+  bool unchanged() const;
+  bool inHalt() const;
+  bool vectorFetch() const;
+  bool running() const;
+  bool lastInstCycle() const;
+  bool writeCycle() const;
+  bool readCycle() const;
+
+  void execInst(uint8_t inst[], uint8_t len);
+
+private:
+
+  struct Status {
     void get();
-
-    unsigned _reset:1;
-    unsigned _halt:1;
-    unsigned _ba:1;
-    unsigned _bs:1;
-    unsigned _lic:1;
-    unsigned _avma:1;
-    unsigned _busy:1;
-    unsigned _rw:1;
-    uint8_t _dbus;
-    uint16_t _cycle;
-    enum {
-      INST, OP, VH, VL
-    } _mode;
+    unsigned reset:1;
+    unsigned halt:1;
+    unsigned ba:1;
+    unsigned bs:1;
+    unsigned lic:1;
+    unsigned avma:1;
+    unsigned busy:1;
+    unsigned rw:1;
+    uint8_t  dbus;
+    bool inst;
   };
 
   class Dbus {
   public:
+    void begin();
     void set(uint8_t data);
     void output();
     void input();
+    bool valid() const { return _valid; }
+    static uint8_t getDbus();
   private:
+    void setDbus(uint8_t dir, uint8_t data);
     uint8_t _dir = INPUT;
     uint8_t _data;
-    bool _data_valid;
+    bool _valid;
   };
 
-  void begin(Status& pins);
-  void cycle(Status& pins);
-  // |value|: LOW or HIGH.
-  void reset(uint8_t value);
-  void halt(uint8_t value);
-  // |vh|,|vl|: vector
-  void setVector(uint8_t vh, uint8_t vl);
-  // |data|: 8 bit data.
-  void setData(uint8_t data) { _dbus.set(data); }
-  void print(bool nl = true) const;
+  void unhalt();
 
-private:
-  friend class Status;
-  static uint16_t _cycle;
+  uint16_t _cycle;
+  Status _signals;
+  Status _previous;
   Dbus _dbus;
-  uint8_t _vector_high;
-  uint8_t _vector_low;
+  uint16_t _vector;
 };
 
 extern Pins Pins;
