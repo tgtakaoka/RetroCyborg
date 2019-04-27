@@ -1,6 +1,7 @@
 #include <avr/pgmspace.h>
 #include <Arduino.h>
 
+#include "hex.h"
 #include "pins.h"
 #include "pins_map.h"
 
@@ -42,11 +43,14 @@ static void setDbus(uint8_t dir, uint8_t data) {
     uint8_t pin = pinDataBus(bit);
     pinMode(pin, dir);
     if (dir == OUTPUT) {
+      digitalWrite(RAM_E, HIGH);
       if (data & 1) {
         digitalWrite(pin, HIGH);
       } else {
         digitalWrite(pin, LOW);
       }
+    } else {
+      digitalWrite(RAM_E, LOW);
     }
     data >>= 1;
   }
@@ -80,11 +84,6 @@ void Pins::Status::get() {
 static void printPin(uint8_t value, const __FlashStringHelper *name) {
   Serial.print(name);
   Serial.print(value ? 'H' : 'L');
-}
-
-static void printHex2(uint8_t value) {
-  if (value < 0x10) Serial.print('0');
-  Serial.print(value, HEX);
 }
 
 void Pins::Status::print(bool nl) const {
@@ -196,6 +195,8 @@ void Pins::begin(Status& pins) {
   pinMode(AVMA,  INPUT);
   pinMode(BUSY,  INPUT);
   pinMode(RD_WR, INPUT_PULLUP);
+  pinMode(RAM_E, OUTPUT);
+  digitalWrite(RAM_E, HIGH);
 
   setDbus(INPUT, 0);
 
