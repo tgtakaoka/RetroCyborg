@@ -219,25 +219,25 @@ void Pins::cycle() {
   _dbus.input();
 }
 
-void Pins::unhalt() {
+void Pins::unhalt(bool show) {
   digitalWrite(HALT, HIGH);
   do {
     cycle();
-    print();
+    if (show) print();
     digitalWrite(HALT, LOW);
   } while (!running() || !lastInstCycle());
 }
 
-void Pins::execInst(uint8_t inst[], uint8_t len) {
-  unhalt();
+void Pins::execInst(uint8_t inst[], uint8_t len, bool show) {
+  unhalt(show);
   for (uint8_t i = 0; i < len; i++) {
     setData(inst[i]);
     cycle();
-    print();
+    if (show) print();
   }
   while (!lastInstCycle()) {
     cycle();
-    print();
+    if (show) print();
   }
 }
 

@@ -21,7 +21,8 @@ public:
   bool writeCycle() const;
   bool readCycle() const;
 
-  void execInst(uint8_t inst[], uint8_t len);
+  uint8_t dbus() { return _signals.dbus; }
+  void execInst(uint8_t inst[], uint8_t len, bool show = false);
 
 private:
 
@@ -54,7 +55,7 @@ private:
     bool _valid;
   };
 
-  void unhalt();
+  void unhalt(bool show = false);
 
   uint16_t _cycle;
   Status _signals;
