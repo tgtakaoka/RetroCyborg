@@ -22,7 +22,7 @@ U 1 1 5CACA42C
 P 8200 6350
 F 0 "U6" H 8150 6350 50  0000 C CNN
 F 1 "74HC14" H 8250 6200 50  0000 C CNN
-F 2 "" H 8200 6350 50  0001 C CNN
+F 2 "Package_DIP:DIP-14_W7.62mm" H 8200 6350 50  0001 C CNN
 F 3 "http://www.ti.com/lit/gpn/sn74HC14" H 8200 6350 50  0001 C CNN
 	1    8200 6350
 	-1   0    0    -1  
@@ -33,7 +33,7 @@ U 1 1 5CAEAB0A
 P 7300 3850
 F 0 "U4" H 7050 4500 50  0000 C CNN
 F 1 "SN74HC541N" H 7300 3550 50  0000 C CNN
-F 2 "" H 7300 3850 50  0001 C CNN
+F 2 "Package_DIP:DIP-20_W7.62mm" H 7300 3850 50  0001 C CNN
 F 3 "http://www.ti.com/lit/gpn/sn74HCT541" H 7300 3850 50  0001 C CNN
 	1    7300 3850
 	1    0    0    -1  
@@ -44,7 +44,7 @@ U 1 1 5CAEB2B4
 P 7300 2000
 F 0 "U5" H 7050 2650 50  0000 C CNN
 F 1 "SN74HC541N" H 7300 1700 50  0000 C CNN
-F 2 "" H 7300 2000 50  0001 C CNN
+F 2 "Package_DIP:DIP-20_W7.62mm" H 7300 2000 50  0001 C CNN
 F 3 "http://www.ti.com/lit/gpn/sn74HCT541" H 7300 2000 50  0001 C CNN
 	1    7300 2000
 	1    0    0    -1  
@@ -191,7 +191,7 @@ U 1 1 5CB38B10
 P 3600 5400
 F 0 "U2" H 3800 6050 50  0000 C CNN
 F 1 "SN74HC541N" H 3600 5100 50  0000 C CNN
-F 2 "" H 3600 5400 50  0001 C CNN
+F 2 "Package_DIP:DIP-20_W7.62mm" H 3600 5400 50  0001 C CNN
 F 3 "http://www.ti.com/lit/gpn/sn74HCT541" H 3600 5400 50  0001 C CNN
 	1    3600 5400
 	-1   0    0    -1  
@@ -431,7 +431,7 @@ U 1 1 5CAEB99B
 P 7050 5400
 F 0 "U3" H 6800 6050 50  0000 C CNN
 F 1 "SN74HC541N" H 7050 5100 50  0000 C CNN
-F 2 "" H 7050 5400 50  0001 C CNN
+F 2 "Package_DIP:DIP-20_W7.62mm" H 7050 5400 50  0001 C CNN
 F 3 "http://www.ti.com/lit/gpn/sn74HCT541" H 7050 5400 50  0001 C CNN
 	1    7050 5400
 	1    0    0    -1  
@@ -607,7 +607,7 @@ NoConn ~ 4700 4600
 Wire Wire Line
 	4300 3300 4700 3300
 Wire Wire Line
-	4300 3400 4700 3400
+	4300 3400 4400 3400
 Wire Wire Line
 	4700 3900 4300 3900
 Wire Wire Line
@@ -1580,31 +1580,6 @@ NoConn ~ 5750 1000
 NoConn ~ 4650 1000
 NoConn ~ 4650 1300
 NoConn ~ 4650 1400
-NoConn ~ 4650 1500
-$Comp
-L power:GND #PWR0119
-U 1 1 5D1B41CE
-P 3500 1250
-F 0 "#PWR0119" H 3500 1000 50  0001 C CNN
-F 1 "GND" H 3650 1250 50  0000 C CNN
-F 2 "" H 3500 1250 50  0001 C CNN
-F 3 "" H 3500 1250 50  0001 C CNN
-	1    3500 1250
-	1    0    0    -1  
-$EndComp
-$Comp
-L power:PWR_FLAG #FLG0102
-U 1 1 5D1B4A0F
-P 3500 1200
-F 0 "#FLG0102" H 3500 1275 50  0001 C CNN
-F 1 "PWR_FLAG" H 3250 1300 50  0000 C CNN
-F 2 "" H 3500 1200 50  0001 C CNN
-F 3 "~" H 3500 1200 50  0001 C CNN
-	1    3500 1200
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	3500 1200 3500 1250
 Wire Wire Line
 	5950 1800 5950 3900
 Wire Wire Line
@@ -1636,14 +1611,11 @@ U 1 1 5CC3A560
 P 5200 1650
 F 0 "B1" H 5500 2450 50  0000 C CNN
 F 1 "Adafruit_ItsyBitsy_32u4_5V" V 5200 1650 50  0000 C CNN
-F 2 "" H 5050 1250 50  0001 C CNN
+F 2 "User-Boards:Adafruit_ItsyBitsy_32u4" H 5050 1250 50  0001 C CNN
 F 3 "" H 5050 1250 50  0001 C CNN
 	1    5200 1650
 	-1   0    0    -1  
 $EndComp
-Wire Bus Line
-	4400 2800 4500 2800
-Connection ~ 4500 2800
 Wire Wire Line
 	4650 1600 4600 1600
 Wire Wire Line
@@ -1666,22 +1638,273 @@ Text Label 4600 1900 0    50   ~ 0
 D4
 Text Label 4600 2000 0    50   ~ 0
 D3
-Wire Bus Line
-	4500 1700 4500 2800
-Wire Bus Line
-	6650 3450 6650 4200
-Wire Bus Line
-	4250 5000 4250 5750
-Wire Bus Line
-	6200 4200 6200 5500
-Wire Bus Line
-	4500 2800 4500 5750
-Wire Bus Line
-	5950 3950 5950 5500
 Text Label 4600 2100 0    50   ~ 0
 D2
 Text Label 4600 2200 0    50   ~ 0
 D1
 Text Label 4600 2300 0    50   ~ 0
 D0
+$Comp
+L Memory_RAM:628128 U7
+U 1 1 5CC781E5
+P 2850 2850
+F 0 "U7" H 3200 1700 50  0000 C CNN
+F 1 "M68AF127B" H 2950 2400 50  0000 C CNN
+F 2 "Package_SO:SSOP-32_11.305x20.495mm_P1.27mm" H 2850 2850 50  0001 C CNN
+F 3 "" H 2850 2850 50  0001 C CNN
+	1    2850 2850
+	-1   0    0    1   
+$EndComp
+Connection ~ 4500 4150
+Entry Wire Line
+	2000 3300 2100 3200
+Entry Wire Line
+	2000 3400 2100 3300
+Entry Wire Line
+	2000 3500 2100 3400
+Entry Wire Line
+	2000 3600 2100 3500
+Entry Wire Line
+	2000 3700 2100 3600
+Entry Wire Line
+	2000 3800 2100 3700
+Entry Wire Line
+	2000 3900 2100 3800
+Entry Wire Line
+	2000 4000 2100 3900
+Wire Wire Line
+	2100 3200 2150 3200
+Wire Wire Line
+	2100 3300 2150 3300
+Wire Wire Line
+	2100 3400 2150 3400
+Wire Wire Line
+	2100 3500 2150 3500
+Wire Wire Line
+	2100 3600 2150 3600
+Wire Wire Line
+	2100 3800 2150 3800
+Wire Wire Line
+	2100 3900 2150 3900
+Text Label 2100 3200 0    50   ~ 0
+D7
+Text Label 2100 3300 0    50   ~ 0
+D6
+Text Label 2100 3400 0    50   ~ 0
+D5
+Text Label 2100 3500 0    50   ~ 0
+D4
+Text Label 2100 3600 0    50   ~ 0
+D3
+Text Label 2100 3700 0    50   ~ 0
+D2
+Text Label 2100 3800 0    50   ~ 0
+D1
+Text Label 2100 3900 0    50   ~ 0
+D0
+Wire Bus Line
+	2000 4150 4500 4150
+Wire Wire Line
+	2100 3700 2150 3700
+Wire Bus Line
+	6200 3950 6200 2900
+Connection ~ 6200 3950
+Entry Wire Line
+	3600 2400 3700 2500
+Entry Wire Line
+	3600 2500 3700 2600
+Entry Wire Line
+	3600 2600 3700 2700
+Entry Wire Line
+	3600 2700 3700 2800
+Entry Wire Line
+	3600 2800 3700 2900
+Entry Wire Line
+	3600 2900 3700 3000
+Entry Wire Line
+	3600 3000 3700 3100
+Entry Wire Line
+	3600 3100 3700 3200
+Entry Wire Line
+	3600 3200 3700 3300
+Entry Wire Line
+	3600 3300 3700 3400
+Entry Wire Line
+	3600 3400 3700 3500
+Entry Wire Line
+	3600 3500 3700 3600
+Entry Wire Line
+	3600 3600 3700 3700
+Entry Wire Line
+	3600 3700 3700 3800
+Entry Wire Line
+	3600 3800 3700 3900
+Entry Wire Line
+	3600 3900 3700 4000
+Wire Bus Line
+	3700 4050 3900 4050
+Wire Bus Line
+	3900 4050 3900 2900
+Wire Bus Line
+	3900 2900 6200 2900
+$Comp
+L power:GND #PWR0118
+U 1 1 5D01A522
+P 3700 2300
+F 0 "#PWR0118" H 3700 2050 50  0001 C CNN
+F 1 "GND" H 3850 2250 50  0000 C CNN
+F 2 "" H 3700 2300 50  0001 C CNN
+F 3 "" H 3700 2300 50  0001 C CNN
+	1    3700 2300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3550 2300 3700 2300
+Wire Wire Line
+	3550 2400 3600 2400
+Wire Wire Line
+	3550 2500 3600 2500
+Wire Wire Line
+	3550 2600 3600 2600
+Wire Wire Line
+	3550 2700 3600 2700
+Wire Wire Line
+	3550 2800 3600 2800
+Wire Wire Line
+	3550 2900 3600 2900
+Wire Wire Line
+	3550 3000 3600 3000
+Wire Wire Line
+	3550 3100 3600 3100
+Wire Wire Line
+	3550 3200 3600 3200
+Wire Wire Line
+	3550 3300 3600 3300
+Wire Wire Line
+	3550 3400 3600 3400
+Wire Wire Line
+	3550 3500 3600 3500
+Wire Wire Line
+	3550 3600 3600 3600
+Wire Wire Line
+	3550 3700 3600 3700
+Wire Wire Line
+	3550 3800 3600 3800
+Wire Wire Line
+	3550 3900 3600 3900
+Text Label 3600 2400 2    50   ~ 0
+A15
+Text Label 3600 2500 2    50   ~ 0
+A14
+Text Label 3600 2600 2    50   ~ 0
+A13
+Text Label 3600 2700 2    50   ~ 0
+A12
+Text Label 3600 2800 2    50   ~ 0
+A11
+Text Label 3600 2900 2    50   ~ 0
+A10
+Text Label 3600 3000 2    50   ~ 0
+A9
+Text Label 3600 3100 2    50   ~ 0
+A8
+Text Label 3600 3200 2    50   ~ 0
+A7
+Text Label 3600 3300 2    50   ~ 0
+A6
+Text Label 3600 3400 2    50   ~ 0
+A5
+Text Label 3600 3500 2    50   ~ 0
+A4
+Text Label 3600 3600 2    50   ~ 0
+A3
+Text Label 3600 3700 2    50   ~ 0
+A2
+Text Label 3600 3800 2    50   ~ 0
+A1
+Text Label 3600 3900 2    50   ~ 0
+A0
+$Comp
+L 74xx:74HC14 U6
+U 2 1 5D2446E0
+P 3850 1900
+F 0 "U6" H 3800 1900 50  0000 C CNN
+F 1 "74HC14" H 3550 1750 50  0000 C CNN
+F 2 "" H 3850 1900 50  0001 C CNN
+F 3 "http://www.ti.com/lit/gpn/sn74HC14" H 3850 1900 50  0001 C CNN
+	2    3850 1900
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	3550 2000 3800 2000
+Wire Wire Line
+	3800 2000 3800 2150
+Wire Wire Line
+	3800 2150 4400 2150
+Wire Wire Line
+	4400 2150 4400 3400
+Connection ~ 4400 3400
+Wire Wire Line
+	4400 3400 4700 3400
+Wire Wire Line
+	4650 1500 4300 1500
+Wire Wire Line
+	4300 1500 4300 2200
+Wire Wire Line
+	4300 2200 3700 2200
+Wire Wire Line
+	3700 2200 3700 2100
+Wire Wire Line
+	3700 2100 3550 2100
+Wire Wire Line
+	4150 1900 4150 1650
+Wire Wire Line
+	4150 1650 3550 1650
+Wire Wire Line
+	3550 1650 3550 1800
+Wire Wire Line
+	3550 1650 3550 1500
+Wire Wire Line
+	3550 1500 3600 1500
+Connection ~ 3550 1650
+Text GLabel 3600 1500 2    50   Input ~ 0
+RW
+$Comp
+L power:GND #PWR0120
+U 1 1 5D36CA93
+P 2850 3950
+F 0 "#PWR0120" H 2850 3700 50  0001 C CNN
+F 1 "GND" H 2855 3777 50  0000 C CNN
+F 2 "" H 2850 3950 50  0001 C CNN
+F 3 "" H 2850 3950 50  0001 C CNN
+	1    2850 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+5V #PWR0121
+U 1 1 5D36D0DE
+P 2850 1750
+F 0 "#PWR0121" H 2850 1600 50  0001 C CNN
+F 1 "+5V" H 2865 1923 50  0000 C CNN
+F 2 "" H 2850 1750 50  0001 C CNN
+F 3 "" H 2850 1750 50  0001 C CNN
+	1    2850 1750
+	1    0    0    -1  
+$EndComp
+Wire Bus Line
+	4500 4150 4500 5750
+Wire Bus Line
+	4500 1700 4500 4150
+Wire Bus Line
+	6200 4200 6200 5500
+Wire Bus Line
+	4250 5000 4250 5750
+Wire Bus Line
+	6650 3450 6650 4200
+Wire Bus Line
+	2000 3300 2000 4150
+Wire Bus Line
+	3700 2500 3700 4050
+Wire Bus Line
+	5950 3950 5950 5500
 $EndSCHEMATC
