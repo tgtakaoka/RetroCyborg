@@ -21,7 +21,7 @@ private:
 
   Uint8Handler _handler;
   uint8_t _len;
-  uint8_t _values[16];
+  uint8_t _values[18];
 
   class Uint8Buffer {
   public:
