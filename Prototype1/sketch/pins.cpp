@@ -241,6 +241,14 @@ void Pins::execInst(uint8_t inst[], uint8_t len, bool show) {
   }
 }
 
+void Pins::step(bool show) {
+  unhalt(show);
+  do {
+    cycle();
+    if (show) print();
+  } while (!lastInstCycle());
+}
+
 void Pins::begin() {
   pinMode(RESET, OUTPUT);
   digitalWrite(RESET, LOW);

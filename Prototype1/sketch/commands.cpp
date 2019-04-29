@@ -2,11 +2,12 @@
   The Controller can accept commands represented by one letter.
 
    R - reset 6309.
-   s - print 6309 hardware signal status.
+   p - print 6309 hardware signal status.
    v - set reset/interrupt vector.
    i - execute one instruction, input hex numbers.
    d - dump memory. AH AL [LH] LL
    m - write memory. AH AL D0 [D1...]
+   s - step one instruction.
    ? - print version.
 */
 
@@ -17,7 +18,7 @@
 #include "input.h"
 #include "pins.h"
 
-#define VERSION F("* Cyborg09 Prototype1 0.5")
+#define VERSION F("* Cyborg09 Prototype1 0.6")
 
 class Commands Commands;
 
@@ -69,11 +70,12 @@ static void handleVector(uint8_t values[], uint8_t len) {
 void Commands::loop() {
   const char c = Serial.read();
   if (c == -1) return;
-  if (c == 's') Pins.print();
+  if (c == 'p') Pins.print();
   if (c == 'R') Pins.reset();
   if (c == 'i') Input.readUint8(c, handleInstruction);
   if (c == 'd') Input.readUint8(c, handleDumpMemory);
   if (c == 'm') Input.readUint8(c, handleMemoryWrite);
+  if (c == 's') Pins.step(true /* show */);
   if (c == 'v') Input.readUint8(c, handleVector);
   if (c == '?') Serial.println(VERSION);
 }

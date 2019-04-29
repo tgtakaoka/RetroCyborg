@@ -23,6 +23,7 @@ public:
 
   uint8_t dbus() { return _signals.dbus; }
   void execInst(uint8_t inst[], uint8_t len, bool show = false);
+  void step(bool show = false);
 
 private:
 
