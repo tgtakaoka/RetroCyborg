@@ -82,6 +82,7 @@ void Input::processUint8() {
   case Uint8Buffer::FINISH:
     _values[_len++] = _buffer.value();
     if (state == Uint8Buffer::FINISH || _len == sizeof(_values)) {
+      if (state != Uint8Buffer::FINISH) Serial.println();
       _handler(_values, _len);
       _mode = CHAR_COMMAND;
     } else {

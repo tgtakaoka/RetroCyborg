@@ -22,7 +22,8 @@ public:
   bool readCycle() const;
 
   uint8_t dbus() { return _signals.dbus; }
-  void execInst(uint8_t inst[], uint8_t len, bool show = false);
+  void execInst(const uint8_t *inst, uint8_t len, bool show = false);
+  void captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
   void step(bool show = false);
 
 private:
@@ -48,15 +49,17 @@ private:
     void output();
     void input();
     bool valid() const { return _valid; }
+    void capture(bool enable);
     static uint8_t getDbus();
   private:
     void setDbus(uint8_t dir, uint8_t data);
     uint8_t _dir = INPUT;
     uint8_t _data;
     bool _valid;
+    bool _capture;
   };
 
-  void unhalt(bool show = false);
+  void unhalt();
 
   uint16_t _cycle;
   Status _signals;

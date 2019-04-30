@@ -47,25 +47,26 @@ void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
     Serial.println("!! R/W is LOW");
     return;
   }
+  if (dir == OUTPUT || _capture) {
+    digitalWrite(RAM_E, HIGH);
+  } else {
+    digitalWrite(RAM_E, LOW);
+  }
   _dir = dir;
   for (uint8_t bit = 0; bit < 8; bit++) {
     uint8_t pin = pinDataBus(bit);
     pinMode(pin, dir);
     if (dir == OUTPUT) {
-      digitalWrite(RAM_E, HIGH);
       if (data & 1) {
         digitalWrite(pin, HIGH);
       } else {
         digitalWrite(pin, LOW);
       }
-    } else {
-      digitalWrite(RAM_E, LOW);
     }
     data >>= 1;
   }
 }
 void Pins::Dbus::input() {
-  if (_dir == INPUT) return;
   setDbus(INPUT, 0);
 }
 
@@ -81,6 +82,10 @@ void Pins::Dbus::output() {
 void Pins::Dbus::set(uint8_t data) {
   _data = data;
   _valid = true;
+}
+
+void Pins::Dbus::capture(bool enabled) {
+  _capture = enabled;
 }
 
 void Pins::Status::get() {
@@ -219,17 +224,16 @@ void Pins::cycle() {
   _dbus.input();
 }
 
-void Pins::unhalt(bool show) {
+void Pins::unhalt() {
   digitalWrite(HALT, HIGH);
   do {
     cycle();
-    if (show) print();
     digitalWrite(HALT, LOW);
   } while (!running() || !lastInstCycle());
 }
 
-void Pins::execInst(uint8_t inst[], uint8_t len, bool show) {
-  unhalt(show);
+void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
+  unhalt();
   for (uint8_t i = 0; i < len; i++) {
     setData(inst[i]);
     cycle();
@@ -241,8 +245,27 @@ void Pins::execInst(uint8_t inst[], uint8_t len, bool show) {
   }
 }
 
+void Pins::captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max) {
+  unhalt();
+  for (uint8_t i = 0; i < len; i++) {
+    setData(inst[i]);
+    cycle();
+//    print();
+  }
+  _dbus.capture(true);
+  while (!lastInstCycle()) {
+    cycle();
+    if (writeCycle() && max > 0) {
+      *buf++ = _signals.dbus;
+      max--;
+    }
+//    print();
+  }
+  _dbus.capture(false);
+}
+
 void Pins::step(bool show) {
-  unhalt(show);
+  unhalt();
   do {
     cycle();
     if (show) print();
