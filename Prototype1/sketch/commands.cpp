@@ -3,7 +3,6 @@
 
    R - reset 6309.
    p - print 6309 hardware signal status.
-   v - set reset/interrupt vector.
    i - execute one instruction, input hex numbers.
    d - dump memory. AH AL [LH] LL
    m - write memory. AH AL D0 [D1...]
@@ -156,11 +155,6 @@ static void handleMemoryWrite(uint8_t values[], uint8_t len) {
   dumpMemory(addr, len);
 }
 
-static void handleVector(uint8_t values[], uint8_t len) {
-  if (len != 2) return;
-  Pins.setVector(toUint16(values));
-}
-
 void Commands::loop() {
   const char c = Serial.read();
   if (c == -1) return;
@@ -179,6 +173,5 @@ void Commands::loop() {
     regs.get();
     regs.print();
   }
-  if (c == 'v') Input.readUint8(c, handleVector);
   if (c == '?') Serial.println(VERSION);
 }

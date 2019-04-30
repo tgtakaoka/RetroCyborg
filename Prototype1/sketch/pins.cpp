@@ -190,10 +190,6 @@ void Pins::setData(uint8_t data) {
   _dbus.set(data);
 }
 
-void Pins::setVector(uint16_t vector) {
-  _vector = vector;
-}
-
 void Pins::cycle() {
   _cycle++;
   _previous = _signals;
@@ -206,14 +202,6 @@ void Pins::cycle() {
       _dbus.input();
     } else if (readCycle()) {
       _signals.inst = _dbus.valid();
-      _dbus.output();
-    }
-  } else if (vectorFetch()) {
-    if (_signals.busy) {
-      _dbus.set(_vector >> 8);
-      _dbus.output();
-    } else {
-      _dbus.set(_vector);
       _dbus.output();
     }
   } else {

@@ -11,7 +11,6 @@ public:
   void cycle();
   void print() const;
   void setData(uint8_t data);
-  void setVector(uint16_t vector);
 
   bool unchanged() const;
   bool inHalt() const;
@@ -65,7 +64,6 @@ private:
   Status _signals;
   Status _previous;
   Dbus _dbus;
-  uint16_t _vector;
 };
 
 extern Pins Pins;
