@@ -1,6 +1,8 @@
 #ifndef __HEX_H__
 #define __HEX_H__
 
+#include <stdint.h>
+
 static inline void printHex2(uint8_t value) {
   if (value < 0x10) Serial.print('0');
   Serial.print(value, HEX);
