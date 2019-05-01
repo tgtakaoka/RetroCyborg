@@ -2,25 +2,18 @@
 #include <Arduino.h>
 
 #include "commands.h"
+#include "hex.h"
 #include "input.h"
 
 class Input Input;
 
-#define MSG_BS     F("\b \b")
-#define MSG_CANCEL F(" cancel")
-
-static uint8_t toNumber(char c) {
-  return isDigit(c) ? c - '0' : c - 'A' + 10;
-}
-
-static char toChar(uint8_t value) {
-  value &= 0xf;
-  return value < 10 ? value + '0' : value - 10 + 'A';
-}
-
-static void backspace(int8_t n = 1) {
+static void printChars(const __FlashStringHelper *chars, int8_t n) {
   while (n-- > 0)
-    Serial.print(MSG_BS);
+    Serial.print(chars);
+}
+
+void Input::backspace(int8_t n) {
+  printChars(F("\b \b"), n);
 }
 
 void Input::HexBuffer::reset(uint8_t digits) {
@@ -29,79 +22,82 @@ void Input::HexBuffer::reset(uint8_t digits) {
   _value = 0;
 }
 
-void Input::HexBuffer::set(uint16_t value) {
+void Input::HexBuffer::set(uint8_t digits, uint16_t value) {
+  _len = _digits = digits;
   _value = value;
-  _len = _digits;
-  if (_digits == 4) {
-    Serial.print(toChar(value >> 12));
-    Serial.print(toChar(value >> 8));
-  }
-  Serial.print(toChar(value >> 4));
-  Serial.print(toChar(value));
+  if (digits == 4)
+    printHex2(value >> 8);
+  printHex2(value);
 }
 
-Input::HexBuffer::State Input::HexBuffer::append(char c) {
+Input::State Input::HexBuffer::append(char c) {
   if (isHexadecimalDigit(c) && _len < _digits) {
     if (isLowerCase(c)) c &= ~0x20;
     Serial.print(c);
     _len++;
     _value *= 16;
-    _value += toNumber(c);
+    _value += isDigit(c) ? c - '0' : c - 'A' + 10;
     return CONTINUE;
   }
   if (c == '\b' || c == '\x7f') {
     if (_len == 0) return DELETE;
+    backspace();
     _value /= 16;
     _len--;
-    backspace();
   }
   if (_len > 0 && isSpace(c)) {
     backspace(_len);
-    set(_value);
-    if (c == ' ') {
-      Serial.print(' ');
-      return NEXT;
-    }
-    Serial.println();
-    return FINISH;
+    set(_digits, _value);
+    Serial.print(c);
+    return c == ' ' ? NEXT : FINISH;
   }
   if (c == '\x1b') return CANCEL;
   return CONTINUE;
 }
 
-void Input::readUint8(char command, Uint8Handler handler) {
+void Input::readUint8(UintHandler handler, uint8_t index) {
+  readUint(handler, index, -2);
+}
+
+void Input::readUint16(UintHandler handler, uint8_t index) {
+  readUint(handler, index, -4);
+}
+
+void Input::readUint8(UintHandler handler, uint8_t index, uint8_t value) {
+  readUint(handler, index, 2, value);
+}
+
+void Input::readUint16(UintHandler handler, uint8_t index, uint16_t value) {
+  readUint(handler, index, 4, value);
+}
+
+void Input::readUint(UintHandler handler, uint8_t index, int8_t digits, uint16_t value) {
+  if (digits < 0) {
+    _buffer.reset(-digits);
+  } else {
+    backspace(digits);
+    _buffer.set(digits, value);
+  }
   _handler = handler;
-  Serial.print(command);
-  Serial.print('?');
-  _buffer.reset(2);
+  _index = index;
   _mode = HEX_NUMBERS;
-  _len = 0;
 }
 
 void Input::processHexNumbers() {
-  HexBuffer::State state = _buffer.append(Serial.read());
+  const State state = _buffer.append(Serial.read());
   switch (state) {
-  case HexBuffer::CONTINUE:
+  case CONTINUE:
     break;
-  case HexBuffer::NEXT:
-  case HexBuffer::FINISH:
-    _values[_len++] = _buffer.value();
-    if (state == HexBuffer::FINISH || _len == sizeof(_values)) {
-      if (state != HexBuffer::FINISH) Serial.println();
-      _handler(_values, _len);
-      _mode = CHAR_COMMAND;
-    } else {
-      _buffer.reset(_buffer.digits());
-    }
+  case NEXT:
+  case FINISH:
+    _mode = CHAR_COMMAND;
+   _handler(state, _buffer.value(), _index);
     break;
-  case HexBuffer::DELETE:
-    if (_len > 0) {
-      backspace(_buffer.digits());
-      _buffer.set(_values[--_len]);
-    }
+  case DELETE:
+    _handler(state, 0, _index);
     break;
-  case HexBuffer::CANCEL:
-    Serial.println(MSG_CANCEL);
+  case CANCEL:
+    Serial.println(F(" cancel"));
     _mode = CHAR_COMMAND;
   }
 }

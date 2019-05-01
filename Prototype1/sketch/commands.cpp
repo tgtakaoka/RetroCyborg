@@ -23,6 +23,8 @@
 
 class Commands Commands;
 
+static uint8_t buffer[16];
+
 static void execInst2(uint8_t inst, uint8_t opr) {
   const uint8_t insn[] = { inst, opr };
   Pins.execInst(insn, sizeof(insn));
@@ -33,8 +35,23 @@ static void execInst3(uint8_t inst, uint16_t opr) {
   Pins.execInst(insn, sizeof(insn));
 }
 
-static void handleInstruction(uint8_t values[], uint8_t len) {
-  Pins.execInst(values, len, true /* show */);
+static void handleInstruction(Input::State state, uint16_t value, uint8_t index) {
+  switch (state) {
+  case Input::State::NEXT:
+  case Input::State::FINISH:
+    buffer[index++] = value;
+    if (state == Input::State::NEXT && index < sizeof(buffer)) {
+      Input.readUint8(handleInstruction, index);
+    } else {
+      Pins.execInst(buffer, index, true /* show */);
+    }
+    break;
+  case Input::State::DELETE:
+    if (index-- > 0) {
+      Input::backspace();
+      Input.readUint8(handleInstruction, index, buffer[index]);
+    }
+  }
 }
 
 static void dumpMemory(uint16_t addr, uint16_t len) {
@@ -44,39 +61,78 @@ static void dumpMemory(uint16_t addr, uint16_t len) {
     execInst2(0xA6, 0x80); // LDA ,X+
     if (i % 16 == 0) {
       if (i) Serial.println();
-      printHex4(addr + i);
-      Serial.print(':');
+      printHex4(addr + i, ':');
     }
-    printHex2(Pins.dbus());
-    Serial.print(' ');
+    printHex2(Pins.dbus(), ' ');
   }
   Serial.println();
   Regs.restore();
 }
 
-static void handleDumpMemory(uint8_t values[], uint8_t len) {
-  if (len < 3 || len > 4) return;
-  const uint16_t num = (len == 3) ? values[2] : toUint16(values + 2);
-  dumpMemory(toUint16(values), num);
+static void handleDumpMemory(Input::State state, uint16_t value, uint8_t index) {
+  static uint16_t addr;
+  switch (state) {
+  case Input::State::NEXT:
+  case Input::State::FINISH:
+    if (index == 0) {
+      if (state == Input::State::FINISH) {
+        dumpMemory(value, 16);
+      } else {
+        addr = value;
+        Input.readUint16(handleDumpMemory, 1);
+      }
+    } else {
+      dumpMemory(addr, value);
+    }
+    break;
+  case Input::State::DELETE:
+    if (index == 1) {
+      Input::backspace();
+      Input.readUint16(handleDumpMemory, 0, addr);
+    }
+  }
 }
 
-static void memoryWrite(uint16_t addr, const uint8_t *values, uint8_t len) {
+static void memoryWrite(uint16_t addr, const uint8_t values[], const uint8_t len) {
   Regs.save();
-  uint8_t lda_imm[] = { 0x86, 0x00 };
-  const uint8_t sta_xpp[] = { 0xA7, 0x80 };
   execInst3(0x8E, addr); // LDX #addr
   for (uint8_t i = 0; i < len; i++) {
     execInst2(0x86, values[i]); // LDA #values[i]
-    execInst2(0xA7, 0x80);      // STA ,X+
+    execInst3(0xA7, 0x80);      // STA ,X+
   }
   Regs.restore();
 }
 
-static void handleMemoryWrite(uint8_t values[], uint8_t len) {
-  if (len < 3) return;
-  const uint16_t addr = toUint16(values);
-  memoryWrite(addr, values + 2, len -= 2);
-  dumpMemory(addr, len);
+static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index) {
+  static uint16_t addr;
+  switch (state) {
+  case Input::State::NEXT:
+    if (index == sizeof(buffer)) {
+      addr = value;
+      Input.readUint8(handleMemoryWrite, 0);
+      break;
+    }
+    // fall-through
+  case Input::State::FINISH:
+    buffer[index++] = value;
+    if (index < sizeof(buffer) && state == Input::State::NEXT) {
+      Input.readUint8(handleMemoryWrite, index);
+    } else {
+      if (state == Input::State::NEXT) Serial.println();
+      memoryWrite(addr, buffer, index);
+      dumpMemory(addr, index);
+    }
+    break;
+  case Input::State::DELETE:
+    if (index == 0) {
+      Input::backspace();
+      Input.readUint16(handleMemoryWrite, sizeof(buffer), addr);
+    } else if (index < sizeof(buffer)) {
+      index--;
+      Input::backspace();
+      Input.readUint8(handleMemoryWrite, index, buffer[index]);
+    }
+  }
 }
 
 void Commands::loop() {
@@ -84,9 +140,18 @@ void Commands::loop() {
   if (c == -1) return;
   if (c == 'p') Pins.print();
   if (c == 'R') Pins.reset();
-  if (c == 'i') Input.readUint8(c, handleInstruction);
-  if (c == 'd') Input.readUint8(c, handleDumpMemory);
-  if (c == 'm') Input.readUint8(c, handleMemoryWrite);
+  if (c == 'i') {
+    Serial.print(F("i?"));
+    Input.readUint8(handleInstruction, 0);
+  }
+  if (c == 'd') {
+    Serial.print(F("d?"));
+    Input.readUint16(handleDumpMemory, 0);
+  }
+  if (c == 'm') {
+    Serial.print(F("m?"));
+    Input.readUint16(handleMemoryWrite, sizeof(buffer));
+  }
   if (c == 's') {
     Pins.step();
     Regs.get();

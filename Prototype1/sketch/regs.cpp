@@ -8,12 +8,12 @@ union Regs Regs;
 
 static void hex4(uint16_t v, const __FlashStringHelper *name) {
   Serial.print(name);
-  printHex4(v);
+  printHex4(v, ' ');
 }
 
 static void hex2(uint8_t v, const __FlashStringHelper *name) {
   Serial.print(name);
-  printHex2(v);
+  printHex2(v, ' ');
 }
 
 static void execInst4(uint8_t pre, uint8_t inst, uint16_t opr) {
@@ -32,15 +32,15 @@ static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {
 }
 
 void Regs::print() const {
-  hex4(pc, F(" PC="));
-  hex4(s,  F(" S="));
-  hex4(u,  F(" U="));
-  hex4(y,  F(" Y="));
-  hex4(x,  F(" X="));
-  hex2(dp, F(" DP="));
-  hex2(b,  F(" B="));
-  hex2(a,  F(" A="));
-  Serial.print(F(" EFHINZVC="));
+  hex4(pc, F("PC="));
+  hex4(s,  F("S="));
+  hex4(u,  F("U="));
+  hex4(y,  F("Y="));
+  hex4(x,  F("X="));
+  hex2(dp, F("DP="));
+  hex2(b,  F("B="));
+  hex2(a,  F("A="));
+  Serial.print(F("EFHINZVC="));
   for (uint8_t m = 0x80; m != 0; m >>= 1) {
     Serial.print((m & cc) ? 1 : 0);
   }
