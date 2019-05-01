@@ -17,15 +17,15 @@ private:
     HEX_NUMBERS,
   } _mode = CHAR_COMMAND;
 
-  void processUint8();
+  void processHexNumbers();
 
   Uint8Handler _handler;
   uint8_t _len;
   uint8_t _values[18];
 
-  class Uint8Buffer {
+  class HexBuffer {
   public:
-    void reset();
+    void reset(uint8_t digits);
     enum State {
       CONTINUE,
       NEXT,
@@ -34,13 +34,14 @@ private:
       CANCEL,
     };
     State append(char c);
-    void set(uint8_t value);
-    uint8_t value() { return _value; }
-    static const uint8_t _max_len = 2;
+    void set(uint16_t value);
+    uint16_t value() { return _value; }
+    uint8_t digits() { return _digits; }
 
   private:
     uint8_t _len;
-    uint8_t _value;
+    uint8_t _digits;
+    uint16_t _value;
   } _buffer;
 };
 

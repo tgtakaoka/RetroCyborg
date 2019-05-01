@@ -23,20 +23,25 @@ static void backspace(int8_t n = 1) {
     Serial.print(MSG_BS);
 }
 
-void Input::Uint8Buffer::reset() {
+void Input::HexBuffer::reset(uint8_t digits) {
   _len = 0;
+  _digits = digits;
   _value = 0;
 }
 
-void Input::Uint8Buffer::set(uint8_t value) {
+void Input::HexBuffer::set(uint16_t value) {
   _value = value;
-  _len = _max_len;
+  _len = _digits;
+  if (_digits == 4) {
+    Serial.print(toChar(value >> 12));
+    Serial.print(toChar(value >> 8));
+  }
   Serial.print(toChar(value >> 4));
   Serial.print(toChar(value));
 }
 
-Input::Uint8Buffer::State Input::Uint8Buffer::append(char c) {
-  if (isHexadecimalDigit(c) && _len < _max_len) {
+Input::HexBuffer::State Input::HexBuffer::append(char c) {
+  if (isHexadecimalDigit(c) && _len < _digits) {
     if (isLowerCase(c)) c &= ~0x20;
     Serial.print(c);
     _len++;
@@ -68,34 +73,34 @@ void Input::readUint8(char command, Uint8Handler handler) {
   _handler = handler;
   Serial.print(command);
   Serial.print('?');
-  _buffer.reset();
+  _buffer.reset(2);
   _mode = HEX_NUMBERS;
   _len = 0;
 }
 
-void Input::processUint8() {
-  Uint8Buffer::State state = _buffer.append(Serial.read());
+void Input::processHexNumbers() {
+  HexBuffer::State state = _buffer.append(Serial.read());
   switch (state) {
-  case Uint8Buffer::CONTINUE:
+  case HexBuffer::CONTINUE:
     break;
-  case Uint8Buffer::NEXT:
-  case Uint8Buffer::FINISH:
+  case HexBuffer::NEXT:
+  case HexBuffer::FINISH:
     _values[_len++] = _buffer.value();
-    if (state == Uint8Buffer::FINISH || _len == sizeof(_values)) {
-      if (state != Uint8Buffer::FINISH) Serial.println();
+    if (state == HexBuffer::FINISH || _len == sizeof(_values)) {
+      if (state != HexBuffer::FINISH) Serial.println();
       _handler(_values, _len);
       _mode = CHAR_COMMAND;
     } else {
-      _buffer.reset();
+      _buffer.reset(_buffer.digits());
     }
     break;
-  case Uint8Buffer::DELETE:
+  case HexBuffer::DELETE:
     if (_len > 0) {
-      backspace(Uint8Buffer::_max_len + 1);
+      backspace(_buffer.digits());
       _buffer.set(_values[--_len]);
     }
     break;
-  case Uint8Buffer::CANCEL:
+  case HexBuffer::CANCEL:
     Serial.println(MSG_CANCEL);
     _mode = CHAR_COMMAND;
   }
@@ -107,7 +112,7 @@ void Input::loop() {
     Commands.loop();
     break;
   case HEX_NUMBERS:
-    processUint8();
+    processHexNumbers();
     break;
   }
 }
