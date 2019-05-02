@@ -13,25 +13,27 @@ public:
     DELETE,
     CANCEL,
   };
-  typedef void (*UintHandler)(State state, uint16_t values, uint8_t index);
+  typedef void (*InputHandler)(State state, uint16_t values, uint8_t index);
 
   void loop();
-  void readUint8(UintHandler handler, uint8_t index);
-  void readUint16(UintHandler handler, uint8_t index);
-  void readUint8(UintHandler handler, uint8_t index, uint8_t value);
-  void readUint16(UintHandler handler, uint8_t index, uint16_t value);
+  void readUint8(InputHandler handler, uint8_t index);
+  void readUint16(InputHandler handler, uint8_t index);
+  void readUint8(InputHandler handler, uint8_t index, uint8_t value);
+  void readUint16(InputHandler handler, uint8_t index, uint16_t value);
+  void readChar(InputHandler handler, uint8_t index);
   static void backspace(int8_t n = 1);
 
 private:
   enum Mode {
     CHAR_COMMAND,
-    HEX_NUMBERS,
+    READ_UINT,
+    READ_CHAR,
   } _mode = CHAR_COMMAND;
 
-  void readUint(UintHandler, uint8_t index, int8_t digits, uint16_t value = 0);
-  void processHexNumbers();
+  void readUint(InputHandler, uint8_t index, int8_t digits, uint16_t value = 0);
+  void processHexNumbers(char c);
 
-  UintHandler _handler;
+  InputHandler _handler;
   uint8_t _index;
 
   class HexBuffer {

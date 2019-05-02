@@ -4,7 +4,7 @@
 class Commands {
 
 public:
-  void loop();
+  void exec(char c);
 };
 
 extern Commands Commands;

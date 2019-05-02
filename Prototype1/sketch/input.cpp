@@ -55,23 +55,23 @@ Input::State Input::HexBuffer::append(char c) {
   return CONTINUE;
 }
 
-void Input::readUint8(UintHandler handler, uint8_t index) {
+void Input::readUint8(InputHandler handler, uint8_t index) {
   readUint(handler, index, -2);
 }
 
-void Input::readUint16(UintHandler handler, uint8_t index) {
+void Input::readUint16(InputHandler handler, uint8_t index) {
   readUint(handler, index, -4);
 }
 
-void Input::readUint8(UintHandler handler, uint8_t index, uint8_t value) {
+void Input::readUint8(InputHandler handler, uint8_t index, uint8_t value) {
   readUint(handler, index, 2, value);
 }
 
-void Input::readUint16(UintHandler handler, uint8_t index, uint16_t value) {
+void Input::readUint16(InputHandler handler, uint8_t index, uint16_t value) {
   readUint(handler, index, 4, value);
 }
 
-void Input::readUint(UintHandler handler, uint8_t index, int8_t digits, uint16_t value) {
+void Input::readUint(InputHandler handler, uint8_t index, int8_t digits, uint16_t value) {
   if (digits < 0) {
     _buffer.reset(-digits);
   } else {
@@ -80,11 +80,17 @@ void Input::readUint(UintHandler handler, uint8_t index, int8_t digits, uint16_t
   }
   _handler = handler;
   _index = index;
-  _mode = HEX_NUMBERS;
+  _mode = READ_UINT;
 }
 
-void Input::processHexNumbers() {
-  const State state = _buffer.append(Serial.read());
+void Input::readChar(InputHandler handler, uint8_t index) {
+  _handler = handler;
+  _index = index;
+  _mode = READ_CHAR;
+}
+
+void Input::processHexNumbers(char c) {
+  const State state = _buffer.append(c);
   switch (state) {
   case CONTINUE:
     break;
@@ -103,12 +109,18 @@ void Input::processHexNumbers() {
 }
 
 void Input::loop() {
+  const char c = Serial.read();
+  if (c == -1) return;
   switch (_mode) {
   case CHAR_COMMAND:
-    Commands.loop();
+    Commands.exec(c);
     break;
-  case HEX_NUMBERS:
-    processHexNumbers();
+  case READ_UINT:
+    processHexNumbers(c);
+    break;
+  case READ_CHAR:
+    _mode = CHAR_COMMAND;
+    _handler(FINISH, c, _index);
     break;
   }
 }

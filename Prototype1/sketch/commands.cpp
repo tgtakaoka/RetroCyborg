@@ -8,6 +8,7 @@
    m - write memory. AH AL D0 [D1...]
    s - step one instruction.
    r - print 6309 registers.
+   = - set 6309 register.
    ? - print version.
 */
 
@@ -19,7 +20,7 @@
 #include "pins.h"
 #include "regs.h"
 
-#define VERSION F("* Cyborg09 Prototype1 0.7")
+#define VERSION F("* Cyborg09 Prototype1 0.8")
 
 class Commands Commands;
 
@@ -135,9 +136,43 @@ static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index)
   }
 }
 
-void Commands::loop() {
-  const char c = Serial.read();
-  if (c == -1) return;
+void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
+  if (index == 0) {
+    const char c = value;
+    if (c == 'p' || c == 's' || c == 'u' || c == 'y' || c == 'x') {
+      Serial.print(c);
+      Serial.print('?');
+      Input.readUint16(handleSetRegister, c);
+    } else if (c == 'd' || c == 'a' || c == 'b' || c == 'c') {
+      Serial.print(c);
+      Serial.print('?');
+      Input.readUint8(handleSetRegister, c);
+    }
+  } else {
+    switch (state) {
+    case Input::State::NEXT:
+      Serial.println();
+      // fallthrough
+    case Input::State::FINISH:
+      if (index == 'p') Regs.pc = value;
+      else if (index == 's') Regs.s = value;
+      else if (index == 'u') Regs.u = value;
+      else if (index == 'y') Regs.y = value;
+      else if (index == 'x') Regs.x = value;
+      else if (index == 'd') Regs.dp = value;
+      else if (index == 'a') Regs.a = value;
+      else if (index == 'b') Regs.b = value;
+      else if (index == 'c') Regs.cc = value;
+      Regs.print();
+      break;
+    case Input::State::DELETE:
+      Input::backspace(2);
+      Input.readChar(handleSetRegister, 0);
+    }
+  }
+}
+
+void Commands::exec(char c) {
   if (c == 'p') Pins.print();
   if (c == 'R') Pins.reset();
   if (c == 'i') {
@@ -161,6 +196,10 @@ void Commands::loop() {
   if (c == 'r') {
     Regs.get();
     Regs.print();
+  }
+  if (c == '=') {
+    Serial.print(c);
+    Input.readChar(handleSetRegister, 0);
   }
   if (c == '?') Serial.println(VERSION);
 }
