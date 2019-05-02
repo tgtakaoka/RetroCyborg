@@ -44,6 +44,7 @@ Input::State Input::HexBuffer::append(char c) {
     backspace();
     _value /= 16;
     _len--;
+    return CONTINUE;
   }
   if (_len > 0 && isSpace(c)) {
     backspace(_len);
@@ -92,12 +93,10 @@ void Input::readChar(InputHandler handler, uint8_t index) {
 void Input::processHexNumbers(char c) {
   const State state = _buffer.append(c);
   switch (state) {
-  case CONTINUE:
-    break;
   case NEXT:
   case FINISH:
     _mode = CHAR_COMMAND;
-   _handler(state, _buffer.value(), _index);
+    _handler(state, _buffer.value(), _index);
     break;
   case DELETE:
     _handler(state, 0, _index);
@@ -105,12 +104,16 @@ void Input::processHexNumbers(char c) {
   case CANCEL:
     Serial.println(F(" cancel"));
     _mode = CHAR_COMMAND;
+    break;
+  case CONTINUE:
+    break;
   }
 }
 
 void Input::loop() {
+  if (Serial.available() == 0)
+    return;
   const char c = Serial.read();
-  if (c == -1) return;
   switch (_mode) {
   case CHAR_COMMAND:
     Commands.exec(c);

@@ -172,17 +172,15 @@ bool Pins::readCycle() const {
 void Pins::reset() {
   digitalWrite(RESET, LOW);
   cycle();
+  cycle();
+  cycle();
   print();
   digitalWrite(RESET, HIGH);
-  cycle();
-  print();
   digitalWrite(HALT, HIGH);
-  cycle();
-  print();
-  digitalWrite(HALT, LOW);
   do {
     cycle();
     print();
+    digitalWrite(HALT, LOW);
   } while (!inHalt());
 }
 

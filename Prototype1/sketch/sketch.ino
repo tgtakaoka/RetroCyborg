@@ -15,6 +15,7 @@
 void setup() {
   Serial.begin(9600);
   Pins.begin();
+  Pins.reset();
 }
 
 void loop() {

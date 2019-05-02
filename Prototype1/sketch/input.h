@@ -7,13 +7,14 @@ class Input {
 
 public:
   enum State {
-    CONTINUE,
     NEXT,
     FINISH,
     DELETE,
     CANCEL,
+    CONTINUE,
   };
-  typedef void (*InputHandler)(State state, uint16_t values, uint8_t index);
+  // |state| can be NEXT, FINISH, or DELETE.
+  typedef void (*InputHandler)(State state, uint16_t value, uint8_t index);
 
   void loop();
   void readUint8(InputHandler handler, uint8_t index);
