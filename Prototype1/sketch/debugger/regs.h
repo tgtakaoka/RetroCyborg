@@ -18,7 +18,7 @@ union Regs {
   uint8_t bytes[14];
 
   void print() const;
-  void get();
+  void get(bool show = false);
   void save();
   void restore();
 };

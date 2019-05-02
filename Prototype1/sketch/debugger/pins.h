@@ -7,23 +7,17 @@ class Pins {
 
 public:
   void begin();
+  void loop();
   void reset();
-  void cycle();
   void print() const;
-  void setData(uint8_t data);
-
-  bool unchanged() const;
-  bool inHalt() const;
-  bool vectorFetch() const;
-  bool running() const;
-  bool lastInstCycle() const;
-  bool writeCycle() const;
-  bool readCycle() const;
 
   uint8_t dbus() { return _signals.dbus; }
   void execInst(const uint8_t *inst, uint8_t len, bool show = false);
   void captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
   void step(bool show = false);
+  bool run();
+  void runStep();
+  bool halt();
 
 private:
 
@@ -58,12 +52,24 @@ private:
     bool _capture;
   };
 
+  void cycle();
+  void setData(uint8_t data);
   void unhalt();
+
+  bool unchanged() const;
+  bool inHalt() const;
+  bool vectorFetch() const;
+  bool running() const;
+  bool lastInstCycle() const;
+  bool writeCycle() const;
+  bool readCycle() const;
 
   uint16_t _cycle;
   Status _signals;
   Status _previous;
   Dbus _dbus;
+  bool _run;
+  bool _inStep;
 };
 
 extern Pins Pins;

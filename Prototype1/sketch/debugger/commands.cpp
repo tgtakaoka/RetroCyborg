@@ -1,14 +1,18 @@
 /*
   The Controller can accept commands represented by one letter.
 
-   R - reset 6309.
-   p - print 6309 hardware signal status.
-   i - execute one instruction, input hex numbers.
+   R - reset MPU.
+   p - print MPU hardware signal status.
+   i - inject instruction.
    d - dump memory. addr [length]
    m - write memory. addr byte...
    s - step one instruction.
-   r - print 6309 registers.
-   = - set 6309 register.
+   S - step one instruction with printing signal status.
+   r - print MPU registers.
+   = - set MPU register.
+   c - continuously run with printing register.
+   C - continuously run.
+   h - halt MPU.
    ? - print version.
 */
 
@@ -20,8 +24,8 @@
 #include "pins.h"
 #include "regs.h"
 
-#define VERSION F("* Cyborg09 Prototype1 0.8")
-#define USAGE F("R:eset p:in i:nst d:ump m:emory s:tep r:eg =r:set")
+#define VERSION F("* Cyborg09 Prototype1 0.9")
+#define USAGE F("R:eset p:in i:nst d:ump m:emory s/S:tep r:eg =r:set c/C:ont h:alt")
 
 class Commands Commands;
 
@@ -185,19 +189,22 @@ void Commands::exec(char c) {
     Serial.print(F("m?"));
     Input.readUint16(handleMemoryWrite, NO_INDEX);
   }
-  if (c == 's') {
-    Pins.step();
-    Regs.get();
-    Regs.print();
+  if (c == 's' || c == 'S') {
+    Pins.step(c == 'S');
+    Regs.get(true);
     dumpMemory(Regs.pc, 6);
   }
-  if (c == 'r') {
-    Regs.get();
-    Regs.print();
-  }
+  if (c == 'r') Regs.get(true);
   if (c == '=') {
     Serial.print(c);
     Input.readChar(handleSetRegister, 0);
+  }
+  if (c == 'C' && Pins.run()) {
+    Serial.println(F("RUN"));
+  }
+  if (c == 'c') Pins.runStep();
+  if (c == 'h' && Pins.halt()) {
+    Serial.println(F("HALT"));
   }
   if (c == '?') {
     Serial.println(VERSION);

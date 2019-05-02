@@ -47,9 +47,10 @@ void Regs::print() const {
   Serial.println();
 }
 
-void Regs::get() {
+void Regs::get(bool show) {
   save();
   restore();
+  if (show) print();
 }
 
 void Regs::save() {

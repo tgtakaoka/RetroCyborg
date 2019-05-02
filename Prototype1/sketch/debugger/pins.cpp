@@ -4,6 +4,7 @@
 #include "hex.h"
 #include "pins.h"
 #include "pins_map.h"
+#include "regs.h"
 
 class Pins Pins;
 
@@ -184,10 +185,6 @@ void Pins::reset() {
   } while (!inHalt());
 }
 
-void Pins::setData(uint8_t data) {
-  _dbus.set(data);
-}
-
 void Pins::cycle() {
   _cycle++;
   _previous = _signals;
@@ -208,6 +205,37 @@ void Pins::cycle() {
   _signals.get();
   digitalWrite(CLK_E, LOW);
   _dbus.input();
+}
+
+bool Pins::run() {
+  if (_run) return false;
+  _run = true;
+  _inStep = false;
+  digitalWrite(HALT, HIGH);
+  return true;
+}
+
+void Pins::runStep() {
+  if (_run) return;
+  _inStep = true;
+}
+
+bool Pins::halt() {
+  if (_inStep) {
+    _inStep = false;
+    return true;
+  }
+  if (!_run) return false;
+  _run = false;
+  do {
+    cycle();
+    digitalWrite(HALT, LOW);
+  } while (!running() || !lastInstCycle());
+  return true;
+}
+
+void Pins::setData(uint8_t data) {
+  _dbus.set(data);
 }
 
 void Pins::unhalt() {
@@ -236,7 +264,6 @@ void Pins::captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t
   for (uint8_t i = 0; i < len; i++) {
     setData(inst[i]);
     cycle();
-//    print();
   }
   _dbus.capture(true);
   while (!lastInstCycle()) {
@@ -245,7 +272,6 @@ void Pins::captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t
       *buf++ = _signals.dbus;
       max--;
     }
-//    print();
   }
   _dbus.capture(false);
 }
@@ -281,4 +307,16 @@ void Pins::begin() {
   _dbus.begin();
 
   _previous.get();
+}
+
+void Pins::loop() {
+  cycle();
+  if (_run) return;
+  if (_inStep) {
+    step();
+    Regs.get(true);
+    return;
+  }
+  if (!inHalt() && !unchanged())
+    print();
 }
