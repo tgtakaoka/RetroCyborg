@@ -28,30 +28,6 @@ const uint8_t DBUS[] PROGMEM = {
   0,  // bit 7, RX
 };
 
-#elif defined(ARDUINO_AVR_PROMICRO)
-/* SparkFun Pro Micro 32u4 5V */
-const uint8_t HALT  = 1; // TX/D1
-const uint8_t BS    = 0; // RX/D0
-const uint8_t BA    = 2; // D2/SDA
-const uint8_t LIC   = 3; // D3/SCL
-const uint8_t AVMA  = 4; // D4/D24/A6
-const uint8_t BUSY  = 5; // D5
-const uint8_t RESET = 6; // D6/D25/A7
-const uint8_t CLK_Q = 7; // D7
-const uint8_t CLK_E = 8; // D8/D26/A8
-const uint8_t RD_WR = 9; // D9/D27/A9
-
-const uint8_t DBUS[] PROGMEM = {
-  21, // bit 0, A3/D21
-  20, // bit 1, A2/D20
-  19, // bit 2, A1/D19
-  18, // bit 3, A0/D18
-  15, // bit 4, D15/SCK
-  14, // bit 5, D14/MISO
-  16, // bit 6, D16/MOSI
-  10, // bit 7, D10/A10
-};
-
 #endif
 
 #endif
