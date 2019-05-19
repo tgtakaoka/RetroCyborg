@@ -601,9 +601,6 @@ Wire Wire Line
 	5800 2400 5800 2800
 Wire Wire Line
 	5800 3700 5700 3700
-NoConn ~ 4700 4400
-NoConn ~ 4700 4500
-NoConn ~ 4700 4600
 Wire Wire Line
 	4300 3300 4700 3300
 Wire Wire Line
@@ -1462,7 +1459,6 @@ Text GLabel 3100 4550 2    50   Input ~ 0
 LED_LIC
 Text GLabel 3100 4450 2    50   Input ~ 0
 LED_RW
-NoConn ~ 5700 3600
 Text GLabel 6150 1500 2    50   Input ~ 0
 HALT
 Text GLabel 6150 1600 2    50   Input ~ 0
@@ -1891,6 +1887,38 @@ F 3 "" H 2850 1750 50  0001 C CNN
 	1    2850 1750
 	1    0    0    -1  
 $EndComp
+$Comp
+L power:GND #PWR0119
+U 1 1 5CE5F1CE
+P 6050 3600
+F 0 "#PWR0119" H 6050 3350 50  0001 C CNN
+F 1 "GND" H 6055 3427 50  0000 C CNN
+F 2 "" H 6050 3600 50  0001 C CNN
+F 3 "" H 6050 3600 50  0001 C CNN
+	1    6050 3600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5700 3600 6050 3600
+$Comp
+L power:+5V #PWR0122
+U 1 1 5CEF8520
+P 4700 4300
+F 0 "#PWR0122" H 4700 4150 50  0001 C CNN
+F 1 "+5V" H 4715 4473 50  0000 C CNN
+F 2 "" H 4700 4300 50  0001 C CNN
+F 3 "" H 4700 4300 50  0001 C CNN
+	1    4700 4300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4700 4600 4700 4500
+Wire Wire Line
+	4700 4500 4700 4400
+Connection ~ 4700 4500
+Wire Wire Line
+	4700 4400 4700 4300
+Connection ~ 4700 4400
 Wire Bus Line
 	4500 4150 4500 5750
 Wire Bus Line
