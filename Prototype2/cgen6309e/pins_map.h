@@ -62,8 +62,8 @@ static inline bool isIoAddr() {
 #define CLK_Q  PB0
 #define INT    PB2
 #define ACK    PB3
-#define STEP   PB4
-#define IOR    PB5
+#define STEP   PB5
+#define IOR    PB4
 
 #define PORT_CLK_E PORTB
 #define PORT_CLK_Q PORTB
