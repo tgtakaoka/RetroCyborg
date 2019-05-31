@@ -73,7 +73,7 @@ static inline bool isIoAddr() {
 #define PORTB_PULL (_BV(ACK)|_BV(STEP|_BV(IOR)))
 
 static inline bool isIoAddr() {
-  return (PIN_IOR & IOR) == 0;
+  return (PIN_IOR & _BV(IOR)) == 0;
 }
 #endif
 
