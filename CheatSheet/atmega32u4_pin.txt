@@ -1,32 +1,32 @@
-ATmega32U4                    ProMicro       ItsyBitsy
---------------------------  -------------- ------------
-PB0/#SS/PCINT0              - D17/SS/RXLED - D17/SS/RXLED
-PB1/SCK/PCINT1              + D15/SCK      + SCK/D15
-PB2/MOSI/PCINT2             + D16/MOSI     + MO/D16
-PB3/MISO/PCINT3             + D14/MISO     + MI/D14
-PB4/PCINT4/ADC11            + D8/D26/A8    + D8/D26/A8
-PB5/PCINT5/ADC12/OC1A/#OC4B + D9/D27/A9    + D9/D27/A9
-PB6/PCINT6/ADC13/OC1B/OC4B  + D10/D28/A10  + D10/D28/A10
-PB7/PCINT7/#RTS/OC0A/OC1C   - D11          + D11
+ATmega32U4  ProMicro           ItsyBitsy         Full32u4
+----------  ---------------    --------------    ---------------
+PB0         RXLED     -        RXLED    -        D17
+PB1/SCK     D15/SCK   DB4      SCK/D15  RESET    D15/SCK
+PB2/MOSI    D16/MOSI  DB6      MO/D16   CLK_Q    D16/MOSI
+PB3/MISO    D14/MISO  DB5      MI/D14   CLK_E    D14/MISO
+PB4         D8/A8     CLK_E    D8/A8    RD_WR    D8/A8
+PB5         D9/A9     RD_WR    D9/A9    DB1      D9/A9     HALT
+PB6         D10/A10   DB7      D10/A10  DB0      D10/A10   RD_WR
+PB7         -         -        D11      RAM_E    D11       RAM_E
 
-PC6/ICP3/CLKO/OC4A          + D5           + D5
-PC7/OC3A/#OC4A              - D13          + D13
+PC6         D5        BUSY     D5       DB3      D5        CLK_Q
+PC7         -         -        D13               D13       CLK_E
 
-PD0/#INT0/SCL/OC0B          + D3/SCL       + D3/SCL
-PD1/#INT1/SDA               + D2/SDA       + D2/SDA
-PD2/#INT2/RXD1              + RXI/D0       + D0/RX
-PD3/#INT3/TXD1              + TXO/D1       + D1/TX
-PD4/ICP1/ADC8               + D4/D24/A6    + D4/D24/A6
-PD5/XCK1/#CTS               - D30/TXLED    - D30/TXLED
-PD6/T1/#OC4D/ADC9           - D12/D29/A11  + D12/D29/A11
-PD7/T0/OC4D/ADC10           + D6/D25/A7    + D6/D25/A7
+PD0/SCL     D3/SCL    LIC      D3/SCL   DB4      D3/SCL    DB0
+PD1/SDA     D2/SDA    BA       D2/SDA   DB5      D3/SDA    DB1
+PD2/RXD1    RXI/D0    BS       D0/RX    DB7      D0/RXD    DB2
+PD3/TXD1    TXO/D1    HALT     D1/TX    DB6      D1/TXD    DB3
+PD4         D4/A6     AVMA     D4/A6             D4/A6     DB4
+PD5         TXLED     -        TXLED    -        D30       DB5
+PD6         -         -        D12/A11           D12/A11   DB6
+PD7         D6/A7     RESET    D6/A7             D6/A7     DB7
 
-PE2                         - HWB          - HWB
-PE6/INT6/AIN0               + D7           + D7
+PE2/HWB     -         -        -        -        -         -
+PE6/INT6    D7        CLK_Q    D7       DB2      D7
 
-PF0/ADC0                    - D23/A5       + A5/D23
-PF1/ADC1                    - D22/A4       + A4/D22
-PF4/TCK/ADC4                + A3/D21       + A3/D21
-PF5/TMS/ADC5                + A2/D20       + A2/D20
-PF6/TDO/ADC6                + A1/D19       + A1/D19
-PF7/TDI/ADC7                + A0/D18       + A0/D18
+PF0         -         -        A5/D23   BUSY     A5/D23    BUSY
+PF1         -         -        A4/D22   AVMA     A4/D22    AVMA
+PF4         A3/D21    DB0      A3/D21   LIC      A3/D21    LIC
+PF5         A2/D20    DB1      A2/D20   BA       A2/D20    BA
+PF6         A1/D19    DB2      A1/D19   BS       A1/D19    BS
+PF7         A0/D18    DB3      A0/D18   HALT     A0/D18
