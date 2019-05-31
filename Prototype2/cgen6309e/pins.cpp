@@ -31,6 +31,10 @@ void Pins::begin() {
   DDRB = PORTB_DIR;
   PORTB = PORTB_INIT | PORTB_PULL;
 #endif
+#if defined(PORTC_DIR)
+  DDRC = PORTC_DIR;
+  PORTC = PORTC_INIT | PORTC_PULL;
+#endif
 #if defined(PORTD_DIR)
   DDRD = PORTD_DIR;
   PORTD = PORTD_INIT | PORTD_PULL;
