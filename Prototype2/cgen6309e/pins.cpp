@@ -1,7 +1,7 @@
 #include <avr/io.h>
 
-// 0xFFA0 ~ 0xFFBF
-#define IO_ADR_BASE 0xFFA0
+// 0xFFC0 ~ 0xFFDF
+#define IO_ADR_BASE 0xFFC0
 
 #include "pins.h"
 #include "pins_map.h"
@@ -23,6 +23,10 @@ class Pins Pins;
 #endif
 
 void Pins::begin() {
+#if defined(PORTA_DIR)
+  DDRA = PORTA_DIR;
+  PORTB = PORTB_INIT | PORTB_PULL;
+#endif
 #if defined(PORTB_DIR)
   DDRB = PORTB_DIR;
   PORTB = PORTB_INIT | PORTB_PULL;
