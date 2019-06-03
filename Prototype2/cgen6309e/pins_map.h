@@ -61,9 +61,9 @@ static inline bool isIoAddr() {
 
 #define CLK_E  PD1
 #define CLK_Q  PD0
-#define INT    PD3
-#define ACK    PD2
-#define STEP   PA2
+#define INT    PD2
+#define ACK    PD3
+#define STEP   PD4
 #define ADR15  PB7
 #define ADR14  PB6
 #define ADR13  PB5
@@ -73,15 +73,17 @@ static inline bool isIoAddr() {
 #define ADR9   PB1
 #define ADR8   PD6
 #define ADR7   PD5
-#define ADR6   PD4
+#define ADR6   PA2
 #define ADR5   PB0
 
 #define IOA(n) (((IO_ADR_BASE >> (n)) & 1) << ADR##n)
 
 #define IO_ADRH (IOA(15)|IOA(14)|IOA(13)|IOA(12)|IOA(11)|IOA(10)|IOA(9)|IOA(5))
 #define ADRH    (_BV(ADR15)|_BV(ADR14)|_BV(ADR13)|_BV(ADR12)|_BV(ADR11)|_BV(ADR10)|_BV(ADR9)|_BV(ADR5))
-#define IO_ADRL (IOA(8)|IOA(7)|IOA(6))
-#define ADRL    (_BV(ADR8)|_BV(ADR7)|_BV(ADR6))
+#define IO_ADRM (IOA(8)|IOA(7))
+#define ADRM    (_BV(ADR8)|_BV(ADR7))
+#define IO_ADRL (IOA(6))
+#define ADRL    (_BV(ADR6))
 
 #define PORT_CLK_E PORTD
 #define PORT_CLK_Q PORTD
@@ -89,21 +91,23 @@ static inline bool isIoAddr() {
 #define PIN_ACK    PIND
 #define PIN_STEP   PIND
 #define PIN_ADRH   PINB
-#define PIN_ADRL   PIND
+#define PIN_ADRM   PIND
+#define PIN_ADRL   PINA
 
 #define PORTA_DIR  0x00
-#define PORTA_PULL _BV(STEP)
 #define PORTA_INIT 0x00
+#define PORTA_PULL _BV(ADR6)
 #define PORTB_DIR  0x00
 #define PORTB_INIT 0x00
 #define PORTB_PULL ADRH
 #define PORTD_DIR  (_BV(CLK_E)|_BV(CLK_Q)|_BV(INT))
 #define PORTD_INIT _BV(INT)
-#define PORTD_PULL (_BV(ACK)|_BV(STEP)|ADRL)
+#define PORTD_PULL (_BV(ACK)|_BV(STEP)|ADRM)
 
 static inline bool isIoAddr() {
   return
       (PIN_ADRH & ADRH) == IO_ADRH &&
+      (PIN_ADRM & ADRM) == IO_ADRM &&
       (PIN_ADRL & ADRL) == IO_ADRL;
 }
 
@@ -115,8 +119,8 @@ static inline bool isIoAddr() {
 #define CLK_Q  PB0
 #define INT    PB2
 #define ACK    PB3
-#define STEP   PB5
-#define IOR    PB4
+#define STEP   PB4
+#define IOR    PB5
 
 #define PORT_CLK_E PORTB
 #define PORT_CLK_Q PORTB

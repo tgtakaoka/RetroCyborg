@@ -493,7 +493,7 @@ A10
 Text Label 4850 2750 0    50   ~ 0
 A9
 Text Label 4850 2650 0    50   ~ 0
-A6
+A5
 Entry Wire Line
 	4850 4150 4950 4050
 Entry Wire Line
@@ -506,8 +506,6 @@ Text Label 4850 4150 0    50   ~ 0
 A8
 Text Label 4850 4050 0    50   ~ 0
 A7
-Wire Bus Line
-	6100 2000 4950 2000
 Connection ~ 6100 2000
 $Comp
 L Device:Resonator_Small Y1
@@ -634,11 +632,11 @@ Wire Wire Line
 	4800 3550 5050 3550
 Wire Wire Line
 	4800 3650 5050 3650
-Text GLabel 5050 3750 2    50   Input ~ 0
+Text GLabel 5050 3950 2    50   Input ~ 0
 #STEP
 Text GLabel 5050 3850 2    50   Input ~ 0
 #ACK
-Text GLabel 5050 3950 2    50   Input ~ 0
+Text GLabel 5050 3750 2    50   Input ~ 0
 #INT
 Wire Wire Line
 	4800 3750 5050 3750
@@ -709,7 +707,6 @@ Wire Wire Line
 Connection ~ 7900 3500
 Wire Wire Line
 	5700 4500 6250 4500
-NoConn ~ 3600 2650
 Wire Wire Line
 	650  2900 1250 2900
 Text GLabel 1250 3000 0    50   Input ~ 0
@@ -822,6 +819,23 @@ Wire Wire Line
 	1900 4300 1900 4950
 Wire Wire Line
 	2000 4300 2000 4950
+Text Label 2000 4950 1    50   ~ 0
+A0
+Text Label 1900 4950 1    50   ~ 0
+A1
+Text Label 850  3500 0    50   ~ 0
+A2
+Wire Bus Line
+	3450 2000 3450 2550
+Wire Bus Line
+	3450 2000 4950 2000
+Connection ~ 4950 2000
+Wire Bus Line
+	4950 2000 6100 2000
+Entry Wire Line
+	3450 2550 3550 2650
+Wire Wire Line
+	3550 2650 3600 2650
 Wire Wire Line
 	4800 3950 5050 3950
 Wire Bus Line
@@ -838,10 +852,6 @@ Wire Bus Line
 	6100 2000 6100 3900
 Wire Bus Line
 	8450 2000 8450 3850
-Text Label 2000 4950 1    50   ~ 0
-A0
-Text Label 1900 4950 1    50   ~ 0
-A1
-Text Label 850  3500 0    50   ~ 0
-A2
+Text Label 3550 2650 2    50   ~ 0
+A6
 $EndSCHEMATC
