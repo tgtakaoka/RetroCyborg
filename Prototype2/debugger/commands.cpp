@@ -24,7 +24,7 @@
 #include "pins.h"
 #include "regs.h"
 
-#define VERSION F("* Cyborg09 Prototype2 0.9")
+#define VERSION F("* Cyborg09 Prototype2 1.0")
 #define USAGE F("R:eset p:in i:nst d:ump m:emory s/S:tep r:eg =r:set c/C:ont h:alt")
 
 class Commands Commands;
@@ -176,7 +176,11 @@ void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
 
 void Commands::exec(char c) {
   if (c == 'p') Pins.print();
-  if (c == 'R') Pins.reset();
+  if (c == 'R') {
+    Pins.reset();
+    Serial.println(F("RESET"));
+    Regs.get(true);
+  }
   if (c == 'i') {
     Serial.print(F("i?"));
     Input.readUint8(handleInstruction, 0);
@@ -205,6 +209,8 @@ void Commands::exec(char c) {
   if (c == 'c') Pins.runStep();
   if (c == 'h' && Pins.halt()) {
     Serial.println(F("HALT"));
+    Regs.get(true);
+    dumpMemory(Regs.pc, 6);
   }
   if (c == '?') {
     Serial.println(VERSION);

@@ -64,7 +64,6 @@ private:
   bool writeCycle() const;
   bool readCycle() const;
 
-  uint16_t _cycle;
   Status _signals;
   Status _previous;
   Dbus _dbus;

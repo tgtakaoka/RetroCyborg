@@ -3,23 +3,23 @@ IO 1111_1111_110*_****
 
 ATtiny2313
 ----------
-PA0/XTAL1	XTAL1
-PA1/XTAL2	XTAL2
-PA2/RESET	A6
+PA0/XTAL1       XTAL1
+PA1/XTAL2       XTAL2
+PA2/RESET       A6
 
-PB0		A5
-PB1		A9
-PB2		A10
-PB3		A11
-PB4		A12
-PB5/MOSI	A13
-PB6/SIMO	A14
-PB7/SCK		A15
+PB0             A5
+PB1             A9
+PB2             A10
+PB3             A11
+PB4             A12
+PB5/MOSI        A13
+PB6/SIMO        A14
+PB7/SCK         A15
 
-PD0/RXD		CLK_Q
-PD1/TXD		CLK_E
-PD2		INT
-PD3		ACK
-PD4		STEP
-PD5		A7
-PD6		A8
+PD0/RXD         CLK_Q
+PD1/TXD         CLK_E
+PD2             INT
+PD3             ACK
+PD4             STEP
+PD5             A7
+PD6             A8

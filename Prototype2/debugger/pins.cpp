@@ -119,7 +119,6 @@ static void printPin(uint8_t value, const __FlashStringHelper *name) {
 }
 
 void Pins::print() const {
-  Serial.print(_cycle);
   printPin(_signals.reset, MSG_RES);
   printPin(_signals.halt,  MSG_HALT);
   printPin(_signals.ba,    MSG_BA);
@@ -172,25 +171,22 @@ bool Pins::readCycle() const {
 
 void Pins::reset() {
   digitalWrite(RESET, LOW);
-  cycle();
-  cycle();
-  cycle();
-  print();
-  digitalWrite(RESET, HIGH);
   digitalWrite(HALT, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(STEP, LOW);
+  digitalWrite(RESET, HIGH);
   do {
     cycle();
     print();
     digitalWrite(HALT, LOW);
   } while (!inHalt());
+  digitalWrite(STEP, HIGH);
+  _run = false;
+  _inStep = false;
 }
 
 void Pins::cycle() {
-  _cycle++;
   _previous = _signals;
-  digitalWrite(CLK_Q, HIGH);
-  digitalWrite(CLK_E, HIGH);
-  digitalWrite(CLK_Q, LOW);
   _signals.get();
   if (running()) {
     if (writeCycle()) {
@@ -203,8 +199,9 @@ void Pins::cycle() {
     _dbus.input();
   }
   _signals.get();
-  digitalWrite(CLK_E, LOW);
+  digitalWrite(ACK, LOW);
   _dbus.input();
+  digitalWrite(ACK, HIGH);
 }
 
 bool Pins::run() {
@@ -212,25 +209,25 @@ bool Pins::run() {
   _run = true;
   _inStep = false;
   digitalWrite(HALT, HIGH);
+  digitalWrite(STEP, HIGH);
   return true;
 }
 
 void Pins::runStep() {
-  if (_run) return;
+  _run = false;
   _inStep = true;
 }
 
 bool Pins::halt() {
-  if (_inStep) {
-    _inStep = false;
-    return true;
-  }
-  if (!_run) return false;
+  if (!_run && !_inStep) return false;
   _run = false;
+  _inStep = false;
+  digitalWrite(STEP, LOW);
   do {
     cycle();
     digitalWrite(HALT, LOW);
-  } while (!running() || !lastInstCycle());
+  } while (running());
+  digitalWrite(STEP, HIGH);
   return true;
 }
 
@@ -247,6 +244,7 @@ void Pins::unhalt() {
 }
 
 void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
+  digitalWrite(STEP, LOW);
   unhalt();
   for (uint8_t i = 0; i < len; i++) {
     setData(inst[i]);
@@ -257,9 +255,11 @@ void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
     cycle();
     if (show) print();
   }
+  digitalWrite(STEP, HIGH);
 }
 
 void Pins::captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max) {
+  digitalWrite(STEP, LOW);
   unhalt();
   for (uint8_t i = 0; i < len; i++) {
     setData(inst[i]);
@@ -274,14 +274,17 @@ void Pins::captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t
     }
   }
   _dbus.capture(false);
+  digitalWrite(STEP, HIGH);
 }
 
 void Pins::step(bool show) {
+  digitalWrite(STEP, LOW);
   unhalt();
   do {
     cycle();
     if (show) print();
   } while (!lastInstCycle());
+  digitalWrite(STEP, HIGH);
 }
 
 void Pins::begin() {
@@ -290,10 +293,10 @@ void Pins::begin() {
   pinMode(HALT,  OUTPUT);
   digitalWrite(HALT, LOW);
 
-  pinMode(CLK_E, OUTPUT);
-  pinMode(CLK_Q, OUTPUT);
-  digitalWrite(CLK_E, LOW);
-  digitalWrite(CLK_Q, LOW);
+  pinMode(STEP, OUTPUT);
+  pinMode(ACK, OUTPUT);
+  digitalWrite(STEP, LOW);
+  digitalWrite(ACK, HIGH);
 
   pinMode(BS,    INPUT);
   pinMode(BA,    INPUT);
@@ -310,13 +313,9 @@ void Pins::begin() {
 }
 
 void Pins::loop() {
-  cycle();
-  if (_run) return;
   if (_inStep) {
     step();
     Regs.get(true);
     return;
   }
-  if (!inHalt() && !unchanged())
-    print();
 }
