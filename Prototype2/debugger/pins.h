@@ -23,15 +23,18 @@ private:
 
   struct Status {
     void get();
-    unsigned reset:1;
-    unsigned halt:1;
-    unsigned ba:1;
-    unsigned bs:1;
-    unsigned lic:1;
-    unsigned avma:1;
-    unsigned busy:1;
-    unsigned rw:1;
-    uint8_t  dbus;
+    enum {
+      reset = _BV(0),
+      halt  = _BV(1),
+      ba    = _BV(2),
+      bs    = _BV(3),
+      lic   = _BV(4),
+      avma  = _BV(5),
+      busy  = _BV(6),
+      rw    = _BV(7),
+    };
+    uint8_t pins;
+    uint8_t dbus;
     bool inst;
   };
 

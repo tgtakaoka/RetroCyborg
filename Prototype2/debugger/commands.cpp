@@ -24,8 +24,8 @@
 #include "pins.h"
 #include "regs.h"
 
-#define VERSION F("* Cyborg09 Prototype2 1.0")
-#define USAGE F("R:eset p:in i:nst d:ump m:emory s/S:tep r:eg =r:set c/C:ont h:alt")
+#define VERSION F("* Cyborg09 Prototype2 1.1")
+#define USAGE F("R:eset r:egs =:setReg d:ump m:emory i:nst s/S:tep c:ont h:alt H:run p:ins")
 
 class Commands Commands;
 
@@ -203,10 +203,10 @@ void Commands::exec(char c) {
     Serial.print(c);
     Input.readChar(handleSetRegister, 0);
   }
-  if (c == 'C' && Pins.run()) {
+  if (c == 'c') Pins.runStep();
+  if (c == 'H' && Pins.run()) {
     Serial.println(F("RUN"));
   }
-  if (c == 'c') Pins.runStep();
   if (c == 'h' && Pins.halt()) {
     Serial.println(F("HALT"));
     Regs.get(true);

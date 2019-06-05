@@ -5,28 +5,116 @@
 
 #if defined(ARDUINO_AVR_ITSYBITSY32U4_5V)
 /* Adafruit ItsyBitsy 32u4 5V */
-const uint8_t HALT  = 18; // A0
-const uint8_t BS    = 19; // A1
-const uint8_t BA    = 20; // A2
-const uint8_t LIC   = 21; // A3
-const uint8_t AVMA  = 22; // A4
-const uint8_t BUSY  = 23; // A5
-const uint8_t RESET = 15; // SCK
-const uint8_t STEP  = 16; // MOSI
-const uint8_t ACK   = 14; // MISO
-const uint8_t RD_WR = 8;  // D8
-const uint8_t RAM_E = 11; // D11
 
-const uint8_t DBUS[] PROGMEM = {
-  10, // bit 0, D10
-  9,  // bit 1, D9
-  7,  // bit 2, D7
-  5,  // bit 3, D5
-  3,  // bit 4, SCL
-  2,  // bit 5, SDA
-  1,  // bit 6, TX
-  0,  // bit 7, RX
-};
+#define OPT_IO
+#ifndef OPT_IO
+#define HALT  18  // PF7
+#define BS    19  // PF6
+#define BA    20  // PF5
+#define LIC   21  // PF4
+#define AVMA  22  // PF1
+#define BUSY  23  // PF0
+#define RESET 15  // PB1
+#define STEP  16  // PB2
+#define ACK   14  // PB3
+#define RD_WR 8   // PB4
+#define RAM_E 11  // PB7
+#endif
+
+#define HALT_BV    PF7
+#define HALT_PIN   PINF
+#define HALT_PORT  PORTF
+#define HALT_DDR   DDRF
+
+#define BS_BV      PF6
+#define BS_PIN     PINF
+#define BS_PORT    PORTF
+#define BS_DDR     DDRF
+
+#define BA_BV      PF5
+#define BA_PIN     PINF
+#define BA_PORT    PORTF
+#define BA_DDR     DDRF
+
+#define LIC_BV     PF4
+#define LIC_PIN    PINF
+#define LIC_PORT   PORTF
+#define LIC_DDR    DDRF
+
+#define AVMA_BV    PF1
+#define AVMA_PIN   PINF
+#define AVMA_PORT  PORTF
+#define AVMA_DDR   DDRF
+
+#define BUSY_BV    PF0
+#define BUSY_PIN   PINF
+#define BUSY_PORT  PORTF
+#define BUSY_DDR   DDRF
+
+#define RESET_BV   PB1
+#define RESET_PIN  PINB
+#define RESET_PORT PORTB
+#define RESET_DDR  DDRB
+
+#define STEP_BV    PB2
+#define STEP_PIN   PINB
+#define STEP_PORT  PORTB
+#define STEP_DDR   DDRB
+
+#define ACK_BV     PB3
+#define ACK_PIN    PINB
+#define ACK_PORT   PORTB
+#define ACK_DDR    DDRB
+
+#define RD_WR_BV   PB4
+#define RD_WR_PIN  PINB
+#define RD_WR_PORT PORTB
+#define RD_WR_DDR  DDRB
+
+#define RAM_E_BV   PB7
+#define RAM_E_PIN  PINB
+#define RAM_E_PORT PORTB
+#define RAM_E_DDR  DDRB
+
+#define DB0_BV     PB6
+#define DB0_PIN    PINB
+#define DB0_PORT   PORTB
+#define DB0_DDR    DDRB
+
+#define DB1_BV     PB5
+#define DB1_PIN    PINB
+#define DB1_PORT   PORTB
+#define DB1_DDR    DDRB
+
+#define DB2_BV     PE6
+#define DB2_PIN    PINE
+#define DB2_PORT   PORTE
+#define DB2_DDR    DDRE
+
+#define DB3_BV     PC6
+#define DB3_PIN    PINC
+#define DB3_PORT   PORTC
+#define DB3_DDR    DDRC
+
+#define DB4_BV     PD0
+#define DB4_PIN    PIND
+#define DB4_PORT   PORTD
+#define DB4_DDR    DDRD
+
+#define DB5_BV     PD1
+#define DB5_PIN    PIND
+#define DB5_PORT   PORTD
+#define DB5_DDR    DDRD
+
+#define DB6_BV     PD3
+#define DB6_PIN    PIND
+#define DB6_PORT   PORTD
+#define DB6_DDR    DDRD
+
+#define DB7_BV     PD2
+#define DB7_PIN    PIND
+#define DB7_PORT   PORTD
+#define DB7_DDR    DDRD
 
 #endif
 

@@ -42,7 +42,7 @@ void Regs::print() const {
   hex2(a,  F("A="));
   Serial.print(F("EFHINZVC="));
   for (uint8_t m = 0x80; m != 0; m >>= 1) {
-    Serial.print((m & cc) ? 1 : 0);
+    Serial.print((m & cc) ? '1' : '0');
   }
   Serial.println();
 }
