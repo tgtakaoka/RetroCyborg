@@ -5,55 +5,65 @@
 
 #if defined(ARDUINO_AVR_ATmega32) || defined(ARDUINO_AVR_ATmega1284)
 
-#define HALT_BV    PD6
-#define HALT_PIN   PIND
-#define HALT_PORT  PORTD
-#define HALT_DDR   DDRD
+#define HALT_BV    PB0
+#define HALT_PIN   PINB
+#define HALT_PORT  PORTB
+#define HALT_DDR   DDRB
 
-#define BS_BV      PB0
-#define BS_PIN     PINB
-#define BS_PORT    PORTB
-#define BS_DDR     DDRB
+#define BS_BV      PC7
+#define BS_PIN     PINC
+#define BS_PORT    PORTC
+#define BS_DDR     DDRC
 
-#define BA_BV      PB1
-#define BA_PIN     PINB
-#define BA_PORT    PORTB
-#define BA_DDR     DDRB
+#define BA_BV      PC5
+#define BA_PIN     PINC
+#define BA_PORT    PORTC
+#define BA_DDR     DDRC
 
-#define LIC_BV     PB3
-#define LIC_PIN    PINB
-#define LIC_PORT   PORTB
-#define LIC_DDR    DDRB
+#define LIC_BV     PD5
+#define LIC_PIN    PIND
+#define LIC_PORT   PORTD
+#define LIC_DDR    DDRD
 
-#define AVMA_BV    PB2
-#define AVMA_PIN   PINB
-#define AVMA_PORT  PORTB
-#define AVMA_DDR   DDRB
+#define AVMA_BV    PC4
+#define AVMA_PIN   PINC
+#define AVMA_PORT  PORTC
+#define AVMA_DDR   DDRC
 
-#define RESET_BV   PD5
-#define RESET_PIN  PIND
-#define RESET_PORT PORTD
-#define RESET_DDR  DDRD
+#define RESET_BV   PB2
+#define RESET_PIN  PINB
+#define RESET_PORT PORTB
+#define RESET_DDR  DDRB
 
 #define STEP_BV    PD7
 #define STEP_PIN   PIND
 #define STEP_PORT  PORTD
 #define STEP_DDR   DDRD
 
-#define ACK_BV     PC5
-#define ACK_PIN    PINC
-#define ACK_PORT   PORTC
-#define ACK_DDR    DDRC
+#define ACK_BV     PD6
+#define ACK_PIN    PIND
+#define ACK_PORT   PORTD
+#define ACK_DDR    DDRD
 
-#define RD_WR_BV   PC6
-#define RD_WR_PIN  PINC
-#define RD_WR_PORT PORTC
-#define RD_WR_DDR  DDRC
+#define RD_WR_BV   PB3
+#define RD_WR_PIN  PINB
+#define RD_WR_PORT PORTB
+#define RD_WR_DDR  DDRB
 
-#define RAM_E_BV   PC7
+#define RAM_E_BV   PC6
 #define RAM_E_PIN  PINC
 #define RAM_E_PORT PORTC
 #define RAM_E_DDR  DDRC
+
+#define ADR0_BV    PC3
+#define ADR0_PIN   PINC
+#define ADR0_PORT  PORTC
+#define ADR0_DDR   DDRC
+
+#define ADR1_BV    PC2
+#define ADR0_PIN   PINC
+#define ADR0_PORT  PORTC
+#define ADR0_DDR   DDRC
 
 #define DB0_BV     PA0
 #define DB0_PIN    PINA

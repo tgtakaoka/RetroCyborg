@@ -1,31 +1,31 @@
 IO FFC0-FFDF
-IO 1111_1111_110*_****
+IO 1111_1111_1100_00**
 
-ATmega328P
-----------
-PB0             A6
-PB1             A7
-PB2             A8
-PB3/MISO        -
-PB4/MOSI        -
-PB5/SCK         -
-PB6/XTAL1       XTAL1
-PB7/XTAL2       XTAL2
-
-PC0             CLK_Q
-PC1             CLK_E
-PC2             INT
-PC3             ACK
-PC4/SDA         STEP
-PC5/SCL         -
-PC6/RESET       -
-
-PD0/RXD         A5
-PD1/TXD         A9
-PD2             A10
-PD3             A11
-PD4             A12
-PD5             A13
-PD6             A14
-PD7             A15
+ATmega328P  cgen6309e  Arduino
+----------  ---------  -------
+PB0         A8         D8
+PB1         A6         D9
+PB2/~SS     A4         D10
+PB3/MISO    A3         D11
+PB4/MOSI    A2         D12
+PB5/SCK     A7         D13
+PB6/XTAL1   XTAL1      D20
+PB7/XTAL2   XTAL2      D21
+               
+PC0         -          D14
+PC1         ~STEP      D15
+PC2         ~ACK       D16
+PC3         ~INT       D17
+PC4/SDA     CLK_E      D18
+PC5/SCL     CLK_Q      D19
+PC6/~RESET  ~RESET     D22
+               	 
+PD0/RXD     A5         D0
+PD1/TXD     A9         D1
+PD2         A10        D2
+PD3         A11        D3
+PD4         A12        D4
+PD5         A13        D5
+PD6         A14        D6
+PD7         A15        D7
 
