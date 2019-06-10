@@ -15,17 +15,6 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L Prototype2-rescue:ATtiny2313-20PU-MCU_Microchip_ATtiny-Prototype2-rescue U3
-U 1 1 5CDE2DE9
-P 4200 3450
-F 0 "U3" H 3750 4500 50  0000 C CNN
-F 1 "ATtiny2313-20PU" V 4200 3450 50  0000 C CNN
-F 2 "Package_DIP:DIP-20_W7.62mm" H 4200 3450 50  0001 C CIN
-F 3 "" H 4200 3450 50  0001 C CNN
-	1    4200 3450
-	1    0    0    -1  
-$EndComp
-$Comp
 L Memory_RAM:628128 U2
 U 1 1 5CDE3142
 P 9300 3500
@@ -446,91 +435,6 @@ Wire Bus Line
 Connection ~ 7400 5450
 Wire Bus Line
 	6100 2000 8450 2000
-Entry Wire Line
-	4950 3250 4850 3350
-Wire Wire Line
-	4850 3350 4800 3350
-Entry Wire Line
-	4950 3150 4850 3250
-Entry Wire Line
-	4950 3050 4850 3150
-Entry Wire Line
-	4950 2950 4850 3050
-Entry Wire Line
-	4950 2850 4850 2950
-Entry Wire Line
-	4950 2750 4850 2850
-Entry Wire Line
-	4950 2650 4850 2750
-Entry Wire Line
-	4950 2550 4850 2650
-Wire Wire Line
-	4850 2650 4800 2650
-Wire Wire Line
-	4850 2750 4800 2750
-Wire Wire Line
-	4850 2850 4800 2850
-Wire Wire Line
-	4850 2950 4800 2950
-Wire Wire Line
-	4850 3050 4800 3050
-Wire Wire Line
-	4850 3150 4800 3150
-Wire Wire Line
-	4850 3250 4800 3250
-Text Label 4850 3350 0    50   ~ 0
-A15
-Text Label 4850 3250 0    50   ~ 0
-A14
-Text Label 4850 3150 0    50   ~ 0
-A13
-Text Label 4850 3050 0    50   ~ 0
-A12
-Text Label 4850 2950 0    50   ~ 0
-A11
-Text Label 4850 2850 0    50   ~ 0
-A10
-Text Label 4850 2750 0    50   ~ 0
-A9
-Text Label 4850 2650 0    50   ~ 0
-A5
-Entry Wire Line
-	4850 4150 4950 4050
-Entry Wire Line
-	4850 4050 4950 3950
-Wire Wire Line
-	4800 4050 4850 4050
-Wire Wire Line
-	4800 4150 4850 4150
-Text Label 4850 4150 0    50   ~ 0
-A8
-Text Label 4850 4050 0    50   ~ 0
-A7
-Connection ~ 6100 2000
-$Comp
-L Device:Resonator_Small Y1
-U 1 1 5CE47767
-P 3500 2950
-F 0 "Y1" V 3300 2900 50  0000 C CNN
-F 1 "20MHz" V 3700 2950 50  0000 C CNN
-F 2 "" H 3475 2950 50  0001 C CNN
-F 3 "" H 3475 2950 50  0001 C CNN
-	1    3500 2950
-	0    1    1    0   
-$EndComp
-$Comp
-L power:GND #PWR0107
-U 1 1 5CE4A548
-P 3200 2950
-F 0 "#PWR0107" H 3200 2700 50  0001 C CNN
-F 1 "GND" H 3205 2777 50  0000 C CNN
-F 2 "" H 3200 2950 50  0001 C CNN
-F 3 "" H 3200 2950 50  0001 C CNN
-	1    3200 2950
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	3200 2950 3300 2950
 $Comp
 L power:VCC #PWR0108
 U 1 1 5CE4D5BF
@@ -545,12 +449,12 @@ $EndComp
 $Comp
 L power:GND #PWR0109
 U 1 1 5CE4D62F
-P 4200 4550
-F 0 "#PWR0109" H 4200 4300 50  0001 C CNN
-F 1 "GND" H 4205 4377 50  0000 C CNN
-F 2 "" H 4200 4550 50  0001 C CNN
-F 3 "" H 4200 4550 50  0001 C CNN
-	1    4200 4550
+P 4200 3550
+F 0 "#PWR0109" H 4200 3300 50  0001 C CNN
+F 1 "GND" H 4205 3377 50  0000 C CNN
+F 2 "" H 4200 3550 50  0001 C CNN
+F 3 "" H 4200 3550 50  0001 C CNN
+	1    4200 3550
 	1    0    0    -1  
 $EndComp
 NoConn ~ 1250 2600
@@ -616,9 +520,9 @@ F 3 "" H 6650 5125 50  0001 C CNN
 	1    6750 3700
 	-1   0    0    -1  
 $EndComp
-Text GLabel 5050 3550 2    50   Input ~ 0
+Text GLabel 5050 2650 2    50   Input ~ 0
 CLK_Q
-Text GLabel 5050 3650 2    50   Input ~ 0
+Text GLabel 5050 2750 2    50   Input ~ 0
 CLK_E
 Text GLabel 7500 4700 2    50   Input ~ 0
 CLK_E
@@ -629,27 +533,19 @@ Wire Wire Line
 Wire Wire Line
 	7250 4800 7500 4800
 Wire Wire Line
-	4800 3550 5050 3550
+	4800 2650 5050 2650
 Wire Wire Line
-	4800 3650 5050 3650
-Text GLabel 5050 3950 2    50   Input ~ 0
+	4800 2750 5050 2750
+Text GLabel 5050 3050 2    50   Input ~ 0
 #STEP
-Text GLabel 5050 3850 2    50   Input ~ 0
+Text GLabel 5050 2950 2    50   Input ~ 0
 #ACK
-Text GLabel 5050 3750 2    50   Input ~ 0
-#INT
 Wire Wire Line
-	4800 3750 5050 3750
-Wire Wire Line
-	4800 3850 5050 3850
+	4800 2950 5050 2950
 Text GLabel 7500 3400 2    50   Input ~ 0
 #RESET
-Text GLabel 7500 3600 2    50   Input ~ 0
-#IRQ
 Wire Wire Line
 	7250 3400 7500 3400
-Wire Wire Line
-	7250 3600 7500 3600
 Text GLabel 7500 4200 2    50   Input ~ 0
 #HALT
 Wire Wire Line
@@ -703,7 +599,7 @@ Wire Wire Line
 Wire Wire Line
 	7250 3700 7900 3700
 Wire Wire Line
-	7900 3700 7900 3500
+	7900 3700 7900 3600
 Connection ~ 7900 3500
 Wire Wire Line
 	5700 4500 6250 4500
@@ -744,12 +640,8 @@ Wire Wire Line
 	8200 4450 8200 4650
 Text GLabel 2350 3100 2    50   Input ~ 0
 RAM_E
-Text GLabel 2350 3000 2    50   Input ~ 0
-#IRQ
 Wire Wire Line
 	2350 2700 2850 2700
-Text GLabel 2350 2900 2    50   Input ~ 0
-#INT
 $Comp
 L power:GND #PWR0116
 U 1 1 5CE69CEF
@@ -794,8 +686,6 @@ F 3 "" H 1550 5900 50  0001 C CNN
 	1    1550 5900
 	1    0    0    1   
 $EndComp
-Wire Bus Line
-	750  3600 750  5050
 $Comp
 L User-Boards:Adafruit_ItsyBitsy_32u4_5V B1
 U 1 1 5CDE33FC
@@ -807,51 +697,39 @@ F 3 "" H 1650 2850 50  0001 C CNN
 	1    1800 3250
 	1    0    0    -1  
 $EndComp
-Entry Wire Line
-	750  3600 850  3500
 Wire Wire Line
-	850  3500 1250 3500
-Entry Wire Line
-	2000 4950 2100 5050
-Entry Wire Line
-	1900 4950 2000 5050
+	4800 3050 5050 3050
+$Comp
+L MCU_Microchip_ATtiny:ATtiny85-20PU U3
+U 1 1 5D01E923
+P 4200 2950
+F 0 "U3" H 3800 3500 50  0000 R CNN
+F 1 "ATtiny85-20PU" V 4050 3200 50  0000 R CNN
+F 2 "Package_DIP:DIP-8_W7.62mm" H 4200 2950 50  0001 C CIN
+F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/atmel-2586-avr-8-bit-microcontroller-attiny25-attiny45-attiny85_datasheet.pdf" H 4200 2950 50  0001 C CNN
+	1    4200 2950
+	1    0    0    -1  
+$EndComp
+NoConn ~ 4800 3100
+NoConn ~ 2000 4300
+NoConn ~ 1900 4300
+NoConn ~ 1250 3500
+NoConn ~ 2350 2900
+NoConn ~ 2350 3000
 Wire Wire Line
-	1900 4300 1900 4950
+	7250 3600 7900 3600
+Connection ~ 7900 3600
 Wire Wire Line
-	2000 4300 2000 4950
-Text Label 2000 4950 1    50   ~ 0
-A0
-Text Label 1900 4950 1    50   ~ 0
-A1
-Text Label 850  3500 0    50   ~ 0
-A2
-Wire Bus Line
-	3450 2000 3450 2550
-Wire Bus Line
-	3450 2000 4950 2000
-Connection ~ 4950 2000
-Wire Bus Line
-	4950 2000 6100 2000
-Entry Wire Line
-	3450 2550 3550 2650
-Wire Wire Line
-	3550 2650 3600 2650
-Wire Wire Line
-	4800 3950 5050 3950
-Wire Bus Line
-	750  5050 4950 5050
-Wire Bus Line
-	7400 2600 7400 5450
-Wire Bus Line
-	10150 2550 10150 5450
+	7900 3600 7900 3500
+NoConn ~ 4800 2850
 Wire Bus Line
 	2500 3300 2500 5450
 Wire Bus Line
-	4950 2000 4950 5050
+	10150 2550 10150 5450
 Wire Bus Line
-	6100 2000 6100 3900
+	7400 2600 7400 5450
 Wire Bus Line
 	8450 2000 8450 3850
-Text Label 3550 2650 2    50   ~ 0
-A6
+Wire Bus Line
+	6100 2000 6100 3900
 $EndSCHEMATC
