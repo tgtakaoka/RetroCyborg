@@ -6,21 +6,6 @@
 #if defined(ARDUINO_AVR_ITSYBITSY32U4_5V)
 /* Adafruit ItsyBitsy 32u4 5V */
 
-#define OPT_IO
-#ifndef OPT_IO
-#define HALT  18  // PF7
-#define BS    19  // PF6
-#define BA    20  // PF5
-#define LIC   21  // PF4
-#define AVMA  22  // PF1
-#define BUSY  23  // PF0
-#define RESET 15  // PB1
-#define STEP  16  // PB2
-#define ACK   14  // PB3
-#define RD_WR 8   // PB4
-#define RAM_E 11  // PB7
-#endif
-
 #define HALT_BV    PF7
 #define HALT_PIN   PINF
 #define HALT_PORT  PORTF

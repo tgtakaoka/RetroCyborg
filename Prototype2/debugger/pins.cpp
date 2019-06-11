@@ -12,7 +12,7 @@ class Pins Pins;
 #define DDR(name)  (name ## _DDR)
 #define PORT(name) (name ## _PORT)
 #define PIN(name)  (name ## _PIN)
-#ifdef OPT_IO
+
 #define pinMode(name, mode) do {                    \
   if (mode == INPUT) DDR(name) &= ~BV(name);        \
   if (mode == INPUT_PULLUP) DDR(name) &= ~BV(name); \
@@ -24,16 +24,16 @@ class Pins Pins;
   if (val == LOW) PORT(name) &= ~BV(name); \
   if (val == HIGH) PORT(name) |= BV(name); \
 } while (0)
-#endif
-#define INPUT_DB(n) do {  DDR(DB##n) &= ~BV(DB##n); } while (0)
-#define OUTPUT_DB(n) do {  DDR(DB##n) |= BV(DB##n); } while (0)
-#define READ_DB(n, v) do {                     \
-  if ((PIN(DB##n) & BV(DB##n))) (v) |= _BV(n); \
+
+#define INPUT_DB(n)  pinMode(DB##n, INPUT)
+#define OUTPUT_DB(n) pinMode(DB##n, OUTPUT)
+#define READ_DB(n, v) do {               \
+  if (digitalRead(DB##n)) (v) |= _BV(n); \
 } while (0)
-#define WRITE_DB(n, v) do {                     \
-  OUTPUT_DB(n);                                 \
-  PORT(DB##n) &= ~BV(DB##n);                    \
-  if (((v) & _BV(n))) PORT(DB##n) |= BV(DB##n); \
+#define WRITE_DB(n, v) do {                    \
+  pinMode(DB##n, OUTPUT);                      \
+  digitalWrite(DB##n, LOW);                    \
+  if ((v) & _BV(n)) digitalWrite(DB##n, HIGH); \
 } while (0)
 
 uint8_t Pins::Dbus::getDbus() {

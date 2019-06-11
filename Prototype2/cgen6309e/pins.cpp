@@ -1,4 +1,4 @@
-#include <avr/io.h>
+#include <Arduino.h>
 
 // 0xFFC0 ~ 0xFFDF
 #define IO_ADR_BASE 0xFFC0
@@ -22,59 +22,88 @@ class Pins Pins;
 } while (0)
 #endif
 
+#define BV(name)   _BV(name ## _BV)
+#define BUS(name)  (name ## _BUS)
+#define DDR(name)  (name ## _DDR)
+#define PORT(name) (name ## _PORT)
+#define PIN(name)  (name ## _PIN)
+#define pinMode(name, mode) do {                    \
+  if (mode == INPUT) DDR(name) &= ~BV(name);        \
+  if (mode == INPUT_PULLUP) DDR(name) &= ~BV(name); \
+  if (mode == INPUT_PULLUP) PORT(name) |= BV(name); \
+  if (mode == OUTPUT) DDR(name) |= BV(name);        \
+} while (0)
+#define digitalRead(name) (PIN(name) & BV(name))
+#define digitalWrite(name, val) do {       \
+  if (val == LOW) PORT(name) &= ~BV(name); \
+  if (val == HIGH) PORT(name) |= BV(name); \
+} while (0)
+#define busMode(name, mode) do {                     \
+  if (mode == INPUT) DDR(name) &= ~BUS(name);        \
+  if (mode == INPUT_PULLUP) DDR(name) &= ~BUS(name); \
+  if (mode == INPUT_PULLUP) PORT(name) |= BUS(name); \
+  if (mode == OUTPUT) DDR(name) |= BUS(name);         \
+} while (0)
+#define busRead(name) (PIN(name) & BUS(name))
+#define busWrite(name, val) \
+    (POUT(name) = (POUT(name) & ~(BUS(name)) | (val & BUS(name))))
+
 void Pins::begin() {
-#if defined(PORTA_DIR)
-  DDRA = PORTA_DIR;
-  PORTB = PORTB_INIT | PORTB_PULL;
+  pinMode(CLK_E, OUTPUT);
+  pinMode(CLK_Q, OUTPUT);
+  pinMode(INT, OUTPUT);
+  pinMode(ACK, INPUT_PULLUP);
+  pinMode(STEP, INPUT_PULLUP);
+  busMode(ADRH, INPUT_PULLUP);
+#if defined(IO_ADRM)
+  busMode(ADRM, INPUT_PULLUP);
 #endif
-#if defined(PORTB_DIR)
-  DDRB = PORTB_DIR;
-  PORTB = PORTB_INIT | PORTB_PULL;
-#endif
-#if defined(PORTC_DIR)
-  DDRC = PORTC_DIR;
-  PORTC = PORTC_INIT | PORTC_PULL;
-#endif
-#if defined(PORTD_DIR)
-  DDRD = PORTD_DIR;
-  PORTD = PORTD_INIT | PORTD_PULL;
+#if defined(IO_ADRL)
+  busMode(ADRL, INPUT_PULLUP);
 #endif
 }
 
 bool Pins::isIoAddr() const {
-  return ::isIoAddr();
+  return busRead(ADRH) == IO_ADRH
+#if defined(IO_ADRM)
+      && busRead(ADRM) == IO_ADRM
+#endif
+#if defined(IO_ADRL)
+      && busRead(ADRL) == IO_ADRL
+#endif
+      ;
 }
 
 bool Pins::isAck() const {
-  return (PIN_ACK & _BV(ACK)) == 0;
+  return digitalRead(ACK) == LOW;
 }
 
 bool Pins::isStep() const {
-  return (PIN_STEP & _BV(STEP)) == 0;
+  return digitalRead(STEP) == LOW;
 }
 
 void Pins::setE() {
-  PORT_CLK_E |= _BV(CLK_E);
+  digitalWrite(CLK_E, HIGH);
   nop();
 }
 
 void Pins::clrE() {
-  PORT_CLK_E &= ~_BV(CLK_E);
+  digitalWrite(CLK_E, LOW);
 }
 
 void Pins::setQ() {
-  PORT_CLK_Q |= _BV(CLK_Q);
+  digitalWrite(CLK_Q, HIGH);
   nop();
 }
 
 void Pins::clrQ() {
-  PORT_CLK_Q &= ~_BV(CLK_Q);
+  digitalWrite(CLK_Q, LOW);
 }
 
 void Pins::assertInt() {
-  PORT_INT &= ~_BV(INT);
+  digitalWrite(INT, LOW);
 }
 
 void Pins::negateInt() {
-  PORT_INT |= _BV(INT);
+  digitalWrite(INT, HIGH);
 }
