@@ -28,8 +28,7 @@ private:
       bs    = _BV(3),
       lic   = _BV(4),
       avma  = _BV(5),
-      busy  = _BV(6),
-      rw    = _BV(7),
+      rw    = _BV(6),
     };
     uint8_t pins;
     uint8_t dbus;

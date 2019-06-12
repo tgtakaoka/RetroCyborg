@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#if defined(ARDUINO_AVR_ITSYBITSY32U4_5V)
 /* Adafruit ItsyBitsy 32u4 5V */
+#if defined(ARDUINO_AVR_ITSYBITSY32U4_5V)
 
 #define HALT_BV    PF7
 #define HALT_PIN   PINF
@@ -30,11 +30,6 @@
 #define AVMA_PIN   PINF
 #define AVMA_PORT  PORTF
 #define AVMA_DDR   DDRF
-
-#define BUSY_BV    PF0
-#define BUSY_PIN   PINF
-#define BUSY_PORT  PORTF
-#define BUSY_DDR   DDRF
 
 #define RESET_BV   PB1
 #define RESET_PIN  PINB
