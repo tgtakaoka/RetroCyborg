@@ -4,7 +4,13 @@
 class Commands {
 
 public:
+  void loop();
   void exec(char c);
+
+private:
+  enum {
+    HALT, STEP, RUN
+  } _target = HALT;
 };
 
 extern Commands Commands;

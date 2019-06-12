@@ -4,7 +4,6 @@
 #include "hex.h"
 #include "pins.h"
 #include "pins_map.h"
-#include "regs.h"
 
 class Pins Pins;
 
@@ -200,8 +199,6 @@ void Pins::reset() {
     print();
   } while (!inHalt());
   digitalWrite(STEP, HIGH);
-  _run = false;
-  _inStep = false;
 }
 
 void Pins::cycle() {
@@ -225,32 +222,20 @@ void Pins::cycle() {
   delayMicroseconds(4);
 }
 
-bool Pins::run() {
-  if (_run) return false;
-  _run = true;
-  _inStep = false;
+void Pins::run() {
   digitalWrite(HALT, HIGH);
   digitalWrite(STEP, HIGH);
-  return true;
 }
 
-void Pins::runStep() {
-  _run = false;
-  _inStep = true;
-}
-
-bool Pins::halt() {
-  if (!_run && !_inStep) return false;
-  _run = false;
-  _inStep = false;
+void Pins::halt(bool show) {
   digitalWrite(STEP, LOW);
   delayMicroseconds(10);
+  digitalWrite(HALT, LOW);
   do {
     cycle();
-    digitalWrite(HALT, LOW);
+    if (show) print();
   } while (running());
   digitalWrite(STEP, HIGH);
-  return true;
 }
 
 void Pins::setData(uint8_t data) {
@@ -331,12 +316,6 @@ void Pins::begin() {
   _dbus.begin();
 
   _previous.get();
-}
 
-void Pins::loop() {
-  if (_inStep) {
-    step();
-    Regs.get(true);
-    return;
-  }
+  reset();
 }

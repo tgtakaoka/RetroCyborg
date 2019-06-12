@@ -24,8 +24,8 @@
 #include "pins.h"
 #include "regs.h"
 
-#define VERSION F("* Cyborg09 Prototype2 1.1")
-#define USAGE F("R:eset r:egs =:setReg d:ump m:emory i:nst s/S:tep c:ont h:alt H:run p:ins")
+#define VERSION F("* Cyborg09 Prototype2 1.2")
+#define USAGE F("R:eset r:egs =:setReg d:ump m:emory i:nst s/S:tep c/C:ont h/H:alt p:ins")
 
 class Commands Commands;
 
@@ -177,6 +177,7 @@ void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
 void Commands::exec(char c) {
   if (c == 'p') Pins.print();
   if (c == 'R') {
+    _target = HALT;
     Pins.reset();
     Serial.println(F("RESET"));
     Regs.get(true);
@@ -194,7 +195,12 @@ void Commands::exec(char c) {
     Input.readUint16(handleMemoryWrite, NO_INDEX);
   }
   if (c == 's' || c == 'S') {
-    Pins.step(c == 'S');
+    if (_target == HALT) {
+      Pins.step(c == 'S');
+    } else {
+      _target = HALT;
+      Pins.halt(c == 'S');
+    }
     Regs.get(true);
     dumpMemory(Regs.pc, 6);
   }
@@ -203,11 +209,17 @@ void Commands::exec(char c) {
     Serial.print(c);
     Input.readChar(handleSetRegister, 0);
   }
-  if (c == 'c') Pins.runStep();
-  if (c == 'H' && Pins.run()) {
+  if (c == 'c') {
+     _target = STEP;
+  }
+  if (c == 'C' && _target != RUN) {
+    _target = RUN;
+    Pins.run();
     Serial.println(F("RUN"));
   }
-  if (c == 'h' && Pins.halt()) {
+  if ((c == 'h' || c == 'H') && _target != HALT) {
+    _target = HALT;
+    Pins.halt(c == 'H');
     Serial.println(F("HALT"));
     Regs.get(true);
     dumpMemory(Regs.pc, 6);
@@ -215,5 +227,12 @@ void Commands::exec(char c) {
   if (c == '?') {
     Serial.println(VERSION);
     Serial.println(USAGE);
+  }
+}
+
+void Commands::loop() {
+  if (_target == STEP) {
+    Pins.step();
+    Regs.get(true);
   }
 }

@@ -111,19 +111,21 @@ void Input::processHexNumbers(char c) {
 }
 
 void Input::loop() {
-  if (Serial.available() == 0)
-    return;
-  const char c = Serial.read();
-  switch (_mode) {
-  case CHAR_COMMAND:
-    Commands.exec(c);
-    break;
-  case READ_UINT:
-    processHexNumbers(c);
-    break;
-  case READ_CHAR:
-    _mode = CHAR_COMMAND;
-    _handler(FINISH, c, _index);
-    break;
+  if (Serial.available()) {
+    const char c = Serial.read();
+    switch (_mode) {
+    case CHAR_COMMAND:
+      Commands.exec(c);
+      break;
+    case READ_UINT:
+      processHexNumbers(c);
+      break;
+    case READ_CHAR:
+      _mode = CHAR_COMMAND;
+      _handler(FINISH, c, _index);
+      break;
+    }
   }
+
+  Commands.loop();
 }

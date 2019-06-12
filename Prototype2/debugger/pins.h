@@ -7,17 +7,15 @@ class Pins {
 
 public:
   void begin();
-  void loop();
   void reset();
   void print() const;
 
   uint8_t dbus() { return _signals.dbus; }
   void execInst(const uint8_t *inst, uint8_t len, bool show = false);
   void captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
+  void run();
+  void halt(bool show = false);
   void step(bool show = false);
-  bool run();
-  void runStep();
-  bool halt();
 
 private:
 
@@ -70,8 +68,6 @@ private:
   Status _signals;
   Status _previous;
   Dbus _dbus;
-  bool _run;
-  bool _inStep;
 };
 
 extern Pins Pins;
