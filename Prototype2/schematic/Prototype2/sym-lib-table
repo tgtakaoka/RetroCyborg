@@ -1,4 +1,0 @@
-(sym_lib_table
-  (lib (name Prototype2-cache)(type Legacy)(uri /home/takaoka/Cyborg09/Prototype2/schematic/Prototype2/Prototype2-cache.lib)(options "")(descr ""))
-  (lib (name Prototype2-rescue)(type Legacy)(uri ${KIPRJMOD}/Prototype2-rescue.lib)(options "")(descr ""))
-)
