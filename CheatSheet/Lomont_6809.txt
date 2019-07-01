@@ -39,7 +39,7 @@ CCodes condition codes (6809 only for now): * affected, - not, ? indeterminate
 | ASRA   |           |           |            |           | 47  2/1  1|--****|
 | ASRB   |           |           |            |           | 57  2/1  1|--****|
 |*ASRD   |           |           |            |           |!47  3/2  2|      |
-| ASR    |           | 07  6/6  2| 67  6+   2+| 77  7/6  3|           |--****|
+| ASR    |           | 07  6/5  2| 67  6+   2+| 77  7/6  3|           |--****|
 |--------+-----------+-----------+------------+-----------+-----------+------|
 | BITA   | 85   2   2| 95  4/3  2| A5   4+  2+| B5  5/4  3|           |--**0-|
 | BITB   | C5   2   2| D5  4/3  2| E5   4+  2+| F5  5/4  3|           |--**0-|
@@ -348,7 +348,7 @@ Inter-Register Instructions              _______________|_______________
 |*SUBR   | R0,R1      |!32   4   3 |      0101 - PC          1101 - 0
 | TFR    | R0,R1      | 1F  6/4  2 |      0110 - W           1110 - E
 |*TFM    | R0+,R1+    |@38  6+3n 3 |      0111 - V           1111 - F
-|*TFM    | R0-,R1     |@39  6+3n 3 |
+|*TFM    | R0-,R1-    |@39  6+3n 3 |
 |*TFM    | R0+,R1     |@3A  6+3n 3 |  TFM is Transfer Memory: repeats W times,
 |*TFM    | R0,R1+     |@3B  6+3n 3 |  decrementing W, changing Ri as asked. n
  ----------------------------------   in cycles is number of bytes moved.
@@ -468,15 +468,15 @@ x3  COM SYNC BLS LEAU COM COM COM COM SUBD SUBD SUBD SUBD ADDD ADDD ADDD ADDD
 x4  LSR*SEXW BCC PSHS LSR LSR LSR LSR ANDA ANDA ANDA ANDA ANDB ANDB ANDB ANDB
 x5 *EIM      BCS PULS        *EIM*EIM BITA BITA BITA BITA BITB BITB BITB BITB
 x6  ROR LBRA BNE PSHU ROR ROR ROR ROR LDA  LDA  LDA  LDA  LDB  LDB  LDB  LDB
-x7  ASR LBSR BEQ PULU ASR ASR ASR ASR EORA STA  STA  STA       STB  STB  STB
-x8  ASL      BVC      ASL ASL ASL ASL ADCA EORA EORA EORA EORB EORB EORB EORB
-x9  ROL DAA  BVS RTS  ROL ROL ROL ROL ORA  ADCA ADCA ADCA ADCB ADCB ADCB ADCB
-xA  DEC ORCC BPL ABX  DEC DEC DEC DEC ADDA ORA  ORA  ORA  ORB  ORB  ORB  ORB
-xB *TIM      BMI RTI         *TIM*TIM CMPX ADDA ADDA ADDA ADDB ADDB ADDB ADDB
-xC  INC ANDC BGE CWAI INC INC INC INC BSR  CMPX CMPX CMPX LDD  LDD  LDD  LDD
-xD  TST SEX  BLT MUL  TST TST TST TST LDX  JSR  JSR  JSR  STD  STD  STD  STD
-xE  JMP EXG  BGT SWI          JMP JMP      LDX  LDX  LDX  LDU  LDU  LDU  LDU
-xF  CLR TFR  BLE      CLR CLR CLR CLR      STX  STX  STX  STU       STU  STU
+x7  ASR LBSR BEQ PULU ASR ASR ASR ASR      STA  STA  STA       STB  STB  STB
+x8  ASL      BVC      ASL ASL ASL ASL EORA EORA EORA EORA EORB EORB EORB EORB
+x9  ROL DAA  BVS RTS  ROL ROL ROL ROL ADCA ADCA ADCA ADCA ADCB ADCB ADCB ADCB
+xA  DEC ORCC BPL ABX  DEC DEC DEC DEC ORA  ORA  ORA  ORA  ORB  ORB  ORB  ORB
+xB *TIM      BMI RTI         *TIM*TIM ADDA ADDA ADDA ADDA ADDB ADDB ADDB ADDB
+xC  INC ANDC BGE CWAI INC INC INC INC CMPX CMPX CMPX CMPX LDD  LDD  LDD  LDD
+xD  TST SEX  BLT MUL  TST TST TST TST BSR  JSR  JSR  JSR *LDQ  STD  STD  STD
+xE  JMP EXG  BGT              JMP JMP LDX  LDX  LDX  LDX  LDU  LDU  LDU  LDU
+xF  CLR TFR  BLE SWI  CLR CLR CLR CLR      STX  STX  STX       STU  STU  STU
 NOTES:                 A   B   i   e        d    i    e    e    m    d    e
 
 opcodes prefixed by 10
@@ -492,11 +492,11 @@ x7        LBEQ *CMPR  *ASRD                 *STW  *STW  *STW
 x8        LBVC *PSHSW *ASLD           *EORD *EORD *EORD *EORD
 x9        LBVS *PULSW *ROLD *ROLW     *ADCD *ADCD *ADCD *ADCD
 xA        LBPL *PSHUW *DECD *DECW     *ORD  *ORD  *ORD  *ORD
-xB        LBMI *PULUW                 *ADDW *ADDW *ADDW *ADDW    *LDQ
-xC        LBGE        *INCD *INCW      CMPY  CMPY  CMPY  CMPY    *STQ
-xD        LBLT        *TSTD *TSTW                             LDS LDS LDS LDS
-xE        LBGT                         LDY   LDY   LDY   LDY      STS STS STS
-xF        LBLE  SWI2  *CLRD *CLRW            STY   STY   STY
+xB        LBMI *PULUW                 *ADDW *ADDW *ADDW *ADDW
+xC        LBGE        *INCD *INCW      CMPY  CMPY  CMPY  CMPY    *LDQ*LDQ*LDQ
+xD        LBLT        *TSTD *TSTW                                *STQ*STQ*STQ
+xE        LBGT                         LDY   LDY   LDY   LDY  LDS LDS LDS LDS
+xF        LBLE  SWI2  *CLRD *CLRW            STY   STY   STY      STS STS STS
 NOTES:              e    m   d    i   e
 
 opcodes prefixed by
@@ -508,7 +508,7 @@ x3           *BIOR *COME *COMF        CMPU CMPU CMPU CMPU
 x4           *BEOR
 x5           *BIEOR
 x6           *LDBT                   *LDE *LDE *LDE *LDE *LDF *LDF *LDF *LDF
-x7           *STBT                        *STE *STE *STE
+x7           *STBT                        *STE *STE *STE      *STF *STF *STF
 x8           *TFM
 x9           *TFM
 xA           *TFM  *DECE *DECF
