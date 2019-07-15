@@ -170,7 +170,7 @@ bool Pins::running() const {
 }
 
 bool Pins::lastInstCycle() const {
-  return (_signals.pins & Status::lic) && (_signals.pins & Status::avma);
+  return _signals.pins & Status::lic;
 }
 
 bool Pins::writeCycle() const {
