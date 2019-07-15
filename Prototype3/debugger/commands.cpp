@@ -9,7 +9,7 @@
    s - step one instruction.
    S - step one instruction with printing signal status.
    r - print MPU registers.
-   = - set MPU register.
+   = - set MPU register. register value
    c - continuously run with printing register.
    C - continuously run.
    h - halt MPU.
@@ -24,7 +24,7 @@
 #include "pins.h"
 #include "regs.h"
 
-#define VERSION F("* Cyborg09 Prototype2 1.2")
+#define VERSION F("* Cyborg09 Prototype3 1.2")
 #define USAGE F("R:eset r:egs =:setReg d:ump m:emory i:nst s/S:tep c/C:ont h/H:alt p:ins")
 
 class Commands Commands;
