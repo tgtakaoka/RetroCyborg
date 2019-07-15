@@ -771,7 +771,7 @@ Text Label 2950 4800 0    50   ~ 0
 DBG_RX
 Text Label 2950 4900 0    50   ~ 0
 DBG_TX
-Text Label 2950 5100 0    50   ~ 0
+Text Label 2950 5200 0    50   ~ 0
 ~DBG_RTS
 Wire Wire Line
 	4250 3900 4100 3900
@@ -849,7 +849,7 @@ Text Label 2950 3400 0    50   ~ 0
 ~SD_CS
 Wire Wire Line
 	2500 4300 2950 4300
-Text Label 2950 5200 0    50   ~ 0
+Text Label 2950 5100 0    50   ~ 0
 ~INT
 Text Label 2950 5400 0    50   ~ 0
 ~ACK

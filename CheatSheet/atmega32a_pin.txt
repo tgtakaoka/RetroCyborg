@@ -30,8 +30,8 @@ PC7        RTS       BS        D23
 PD0/RXD0   RX        DBG_RX    D8
 PD1/TXD0   TX        DBG_TX    D9
 PD2/RXD1   CTS/(M1)  SD_CD     D10
-PD3/TXD1   BANK1     ~DBG_RTS  D11
-PD4        BANK0     ~INT      D12
+PD3/TXD1   BANK1     ~INT      D11
+PD4        BANK0     ~DBG_RTS  D12
 PD5        USER      LIC       D13
 PD6        BUSREQ    ~ACK      D14
 PD7        CLK       ~STEP     D15
