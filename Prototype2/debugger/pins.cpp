@@ -114,7 +114,6 @@ void Pins::Status::get() {
   if (digitalRead(BS))    p |= Status::bs;
   if (digitalRead(LIC))   p |= Status::lic;
   if (digitalRead(AVMA))  p |= Status::avma;
-  if (digitalRead(BUSY))  p |= Status::busy;
   if (digitalRead(RD_WR)) p |= Status::rw;
   pins = p;
   dbus  = Dbus::getDbus();
@@ -137,7 +136,6 @@ void Pins::print() const {
   printPin(_signals.pins & Status::bs,    F(" BS="));
   printPin(_signals.pins & Status::lic,   F(" LIC="));
   printPin(_signals.pins & Status::avma,  F(" AVMA="));
-  printPin(_signals.pins & Status::busy,  F(" BUSY="));
   printPin(_signals.pins & Status::rw,    F(" RW="));
 
   Serial.print(F(" DB=0x"));
@@ -308,7 +306,6 @@ void Pins::begin() {
   pinMode(BA,    INPUT);
   pinMode(LIC,   INPUT);
   pinMode(AVMA,  INPUT);
-  pinMode(BUSY,  INPUT);
   pinMode(RD_WR, INPUT_PULLUP);
   pinMode(RAM_E, OUTPUT);
   digitalWrite(RAM_E, HIGH);

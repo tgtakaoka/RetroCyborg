@@ -29,7 +29,6 @@ private:
     unsigned bs:1;
     unsigned lic:1;
     unsigned avma:1;
-    unsigned busy:1;
     unsigned rw:1;
     uint8_t  dbus;
     bool inst;

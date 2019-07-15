@@ -2,14 +2,14 @@ ATmega32U4  ProMicro           ItsyBitsy         Full32u4
 ----------  ---------------    --------------    ---------------
 PB0         RXLED     -        RXLED    -        D17       AB0
 PB1/SCK     D15/SCK   DB4      SCK/D15  RESET    D15/SCK   AB1
-PB2/MOSI    D16/MOSI  DB6      MO/D16   STEP     D16/MOSI  AB2
-PB3/MISO    D14/MISO  DB5      MI/D14   ACK      D14/MISO  AB3
-PB4         D8/A8     CLK_E    D8/A8    RD_WR    D8/A8     AB4
+PB2/MOSI    D16/MOSI  DB6      MO/D16   STEP/Q   D16/MOSI  AB2
+PB3/MISO    D14/MISO  DB5      MI/D14   ACK/E    D14/MISO  AB3
+PB4         D8/A8     STEP/E   D8/A8    RD_WR    D8/A8     AB4
 PB5         D9/A9     RD_WR    D9/A9    DB1      D9/A9     IRQ
 PB6         D10/A10   DB7      D10/A10  DB0      D10/A10   HALT
 PB7         -         -        D11      RAM_E    D11       RAM_E
 
-PC6         D5        BUSY     D5       DB3      D5        STEP
+PC6         D5        RAM_E    D5       DB3      D5        STEP
 PC7         -         -        D13               D13       ACK
 
 PD0/SCL     D3/SCL    LIC      D3/SCL   DB4      D3/SCL    DB0
@@ -22,9 +22,9 @@ PD6         -         -        D12/A11           D12/A11   DB6
 PD7         D6/A7     RESET    D6/A7             D6/A7     DB7
 
 PE2/HWB     -         -        -        -        -         -
-PE6/INT6    D7        CLK_Q    D7       DB2      D7        INT
+PE6/INT6    D7        ACK/Q    D7       DB2      D7        INT
 
-PF0         -         -        A5/D23   BUSY     A5/D23    BUSY
+PF0         -         -        A5/D23   -        A5/D23    -
 PF1         -         -        A4/D22   AVMA     A4/D22    AVMA
 PF4         A3/D21    DB0      A3/D21   LIC      A3/D21    LIC
 PF5         A2/D20    DB1      A2/D20   BA       A2/D20    BA

@@ -1,7 +1,100 @@
 #ifndef __pins_map_h__
 #define __pins_map_h__
 
-#include <stdint.h>
+#if defined(ARDUINO_AVR_PROMICRO)
+/* Adafruit ItsyBitsy 32u4 5V */
+
+#define HALT_BV    PD3
+#define HALT_PIN   PIND
+#define HALT_PORT  PORTD
+#define HALT_DDR   DDRD
+
+#define BS_BV      PD2
+#define BS_PIN     PIND
+#define BS_PORT    PORTD
+#define BS_DDR     DDRD
+
+#define BA_BV      PD1
+#define BA_PIN     PIND
+#define BA_PORT    PORTD
+#define BA_DDR     DDRD
+
+#define LIC_BV     PD0
+#define LIC_PIN    PIND
+#define LIC_PORT   PORTD
+#define LIC_DDR    DDRD
+
+#define AVMA_BV    PD4
+#define AVMA_PIN   PIND
+#define AVMA_PORT  PORTD
+#define AVMA_DDR   DDRD
+
+#define RESET_BV   PD7
+#define RESET_PIN  PIND
+#define RESET_PORT PORTD
+#define RESET_DDR  DDRD
+
+#define STEP_BV    PB4
+#define STEP_PIN   PINB
+#define STEP_PORT  PORTB
+#define STEP_DDR   DDRB
+
+#define ACK_BV     PE6
+#define ACK_PIN    PINE
+#define ACK_PORT   PORTE
+#define ACK_DDR    DDRE
+
+#define RD_WR_BV   PB5
+#define RD_WR_PIN  PINB
+#define RD_WR_PORT PORTB
+#define RD_WR_DDR  DDRB
+
+#define RAM_E_BV   PC6
+#define RAM_E_PIN  PINC
+#define RAM_E_PORT PORTC
+#define RAM_E_DDR  DDRC
+
+#define DB0_BV     PF4
+#define DB0_PIN    PINF
+#define DB0_PORT   PORTF
+#define DB0_DDR    DDRF
+
+#define DB1_BV     PF5
+#define DB1_PIN    PINF
+#define DB1_PORT   PORTF
+#define DB1_DDR    DDRF
+
+#define DB2_BV     PF6
+#define DB2_PIN    PINF
+#define DB2_PORT   PORTF
+#define DB2_DDR    DDRF
+
+#define DB3_BV     PF7
+#define DB3_PIN    PINF
+#define DB3_PORT   PORTF
+#define DB3_DDR    DDRF
+
+#define DB4_BV     PB1
+#define DB4_PIN    PINB
+#define DB4_PORT   PORTB
+#define DB4_DDR    DDRB
+
+#define DB5_BV     PB3
+#define DB5_PIN    PINB
+#define DB5_PORT   PORTB
+#define DB5_DDR    DDRB
+
+#define DB6_BV     PB2
+#define DB6_PIN    PINB
+#define DB6_PORT   PORTB
+#define DB6_DDR    DDRB
+
+#define DB7_BV     PB6
+#define DB7_PIN    PINB
+#define DB7_PORT   PORTB
+#define DB7_DDR    DDRB
+
+#endif
 
 #if defined(ARDUINO_AVR_ITSYBITSY32U4_5V)
 /* Adafruit ItsyBitsy 32u4 5V */
@@ -30,11 +123,6 @@
 #define AVMA_PIN   PINF
 #define AVMA_PORT  PORTF
 #define AVMA_DDR   DDRF
-
-#define BUSY_BV    PF0
-#define BUSY_PIN   PINF
-#define BUSY_PORT  PORTF
-#define BUSY_DDR   DDRF
 
 #define RESET_BV   PB1
 #define RESET_PIN  PINB

@@ -14,7 +14,6 @@ class Pins Pins;
 #define MSG_BS     F(" BS=")
 #define MSG_LIC    F(" LIC=")
 #define MSG_AVMA   F(" AVMA=")
-#define MSG_BUSY   F(" BUSY=")
 #define MSG_RW     F(" RW=")
 #define MSG_DBUS   F(" Dn=0x")
 #define MSG_DBUS_ERR F(" !!! RW=L")
@@ -96,7 +95,6 @@ void Pins::Status::get() {
   bs    = digitalRead(BS);
   lic   = digitalRead(LIC);
   avma  = digitalRead(AVMA);
-  busy  = digitalRead(BUSY);
   rw    = digitalRead(RD_WR);
   dbus  = Dbus::getDbus();
 }
@@ -108,7 +106,6 @@ bool Pins::unchanged() const {
          && _signals.bs ==    _previous.bs
          && _signals.lic ==   _previous.lic
          && _signals.avma ==  _previous.avma
-         && _signals.busy ==  _previous.busy
          && _signals.rw ==    _previous.rw
          && _signals.dbus ==  _previous.dbus;
 }
@@ -126,7 +123,6 @@ void Pins::print() const {
   printPin(_signals.bs,    MSG_BS);
   printPin(_signals.lic,   MSG_LIC);
   printPin(_signals.avma,  MSG_AVMA);
-  printPin(_signals.busy,  MSG_BUSY);
   printPin(_signals.rw,    MSG_RW);
   Serial.print(MSG_DBUS);
   printHex2(_signals.dbus);
@@ -299,7 +295,6 @@ void Pins::begin() {
   pinMode(BA,    INPUT);
   pinMode(LIC,   INPUT);
   pinMode(AVMA,  INPUT);
-  pinMode(BUSY,  INPUT);
   pinMode(RD_WR, INPUT_PULLUP);
   pinMode(RAM_E, OUTPUT);
   digitalWrite(RAM_E, HIGH);
