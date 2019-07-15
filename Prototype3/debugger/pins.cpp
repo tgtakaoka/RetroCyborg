@@ -24,28 +24,8 @@ class Pins Pins;
   if (val == HIGH) PORT(name) |= BV(name); \
 } while (0)
 
-#define INPUT_DB(n)  pinMode(DB##n, INPUT)
-#define OUTPUT_DB(n) pinMode(DB##n, OUTPUT)
-#define READ_DB(n, v) do {               \
-  if (digitalRead(DB##n)) (v) |= _BV(n); \
-} while (0)
-#define WRITE_DB(n, v) do {                    \
-  pinMode(DB##n, OUTPUT);                      \
-  digitalWrite(DB##n, LOW);                    \
-  if ((v) & _BV(n)) digitalWrite(DB##n, HIGH); \
-} while (0)
-
 uint8_t Pins::Dbus::getDbus() {
-  uint8_t data = 0;
-  READ_DB(0, data);
-  READ_DB(1, data);
-  READ_DB(2, data);
-  READ_DB(3, data);
-  READ_DB(4, data);
-  READ_DB(5, data);
-  READ_DB(6, data);
-  READ_DB(7, data);
-  return data;
+  return DB_PIN;
 }
 
 void Pins::Dbus::begin() {
@@ -64,23 +44,10 @@ void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
   }
   _dir = dir;
   if (dir == INPUT) {
-    INPUT_DB(0);
-    INPUT_DB(1);
-    INPUT_DB(2);
-    INPUT_DB(3);
-    INPUT_DB(4);
-    INPUT_DB(5);
-    INPUT_DB(6);
-    INPUT_DB(7);
+    DB_DDR = 0x00;
   } else {
-    WRITE_DB(0, data);
-    WRITE_DB(1, data);
-    WRITE_DB(2, data);
-    WRITE_DB(3, data);
-    WRITE_DB(4, data);
-    WRITE_DB(5, data);
-    WRITE_DB(6, data);
-    WRITE_DB(7, data);
+    DB_DDR = 0xFF;
+    DB_PORT = data;
   }
 }
 
