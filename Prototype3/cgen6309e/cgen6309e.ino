@@ -32,8 +32,11 @@ void loop() {
       Pins.setQ();
       Pins.setE();
       Pins.clrQ();
+      if (Pins.isIoAddr()) Pins.assertInt();
       while (!Pins.isAck() && Pins.isStep())
         ;
+
+      Pins.negateInt();
       Pins.clrE();
       while (Pins.isAck() && Pins.isStep())
         ;
