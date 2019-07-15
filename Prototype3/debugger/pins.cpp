@@ -147,11 +147,7 @@ void Pins::print() const {
     if (writeCycle()) {
       Serial.print('W');
     } else if (readCycle()) {
-      if (_signals.inst) {
-        Serial.print('I');
-      } else {
-        Serial.print('R');
-      }
+      Serial.print('R');
     } else {
       Serial.print('-');
     }
@@ -206,7 +202,6 @@ void Pins::cycle() {
     if (writeCycle()) {
       _dbus.input();
     } else if (readCycle()) {
-      _signals.inst = _dbus.valid();
       _dbus.output();
     }
   } else {
@@ -299,6 +294,7 @@ void Pins::begin() {
 
   pinMode(STEP, OUTPUT);
   pinMode(ACK, OUTPUT);
+  pinMode(INT, INPUT_PULLUP);
   digitalWrite(STEP, LOW);
   digitalWrite(ACK, HIGH);
 
@@ -310,9 +306,48 @@ void Pins::begin() {
   pinMode(RAM_E, OUTPUT);
   digitalWrite(RAM_E, HIGH);
 
+  pinMode(ADR0, INPUT_PULLUP);
+  pinMode(ADR1, INPUT_PULLUP);
+
   _dbus.begin();
 
   _previous.get();
 
   reset();
+}
+
+void Pins::attachIoRequest(void (*isr)()) {
+  attachInterrupt(INT_INTERRUPT, isr, FALLING);
+}
+
+void Pins::acknowledgeIoRequest() {
+  _previous = _signals;
+  _signals.get();
+  digitalWrite(ACK, LOW);
+}
+
+void Pins::leaveIoRequest() {
+  _dbus.input();
+  digitalWrite(ACK, HIGH);
+}
+
+uint16_t Pins::ioRequestAddress() {
+  uint16_t addr = 0xFFC0;
+  if (digitalRead(ADR0)) addr |= 0x01;
+  if (digitalRead(ADR1)) addr |= 0x02;
+  return addr;
+}
+
+bool Pins::ioRequestWrite() {
+  return digitalRead(RD_WR) == LOW;
+}
+
+uint8_t Pins::ioGetData() {
+  _dbus.input();
+  return Dbus::getDbus();
+}
+
+void Pins::ioSetData(uint8_t data) {
+  _dbus.set(data);
+  _dbus.output();
 }

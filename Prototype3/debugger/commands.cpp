@@ -24,7 +24,7 @@
 #include "pins.h"
 #include "regs.h"
 
-#define VERSION F("* Cyborg09 Prototype3 1.2")
+#define VERSION F("* Cyborg09 Prototype3 1.3")
 #define USAGE F("R:eset r:egs =:setReg d:ump m:emory i:nst s/S:tep c/C:ont h/H:alt p:ins")
 
 class Commands Commands;

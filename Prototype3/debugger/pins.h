@@ -17,6 +17,14 @@ public:
   void halt(bool show = false);
   void step(bool show = false);
 
+  void attachIoRequest(void (*isr)());
+  void acknowledgeIoRequest();
+  void leaveIoRequest();
+  uint16_t ioRequestAddress();
+  bool ioRequestWrite();
+  uint8_t ioGetData();
+  void ioSetData(uint8_t data);
+
 private:
 
   struct Status {
@@ -32,7 +40,6 @@ private:
     };
     uint8_t pins;
     uint8_t dbus;
-    bool inst;
   };
 
   class Dbus {
