@@ -13,16 +13,16 @@ class Pins Pins;
 #define PIN(name)  (name ## _PIN)
 
 #define pinMode(name, mode) do {                    \
-  if (mode == INPUT) DDR(name) &= ~BV(name);        \
-  if (mode == INPUT_PULLUP) DDR(name) &= ~BV(name); \
-  if (mode == INPUT_PULLUP) PORT(name) |= BV(name); \
-  if (mode == OUTPUT) DDR(name) |= BV(name);        \
-} while (0)
+    if (mode == INPUT) DDR(name) &= ~BV(name);        \
+    if (mode == INPUT_PULLUP) DDR(name) &= ~BV(name); \
+    if (mode == INPUT_PULLUP) PORT(name) |= BV(name); \
+    if (mode == OUTPUT) DDR(name) |= BV(name);        \
+  } while (0)
 #define digitalRead(name) (PIN(name) & BV(name))
 #define digitalWrite(name, val) do {       \
-  if (val == LOW) PORT(name) &= ~BV(name); \
-  if (val == HIGH) PORT(name) |= BV(name); \
-} while (0)
+    if (val == LOW) PORT(name) &= ~BV(name); \
+    if (val == HIGH) PORT(name) |= BV(name); \
+  } while (0)
 
 uint8_t Pins::Dbus::getDbus() {
   return DB_PIN;
@@ -88,7 +88,7 @@ void Pins::Status::get() {
 
 bool Pins::unchanged() const {
   return _signals.pins == _previous.pins
-      && _signals.dbus == _previous.dbus;
+         && _signals.dbus == _previous.dbus;
 }
 
 static void printPin(uint8_t value, const __FlashStringHelper *name) {

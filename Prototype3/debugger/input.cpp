@@ -93,20 +93,20 @@ void Input::readChar(InputHandler handler, uint8_t index) {
 void Input::processHexNumbers(char c) {
   const State state = _buffer.append(c);
   switch (state) {
-  case NEXT:
-  case FINISH:
-    _mode = CHAR_COMMAND;
-    _handler(state, _buffer.value(), _index);
-    break;
-  case DELETE:
-    _handler(state, 0, _index);
-    break;
-  case CANCEL:
-    Serial.println(F(" cancel"));
-    _mode = CHAR_COMMAND;
-    break;
-  case CONTINUE:
-    break;
+    case NEXT:
+    case FINISH:
+      _mode = CHAR_COMMAND;
+      _handler(state, _buffer.value(), _index);
+      break;
+    case DELETE:
+      _handler(state, 0, _index);
+      break;
+    case CANCEL:
+      Serial.println(F(" cancel"));
+      _mode = CHAR_COMMAND;
+      break;
+    case CONTINUE:
+      break;
   }
 }
 
@@ -114,16 +114,16 @@ void Input::loop() {
   if (Serial.available()) {
     const char c = Serial.read();
     switch (_mode) {
-    case CHAR_COMMAND:
-      Commands.exec(c);
-      break;
-    case READ_UINT:
-      processHexNumbers(c);
-      break;
-    case READ_CHAR:
-      _mode = CHAR_COMMAND;
-      _handler(FINISH, c, _index);
-      break;
+      case CHAR_COMMAND:
+        Commands.exec(c);
+        break;
+      case READ_UINT:
+        processHexNumbers(c);
+        break;
+      case READ_CHAR:
+        _mode = CHAR_COMMAND;
+        _handler(FINISH, c, _index);
+        break;
     }
   }
 

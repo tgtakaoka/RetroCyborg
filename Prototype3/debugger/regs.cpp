@@ -16,16 +16,6 @@ static void hex2(uint8_t v, const __FlashStringHelper *name) {
   printHex2(v, ' ');
 }
 
-static void execInst4(uint8_t pre, uint8_t inst, uint16_t opr) {
-  const uint8_t insn[] = { pre, inst, opr>>8, opr };
-  Pins.execInst(insn, sizeof(insn));
-}
-
-static void capture1(uint8_t inst, uint8_t *buf, uint8_t max) {
-  const uint8_t insn[] = { inst };
-  Pins.captureWrites(insn, sizeof(insn), buf, max);
-}
-
 static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {
   const uint8_t insn[] = { inst, opr };
   Pins.captureWrites(insn, sizeof(insn), buf, max);
@@ -54,16 +44,20 @@ void Regs::get(bool show) {
 }
 
 void Regs::save() {
-  capture1(0x3F, bytes, 12); // SWI
-  pc -= 1; // offset SWI instruction.
+  capture2(0x34, 0xFF, bytes, 12); // PSHS PC,U,Y,X,DP,B,A,CC
+  pc -= 2; // offset PSHS instruction.
   capture2(0x36, 0x40, bytes + 12, 2); // PSHU S
-  s += 12; // offset SWI stack frame.
+  s += 12; // offset PSHS stack frame.
 }
 
 void Regs::restore() {
-  execInst4(0x10, 0xCE, s - 12); // LDS #(s-12)
-  const uint8_t rti[] = {
-    0x3B, 0, cc, a, b, dp, x>>8, x, y>>8, y, u>>8, u, pc>>8, pc
+  const uint16_t sp = s - 12;
+  const uint8_t lds[] = { // LDS #(s-12)
+    0x10, 0xCE, sp >> 8, sp
   };
-  Pins.execInst(rti, sizeof(rti));
+  Pins.execInst(lds, sizeof(lds));
+  const uint8_t puls[] = {
+    0x35, 0xFF, 0, 0, cc, a, b, dp, x >> 8, x, y >> 8, y, u >> 8, u, pc >> 8, pc
+  };
+  Pins.execInst(puls, sizeof(puls));
 }

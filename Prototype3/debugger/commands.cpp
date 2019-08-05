@@ -38,7 +38,7 @@ static void execInst2(uint8_t inst, uint8_t opr, bool show = false) {
 }
 
 static void execInst3(uint8_t inst, uint16_t opr, bool show = false) {
-  const uint8_t insn[] = { inst, opr>>8, opr };
+  const uint8_t insn[] = { inst, opr >> 8, opr };
   Pins.execInst(insn, sizeof(insn), show);
 }
 
@@ -64,12 +64,11 @@ static void handleInstruction(Input::State state, uint16_t value, uint8_t index)
 
 static void dumpMemory(uint16_t addr, uint16_t len) {
   Regs.save();
-  execInst3(0x8E, addr); // LDX #addr
-  for (uint16_t i = 0; i < len; i++) {
-    execInst2(0xA6, 0x80); // LDA ,X+
+  for (uint16_t i = 0; i < len; i++, addr++) {
+    execInst3(0xB6, addr); // LDA $addr
     if (i % 16 == 0) {
       if (i) Serial.println();
-      printHex4(addr + i, ':');
+      printHex4(addr, ':');
     }
     printHex2(Pins.dbus(), ' ');
   }
@@ -99,10 +98,9 @@ static void handleDumpMemory(Input::State state, uint16_t value, uint8_t index) 
 
 static void memoryWrite(uint16_t addr, const uint8_t values[], const uint8_t len) {
   Regs.save();
-  execInst3(0x8E, addr); // LDX #addr
-  for (uint8_t i = 0; i < len; i++) {
+  for (uint8_t i = 0; i < len; i++, addr++) {
     execInst2(0x86, values[i]); // LDA #values[i]
-    execInst2(0xA7, 0x80);      // STA ,X+
+    execInst3(0xB7, addr);      // STA $addr
   }
   Regs.restore();
 }
@@ -210,7 +208,7 @@ void Commands::exec(char c) {
     Input.readChar(handleSetRegister, 0);
   }
   if (c == 'c') {
-     _target = STEP;
+    _target = STEP;
   }
   if (c == 'C' && _target != RUN) {
     _target = RUN;
