@@ -153,8 +153,6 @@ void Input::begin() {
 }
 
 void Input::loop() {
-  if (Commands.isRunning())
-    return;
   if (Serial.available()) {
     const char c = Serial.read();
     switch (_mode) {
