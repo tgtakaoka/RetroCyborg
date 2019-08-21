@@ -17,6 +17,7 @@
 */
 
 #include <Arduino.h>
+#include <string.h>
 
 #include "commands.h"
 #include "hex.h"
@@ -24,11 +25,16 @@
 #include "pins.h"
 #include "regs.h"
 
-#define VERSION F("* Cyborg09 Prototype3 1.3")
-#define USAGE F("R:eset r:egs =:setReg d:ump m:emory i:nst s/S:tep c/C:ont h/H:alt p:ins")
+#include "dis_hd6309.h"
+#include "memory.h"
+#include "symbol_table.h"
+
+#define VERSION F("* Cyborg09 Prototype3 1.4")
+#define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst s/S:tep c/C:ont h/H:alt p:ins")
 
 class Commands Commands;
 
+static uint16_t addr;
 static uint8_t buffer[16];
 #define NO_INDEX (sizeof(buffer) + 10)
 
@@ -77,7 +83,6 @@ static void dumpMemory(uint16_t addr, uint16_t len) {
 }
 
 static void handleDumpMemory(Input::State state, uint16_t value, uint8_t index) {
-  static uint16_t addr;
   if (state == Input::State::DELETE) {
     if (index == 1) {
       Input::backspace();
@@ -96,6 +101,82 @@ static void handleDumpMemory(Input::State state, uint16_t value, uint8_t index) 
   dumpMemory(addr, value);
 }
 
+
+class Hd6309Memory : public Memory {
+  public:
+    Hd6309Memory() : Memory(0) {}
+    bool hasNext() const override {
+      return true;
+    }
+    void setAddress(target::uintptr_t addr) {
+      _address = addr;
+    }
+  protected:
+    target::byte_t nextByte() {
+      Regs.save();
+      execInst3(0xB6, _address); // LDA $_address
+      target::byte_t data = Pins.dbus();
+      Regs.restore();
+      return data;
+    }
+};
+
+static void print(const char *text, int width) {
+  Serial.print(text);
+  for (int i = strlen(text); i < width; i++) {
+    Serial.print(' ');
+  }
+}
+static void disassemble(uint16_t addr, uint16_t len) {
+  DisHd6309 dis(MC6809);
+  class Hd6309Memory memory;
+  memory.setAddress(addr);
+  while (len-- != 0) {
+    char operands[20];
+    char comments[20];
+    Insn insn;
+    dis.decode(memory, insn, operands, comments, nullptr);
+    printHex4(insn.address(), ':');
+    for (int i = 0; i < insn.insnLen(); i++) {
+      printHex2(insn.bytes()[i], ' ');
+    }
+    for (int i = insn.insnLen(); i < 5; i++) {
+      Serial.print(F("   "));
+    }
+    if (dis.getError()) {
+      Serial.print(F("Error: "));
+      Serial.println(dis.getError(), DEC);
+      continue;
+    }
+    print(insn.name(), 6);
+    print(operands, 12);
+    if (*comments) {
+      Serial.print(';');
+      Serial.print(comments);
+    }
+    Serial.println();
+  }
+}
+
+static void handleDisassemble(Input::State state , uint16_t value, uint8_t index) {
+  if (state == Input::State::DELETE) {
+    if (index == 1) {
+      Input::backspace();
+      Input.readUint16(handleDisassemble, 0, addr);
+    }
+    return;
+  }
+  if (index == 0) {
+    addr = value;
+    if (state == Input::State::NEXT) {
+      Input.readUint16(handleDisassemble, 1);
+      return;
+    }
+    value = 16;
+  }
+  disassemble(addr, value);
+}
+
 static void memoryWrite(uint16_t addr, const uint8_t values[], const uint8_t len) {
   Regs.save();
   for (uint8_t i = 0; i < len; i++, addr++) {
@@ -106,7 +187,6 @@ static void memoryWrite(uint16_t addr, const uint8_t values[], const uint8_t len
 }
 
 static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index) {
-  static uint16_t addr;
   if (index == NO_INDEX) {
     addr = value;
     Input.readUint8(handleMemoryWrite, 0);
@@ -188,6 +268,10 @@ void Commands::exec(char c) {
     Serial.print(F("d?"));
     Input.readUint16(handleDumpMemory, 0);
   }
+  if (c == 'D') {
+    Serial.printf(F("D?"));
+    Input.readUint16(handleDisassemble, 0);
+  }
   if (c == 'm') {
     Serial.print(F("m?"));
     Input.readUint16(handleMemoryWrite, NO_INDEX);
@@ -200,7 +284,7 @@ void Commands::exec(char c) {
       Pins.halt(c == 'S');
     }
     Regs.get(true);
-    dumpMemory(Regs.pc, 6);
+    disassemble(Regs.pc, 1);
   }
   if (c == 'r') Regs.get(true);
   if (c == '=') {
@@ -220,7 +304,7 @@ void Commands::exec(char c) {
     Pins.halt(c == 'H');
     Serial.println(F("HALT"));
     Regs.get(true);
-    dumpMemory(Regs.pc, 6);
+    disassemble(Regs.pc, 1);
   }
   if (c == '?') {
     Serial.println(VERSION);
