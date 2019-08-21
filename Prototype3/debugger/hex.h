@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-void printHex2(uint8_t value, char suffix = 0);
-void printHex4(uint16_t value, char suffix = 0);
+void printHex8(uint8_t value, char suffix = 0);
+void printHex16(uint16_t value, char suffix = 0);
 
 #endif
