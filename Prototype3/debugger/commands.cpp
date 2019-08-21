@@ -25,12 +25,13 @@
 #include "pins.h"
 #include "regs.h"
 
+#include "asm_hd6309.h"
 #include "dis_hd6309.h"
 #include "memory.h"
 #include "symbol_table.h"
 
-#define VERSION F("* Cyborg09 Prototype3 1.4")
-#define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst s/S:tep c/C:ont h/H:alt p:ins")
+#define VERSION F("* Cyborg09 Prototype3 1.5")
+#define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:asm s/S:tep c/C:ont h/H:alt p:ins")
 
 class Commands Commands;
 
@@ -74,9 +75,9 @@ static void dumpMemory(uint16_t addr, uint16_t len) {
     execInst3(0xB6, addr); // LDA $addr
     if (i % 16 == 0) {
       if (i) Serial.println();
-      printHex4(addr, ':');
+      printHex16(addr, ':');
     }
-    printHex2(Pins.dbus(), ' ');
+    printHex8(Pins.dbus(), ' ');
   }
   Serial.println();
   Regs.restore();
@@ -127,8 +128,19 @@ static void print(const char *text, int width) {
     Serial.print(' ');
   }
 }
+
+static void print(const Insn& insn) {
+  printHex16(insn.address(), ':');
+  for (int i = 0; i < insn.insnLen(); i++) {
+    printHex8(insn.bytes()[i], ' ');
+  }
+  for (int i = insn.insnLen(); i < 5; i++) {
+    Serial.print(F("   "));
+  }
+}
+
 static void disassemble(uint16_t addr, uint16_t len) {
-  DisHd6309 dis(MC6809);
+  DisHd6309 dis(HD6309);
   class Hd6309Memory memory;
   memory.setAddress(addr);
   while (len-- != 0) {
@@ -136,13 +148,7 @@ static void disassemble(uint16_t addr, uint16_t len) {
     char comments[20];
     Insn insn;
     dis.decode(memory, insn, operands, comments, nullptr);
-    printHex4(insn.address(), ':');
-    for (int i = 0; i < insn.insnLen(); i++) {
-      printHex2(insn.bytes()[i], ' ');
-    }
-    for (int i = insn.insnLen(); i < 5; i++) {
-      Serial.print(F("   "));
-    }
+    print(insn);
     if (dis.getError()) {
       Serial.print(F("Error: "));
       Serial.println(dis.getError(), DEC);
@@ -214,6 +220,36 @@ static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index)
   dumpMemory(addr, index);
 }
 
+static void handlerAssembleLine(Input::State state, const String& line) {
+  if (state == Input::State::CANCEL || line.length() == 0) {
+    Serial.println(F("end"));
+    return;
+  }
+  AsmHd6309 assembler(HD6309);
+  Insn insn;
+  if (assembler.encode(line.c_str(), insn, addr, nullptr)) {
+    Serial.print(F("Error: "));
+    Serial.println(assembler.getError(), DEC);
+  } else {
+    print(insn);
+    Serial.println();
+    memoryWrite(insn.address(), insn.bytes(), insn.insnLen());
+    addr += insn.insnLen();
+  }
+  printHex16(addr, '?');
+  Input.readLine(handlerAssembleLine);
+}
+
+static void handlerAssembler(Input::State state, uint16_t value, uint8_t index) {
+  if (index == 0) {
+    addr = value;
+    if (state == Input::State::FINISH) {
+      printHex16(addr, '?');
+      Input.readLine(handlerAssembleLine);
+    }
+  }
+}
+
 void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
   if (index == 0) {
     const char c = value & ~0x20;
@@ -271,6 +307,10 @@ void Commands::exec(char c) {
   if (c == 'D') {
     Serial.printf(F("D?"));
     Input.readUint16(handleDisassemble, 0);
+  }
+  if (c == 'A') {
+    Serial.printf(F("A?"));
+    Input.readUint16(handlerAssembler, 0);
   }
   if (c == 'm') {
     Serial.print(F("m?"));

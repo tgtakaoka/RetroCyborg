@@ -26,8 +26,8 @@ void Input::HexBuffer::set(uint8_t digits, uint16_t value) {
   _len = _digits = digits;
   _value = value;
   if (digits == 4)
-    printHex2(value >> 8);
-  printHex2(value);
+    printHex8(value >> 8);
+  printHex8(value);
 }
 
 Input::State Input::HexBuffer::append(char c) {
@@ -90,6 +90,12 @@ void Input::readChar(InputHandler handler, uint8_t index) {
   _mode = READ_CHAR;
 }
 
+void Input::readLine(LineHandler handler) {
+  _lineHandler = handler;
+  _lineBuffer = "";
+  _mode = READ_LINE;
+}
+
 void Input::processHexNumbers(char c) {
   const State state = _buffer.append(c);
   switch (state) {
@@ -110,6 +116,28 @@ void Input::processHexNumbers(char c) {
   }
 }
 
+void Input::processReadLine(char c) {
+  if (c == '\r' || c == '\n') {
+    _mode = CHAR_COMMAND;
+    Serial.println();
+    _lineBuffer.trim();
+    _lineHandler(FINISH, _lineBuffer);
+  } else if (c == '\b' || c == '\x7f') {
+    const int len = _lineBuffer.length();
+    if (len > 0) {
+      backspace();
+      _lineBuffer = _lineBuffer.substring(0, len - 1);
+    }
+  } else if (c == '\x1b') {
+    Serial.println(F(" cancel"));
+    _mode = CHAR_COMMAND;
+    _lineHandler(CANCEL, _lineBuffer);
+  } else {
+    Serial.print(c);
+    _lineBuffer += c;
+  }
+}
+
 void Input::loop() {
   if (Serial.available()) {
     const char c = Serial.read();
@@ -123,6 +151,9 @@ void Input::loop() {
       case READ_CHAR:
         _mode = CHAR_COMMAND;
         _handler(FINISH, c, _index);
+        break;
+      case READ_LINE:
+        processReadLine(c);
         break;
     }
   }

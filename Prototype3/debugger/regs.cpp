@@ -8,12 +8,12 @@ union Regs Regs;
 
 static void hex4(uint16_t v, const __FlashStringHelper *name) {
   Serial.print(name);
-  printHex4(v, ' ');
+  printHex16(v, ' ');
 }
 
 static void hex2(uint8_t v, const __FlashStringHelper *name) {
   Serial.print(name);
-  printHex2(v, ' ');
+  printHex8(v, ' ');
 }
 
 static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {

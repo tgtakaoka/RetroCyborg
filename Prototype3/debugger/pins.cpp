@@ -106,7 +106,7 @@ void Pins::print() const {
   printPin(_signals.pins & Status::rw,    F(" RW="));
 
   Serial.print(F(" DB=0x"));
-  printHex2(_signals.dbus);
+  printHex8(_signals.dbus);
   Serial.print(' ');
   if (vectorFetch()) {
     Serial.print('V');
