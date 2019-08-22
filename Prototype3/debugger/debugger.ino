@@ -7,6 +7,7 @@
    USB Serial port is used as console. So one can connect with
      $ screen /dev/<tty USB> 9600
 */
+#include <SD.h>
 
 #include "input.h"
 #include "pins.h"
@@ -16,6 +17,7 @@ void setup() {
   Pins.begin();
   Pins.attachIoRequest(ioRequest);
   interrupts();
+  SD.begin();
 }
 
 void loop() {
