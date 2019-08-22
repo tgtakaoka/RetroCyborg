@@ -140,15 +140,17 @@ static void print(const Insn& insn) {
   }
 }
 
-static void disassemble(uint16_t addr, uint16_t len) {
+static void disassemble(uint16_t addr, uint16_t max) {
   DisHd6309 dis(HD6309);
   class Hd6309Memory memory;
   memory.setAddress(addr);
-  while (len-- != 0) {
+  uint16_t len = 0;
+  while (len < max) {
     char operands[20];
     char comments[20];
     Insn insn;
     dis.decode(memory, insn, operands, comments, nullptr);
+    len += insn.insnLen();
     print(insn);
     if (dis.getError()) {
       Serial.print(F("Error: "));
