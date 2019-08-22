@@ -18,6 +18,7 @@
 
 #include <Arduino.h>
 #include <string.h>
+#include <SD.h>
 
 #include "commands.h"
 #include "hex.h"
@@ -30,8 +31,8 @@
 #include "memory.h"
 #include "symbol_table.h"
 
-#define VERSION F("* Cyborg09 Prototype3 1.5")
-#define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:asm s/S:tep c/C:ont h/H:alt p:ins")
+#define VERSION F("* Cyborg09 Prototype3 1.6")
+#define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:asm s/S:tep c/C:ont h/H:alt p:ins F:iles L:oad")
 
 class Commands Commands;
 
@@ -250,6 +251,64 @@ static void handlerAssembler(Input::State state, uint16_t value, uint8_t index) 
   }
 }
 
+static void handlerFileListing() {
+  File root = SD.open("/");
+  while (true) {
+    File entry = root.openNextFile();
+    if (!entry) break;
+    if (entry.isDirectory()) continue;
+    Serial.print(entry.name());
+    Serial.print('\t');
+    Serial.println(entry.size(), DEC);
+    entry.close();
+  }
+  root.close();
+}
+
+static uint8_t toInt(const char c) {
+  return isDigit(c) ? c - '0' : c - 'A' + 10;
+}
+
+static uint8_t toInt8Hex(const String& text) {
+    return (toInt(text[0]) << 4) | toInt(text[1]);
+}
+
+static uint16_t toInt16Hex(const String& text) {
+  return ((uint16_t)toInt8Hex(text) << 8) | toInt8Hex(text.substring(2));
+}
+
+static void loadS19Record(const String& line) {
+  int len = line.length();
+  if (line.startsWith("S1") && len > 8) {
+    const int num = toInt8Hex(line.substring(2)) - 3;
+    const uint16_t addr = toInt16Hex(line.substring(4));
+    uint8_t buffer[num];
+    for (int i = 0; i < num; i++) {
+      buffer[i] = toInt8Hex(line.substring(i * 2 + 8));
+    }
+    memoryWrite(addr, buffer, num);
+    printHex16(addr, ':');
+    printHex8(num, '\r');
+  }
+}
+
+static void handlerLoadFile(Input::State state, const String& line) {
+  if (state != Input::State::FINISH) return;
+  File file = SD.open(line.c_str());
+  String s19;
+  while (file.available() > 0) {
+    const char c = file.read();
+    if (c == '\n') {
+      loadS19Record(s19);
+      s19 = "";
+    } else if (c != '\r') {
+      s19 += c;
+    }
+  }
+  file.close();
+  Serial.println();
+}
+
 void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
   if (index == 0) {
     const char c = value & ~0x20;
@@ -345,6 +404,13 @@ void Commands::exec(char c) {
     Serial.println(F("HALT"));
     Regs.get(true);
     disassemble(Regs.pc, 1);
+  }
+  if (c == 'F') {
+    handlerFileListing();
+  }
+  if (c == 'L') {
+    Serial.print(F("L?"));
+    Input.readLine(handlerLoadFile);
   }
   if (c == '?') {
     Serial.println(VERSION);
