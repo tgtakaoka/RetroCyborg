@@ -23,3 +23,16 @@ PD3             ACK
 PD4             STEP
 PD5             A7
 PD6             A8
+
+              ATtiny2313
+                 _____
+  RESET  PA2   1|*    |20  VCC
+    RXD  PD0   2|     |19  PB7  SCK   SCL
+    TXD  PD1   3|     |18  PB6  MISO
+         PA1   4|     |17  PB5  MOSI  SDA
+         PA0   5|     |16  PB4  OC1B
+   INT0  PD2   6|     |15  PB3  OC1A
+   INT1  PD3   7|     |14  PB2  OC0A
+         PD4   8|     |13  PB1  AIN1
+   OC0B  PD5   9|     |12  PB0  AIN0
+         GND  10|_____|11  PD6

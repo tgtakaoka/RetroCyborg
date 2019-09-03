@@ -9,3 +9,10 @@ PB2/SCK/SCL     INT
 PB3/XTAL1       ACK
 PB4/XTAL2       RESET
 PB5/RESET       IOR
+
+                      ATtiny85
+                       _____
+RESET ADC0  D5  PB5  1|*    |8  VCC
+      ADC3  D3  PB3  2|     |7  PB2  D2  ADC1  INT0  SCK  SCL
+OC1B  ADC2  D4  PB4  3|     |6  PB1  D1        OC0B  MISO
+                GND  4|_____|5  PB0  D0        OC0A  MOSI SDA

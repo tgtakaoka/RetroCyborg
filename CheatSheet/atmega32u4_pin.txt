@@ -30,3 +30,41 @@ PF4         A3/D21    DB0      A3/D21   LIC      A3/D21    LIC
 PF5         A2/D20    DB1      A2/D20   BA       A2/D20    BA
 PF6         A1/D19    DB2      A1/D19   BS       A1/D19    BS
 PF7         A0/D18    DB3      A0/D18   HALT     A0/D18    RD_WR
+
+
+                       A A A A A A
+                       D D D D D D
+		       C C C C C C
+		       0 1 4 5 6 7
+		 A   A
+		 V G R P P P P P P G V
+                 C N E F F F F F F N C
+                 C D F 0 1 4 5 6 7 D C
+		 _____________________
+   INT6  PE6   1|* 4 4 4 4 3 3 3 3 3 3|33  PE2  HWB
+        UVCC   2|  3 2 1 0 9 8 7 6 5 4|32  PC7
+	  D-   3|		      |31  PC6
+	  D+   4|		      |30  PB6  ADC13
+	UGND   5|		      |29  PB5  ADC12
+	UCAP   6|		      |28  PB4  ADC11
+	VBUS   7|		      |27  PD7  ADC10
+     SS  PB0   8|		      |26  PD6  ADC9
+    SCK  PB1   9|		      |25  PD4  ADC8
+   MOSI  PB2  10|  		      |24  AVCC
+   MISO  PB3  11|_____________________|23  GND
+                 1 1 1 1 1 1 1 1 2 2 2
+                 2 3 4 5 6 7 8 9 0 1 2
+
+                 P R V G X X P P P P P
+                 B E C N T T D D D D D
+                 7 S C D A A 0 1 2 3 5
+		   E 	 L L
+		   T	 2 1   	 R T
+			     S S X X C
+			     C D D D T
+			     L A 1 1 S
+
+			     I I I I
+			     N N N N
+			     T T T T
+			     0 1 2 3
