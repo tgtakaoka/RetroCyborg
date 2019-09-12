@@ -141,7 +141,7 @@ static void print(const Insn& insn) {
 }
 
 static void disassemble(uint16_t addr, uint16_t max) {
-  DisHd6309 dis(HD6309);
+  Disassembler dis(HD6309);
   class Hd6309Memory memory;
   memory.setAddress(addr);
   uint16_t len = 0;
@@ -228,7 +228,7 @@ static void handlerAssembleLine(Input::State state, const String& line) {
     Serial.println(F("end"));
     return;
   }
-  AsmHd6309 assembler(HD6309);
+  Assembler assembler(HD6309);
   Insn insn;
   if (assembler.encode(line.c_str(), insn, addr, nullptr)) {
     Serial.print(F("Error: "));
