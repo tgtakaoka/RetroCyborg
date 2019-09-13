@@ -31,7 +31,7 @@
 #include "memory.h"
 #include "symbol_table.h"
 
-#define VERSION F("* Cyborg09 Prototype3 1.6")
+#define VERSION F("* Cyborg09 Prototype3 1.7")
 #define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:asm s/S:tep c/C:ont h/H:alt p:ins F:iles L:oad")
 
 class Commands Commands;
@@ -141,7 +141,7 @@ static void print(const Insn& insn) {
 }
 
 static void disassemble(uint16_t addr, uint16_t max) {
-  Disassembler dis(HD6309);
+  Disassembler<HD6309> dis;
   class Hd6309Memory memory;
   memory.setAddress(addr);
   uint16_t len = 0;
@@ -228,7 +228,7 @@ static void handlerAssembleLine(Input::State state, const String& line) {
     Serial.println(F("end"));
     return;
   }
-  Assembler assembler(HD6309);
+  Assembler<MC6809> assembler;
   Insn insn;
   if (assembler.encode(line.c_str(), insn, addr, nullptr)) {
     Serial.print(F("Error: "));
@@ -366,11 +366,11 @@ void Commands::exec(char c) {
     Input.readUint16(handleDumpMemory, 0);
   }
   if (c == 'D') {
-    Serial.printf(F("D?"));
+    Serial.print(F("D?"));
     Input.readUint16(handleDisassemble, 0);
   }
   if (c == 'A') {
-    Serial.printf(F("A?"));
+    Serial.print(F("A?"));
     Input.readUint16(handlerAssembler, 0);
   }
   if (c == 'm') {
