@@ -223,14 +223,14 @@ static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index)
   dumpMemory(addr, index);
 }
 
-static void handlerAssembleLine(Input::State state, const String& line) {
-  if (state == Input::State::CANCEL || line.length() == 0) {
+static void handlerAssembleLine(Input::State state, char *line) {
+  if (state == Input::State::CANCEL || *line == 0) {
     Serial.println(F("end"));
     return;
   }
   Assembler<MC6809> assembler;
   Insn insn;
-  if (assembler.encode(line.c_str(), insn, addr, nullptr)) {
+  if (assembler.encode(line, insn, addr, nullptr)) {
     Serial.print(F("Error: "));
     Serial.println(assembler.getError(), DEC);
   } else {
@@ -271,22 +271,22 @@ static uint8_t toInt(const char c) {
   return isDigit(c) ? c - '0' : c - 'A' + 10;
 }
 
-static uint8_t toInt8Hex(const String& text) {
+static uint8_t toInt8Hex(const char *text) {
     return (toInt(text[0]) << 4) | toInt(text[1]);
 }
 
-static uint16_t toInt16Hex(const String& text) {
-  return ((uint16_t)toInt8Hex(text) << 8) | toInt8Hex(text.substring(2));
+static uint16_t toInt16Hex(const char *text) {
+  return ((uint16_t)toInt8Hex(text) << 8) | toInt8Hex(text + 2);
 }
 
-static void loadS19Record(const String& line) {
-  int len = line.length();
-  if (line.startsWith("S1") && len > 8) {
-    const int num = toInt8Hex(line.substring(2)) - 3;
-    const uint16_t addr = toInt16Hex(line.substring(4));
+static void loadS19Record(const char *line) {
+  int len = strlen(line);
+  if (len > 0 && line[0] == 'S' && line[1] == '1') {
+    const int num = toInt8Hex(line + 2) - 3;
+    const uint16_t addr = toInt16Hex(line + 4);
     uint8_t buffer[num];
     for (int i = 0; i < num; i++) {
-      buffer[i] = toInt8Hex(line.substring(i * 2 + 8));
+      buffer[i] = toInt8Hex(line + i * 2 + 8);
     }
     memoryWrite(addr, buffer, num);
     printHex16(addr, ':');
@@ -294,17 +294,19 @@ static void loadS19Record(const String& line) {
   }
 }
 
-static void handlerLoadFile(Input::State state, const String& line) {
+static void handlerLoadFile(Input::State state, char *line) {
   if (state != Input::State::FINISH) return;
-  File file = SD.open(line.c_str());
-  String s19;
+  File file = SD.open(line);
+  char s19[80];
+  char *p = s19;
   while (file.available() > 0) {
     const char c = file.read();
     if (c == '\n') {
+      *p = 0;
       loadS19Record(s19);
-      s19 = "";
-    } else if (c != '\r') {
-      s19 += c;
+      p = s19;
+    } else if (c != '\r' && p < s19 + sizeof(s19) -1) {
+      *p++ = c;
     }
   }
   file.close();

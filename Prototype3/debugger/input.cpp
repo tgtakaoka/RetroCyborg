@@ -92,7 +92,8 @@ void Input::readChar(InputHandler handler, uint8_t index) {
 
 void Input::readLine(LineHandler handler) {
   _lineHandler = handler;
-  _lineBuffer = "";
+  _lineLen = 0;
+  *_lineBuffer = 0;
   _mode = READ_LINE;
 }
 
@@ -116,25 +117,34 @@ void Input::processHexNumbers(char c) {
   }
 }
 
+static void trimLineBuffer(char *line) {
+  char *top = line;
+  while (isSpace(*top)) top++;
+  char *end = top + strlen(top) - 1;
+  while (end >= top && isSpace(*end)) *end-- = 0;
+  while ((*line++ = *top++) != 0)
+    ;
+}
+
 void Input::processReadLine(char c) {
   if (c == '\r' || c == '\n') {
     _mode = CHAR_COMMAND;
     Serial.println();
-    _lineBuffer.trim();
+    trimLineBuffer(_lineBuffer);
     _lineHandler(FINISH, _lineBuffer);
   } else if (c == '\b' || c == '\x7f') {
-    const int len = _lineBuffer.length();
-    if (len > 0) {
+    if (_lineLen > 0) {
       backspace();
-      _lineBuffer = _lineBuffer.substring(0, len - 1);
+      _lineBuffer[--_lineLen] = 0;
     }
   } else if (c == '\x1b') {
     Serial.println(F(" cancel"));
     _mode = CHAR_COMMAND;
     _lineHandler(CANCEL, _lineBuffer);
-  } else {
+  } else if (_lineLen < sizeof(_lineBuffer) - 1) {
     Serial.print(c);
-    _lineBuffer += c;
+    _lineBuffer[_lineLen++] = c;
+    _lineBuffer[_lineLen] = 0;
   }
 }
 

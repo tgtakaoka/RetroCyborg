@@ -15,7 +15,7 @@ class Input {
     };
     // |state| can be NEXT, FINISH, or DELETE.
     typedef void (*InputHandler)(State state, uint16_t value, uint8_t index);
-    typedef void (*LineHandler)(State state, const String& line);
+    typedef void (*LineHandler)(State state, char *line);
 
     void loop();
     void readUint8(InputHandler handler, uint8_t index);
@@ -56,7 +56,8 @@ class Input {
         uint8_t _digits;
         uint16_t _value;
     } _buffer;
-    String _lineBuffer;
+    int _lineLen;
+    char _lineBuffer[80];
 };
 
 extern Input Input;
