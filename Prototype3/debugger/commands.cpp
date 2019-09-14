@@ -46,7 +46,7 @@ static void execInst2(uint8_t inst, uint8_t opr, bool show = false) {
 }
 
 static void execInst3(uint8_t inst, uint16_t opr, bool show = false) {
-  const uint8_t insn[] = { inst, opr >> 8, opr };
+  const uint8_t insn[] = { inst, (uint8_t)(opr >> 8), (uint8_t)opr };
   Pins.execInst(insn, sizeof(insn), show);
 }
 
@@ -258,10 +258,11 @@ static void handlerFileListing() {
   while (true) {
     File entry = root.openNextFile();
     if (!entry) break;
-    if (entry.isDirectory()) continue;
-    Serial.print(entry.name());
-    Serial.print('\t');
-    Serial.println(entry.size(), DEC);
+    if (!entry.isDirectory()) {
+      Serial.print(entry.name());
+      Serial.print('\t');
+      Serial.println(entry.size(), DEC);
+    }
     entry.close();
   }
   root.close();
@@ -279,38 +280,45 @@ static uint16_t toInt16Hex(const char *text) {
   return ((uint16_t)toInt8Hex(text) << 8) | toInt8Hex(text + 2);
 }
 
-static void loadS19Record(const char *line) {
+static int loadS19Record(const char *line) {
   int len = strlen(line);
-  if (len > 0 && line[0] == 'S' && line[1] == '1') {
-    const int num = toInt8Hex(line + 2) - 3;
-    const uint16_t addr = toInt16Hex(line + 4);
-    uint8_t buffer[num];
-    for (int i = 0; i < num; i++) {
-      buffer[i] = toInt8Hex(line + i * 2 + 8);
-    }
-    memoryWrite(addr, buffer, num);
-    printHex16(addr, ':');
-    printHex8(num, '\r');
+  if (len == 0 || line[0] != 'S' || line[1] != '1')
+    return 0;
+  const int num = toInt8Hex(line + 2) - 3;
+  const uint16_t addr = toInt16Hex(line + 4);
+  uint8_t buffer[num];
+  for (int i = 0; i < num; i++) {
+    buffer[i] = toInt8Hex(line + i * 2 + 8);
   }
+  memoryWrite(addr, buffer, num);
+  printHex16(addr, ':');
+  printHex8(num);
+  Serial.print(' ');
+  return num;
 }
 
 static void handlerLoadFile(Input::State state, char *line) {
   if (state != Input::State::FINISH) return;
+  uint16_t size = 0;
   File file = SD.open(line);
-  char s19[80];
-  char *p = s19;
-  while (file.available() > 0) {
-    const char c = file.read();
-    if (c == '\n') {
-      *p = 0;
-      loadS19Record(s19);
-      p = s19;
-    } else if (c != '\r' && p < s19 + sizeof(s19) -1) {
-      *p++ = c;
+  if (file) {
+    char s19[80];
+    char *p = s19;
+    while (file.available() > 0) {
+      const char c = file.read();
+      if (c == '\n') {
+        *p = 0;
+        size += loadS19Record(s19);
+        p = s19;
+      } else if (c != '\r' && p < s19 + sizeof(s19) -1) {
+        *p++ = c;
+      }
     }
+    file.close();
   }
-  file.close();
   Serial.println();
+  Serial.print(size, DEC);
+  Serial.println(F(" bytes loaded"));
 }
 
 void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {

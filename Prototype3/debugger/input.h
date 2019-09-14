@@ -56,7 +56,7 @@ class Input {
         uint8_t _digits;
         uint16_t _value;
     } _buffer;
-    int _lineLen;
+    uint8_t _lineLen;
     char _lineBuffer[80];
 };
 

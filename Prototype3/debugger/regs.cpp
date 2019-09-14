@@ -53,11 +53,16 @@ void Regs::save() {
 void Regs::restore() {
   const uint16_t sp = s - 12;
   const uint8_t lds[] = { // LDS #(s-12)
-    0x10, 0xCE, sp >> 8, sp
+    0x10, 0xCE, (uint8_t)(sp >> 8), (uint8_t)sp
   };
   Pins.execInst(lds, sizeof(lds));
   const uint8_t puls[] = {
-    0x35, 0xFF, 0, 0, cc, a, b, dp, x >> 8, x, y >> 8, y, u >> 8, u, pc >> 8, pc
+    0x35, 0xFF, 0, 0,
+    cc, a, b, dp,
+    (uint8_t)(x >> 8), (uint8_t)x,
+    (uint8_t)(y >> 8), (uint8_t)y,
+    (uint8_t)(u >> 8), (uint8_t)u,
+    (uint8_t)(pc >> 8), (uint8_t)pc
   };
   Pins.execInst(puls, sizeof(puls));
 }
