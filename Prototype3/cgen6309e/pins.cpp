@@ -22,21 +22,27 @@ class Pins Pins;
 } while (0)
 #endif
 
-#define BV(name)   _BV(name ## _BV)
+#define __concat2__(a,b) a##b
+#define BP(name)  name##_PIN
+#define BM(name)   _BV(BP(name))
 #define BUS(name)  (name ## _BUS)
-#define DDR(name)  (name ## _DDR)
-#define PORT(name) (name ## _PORT)
-#define PIN(name)  (name ## _PIN)
+#define __PORT__(name) name##_PORT
+#define __DDR__(port) __concat2__(DDR,port)
+#define __POUT__(port) __concat2__(PORT,port)
+#define __PIN__(port) __concat2__(PIN,port)
+#define DDR(name) __DDR__(__PORT__(name))
+#define PORT(name) __POUT__(__PORT__(name))
+#define PIN(name) __PIN__(__PORT__(name))
 #define pinMode(name, mode) do {                    \
-  if (mode == INPUT) DDR(name) &= ~BV(name);        \
-  if (mode == INPUT_PULLUP) DDR(name) &= ~BV(name); \
-  if (mode == INPUT_PULLUP) PORT(name) |= BV(name); \
-  if (mode == OUTPUT) DDR(name) |= BV(name);        \
+  if (mode == INPUT) DDR(name) &= ~BM(name);        \
+  if (mode == INPUT_PULLUP) DDR(name) &= ~BM(name); \
+  if (mode == INPUT_PULLUP) PORT(name) |= BM(name); \
+  if (mode == OUTPUT) DDR(name) |= BM(name);        \
 } while (0)
-#define digitalRead(name) (PIN(name) & BV(name))
+#define digitalRead(name) (PIN(name) & BM(name))
 #define digitalWrite(name, val) do {       \
-  if (val == LOW) PORT(name) &= ~BV(name); \
-  if (val == HIGH) PORT(name) |= BV(name); \
+  if (val == LOW) PORT(name) &= ~BM(name); \
+  if (val == HIGH) PORT(name) |= BM(name); \
 } while (0)
 #define busMode(name, mode) do {                     \
   if (mode == INPUT) DDR(name) &= ~BUS(name);        \
@@ -46,7 +52,7 @@ class Pins Pins;
 } while (0)
 #define busRead(name) (PIN(name) & BUS(name))
 #define busWrite(name, val) \
-    (POUT(name) = (POUT(name) & ~(BUS(name)) | (val & BUS(name))))
+    (PORT(name) = (PORT(name) & ~(BUS(name)) | (val & BUS(name))))
 
 void Pins::begin() {
   pinMode(CLK_E, OUTPUT);
