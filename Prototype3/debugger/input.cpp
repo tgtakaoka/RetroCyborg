@@ -148,7 +148,13 @@ void Input::processReadLine(char c) {
   }
 }
 
+void Input::begin() {
+  Commands.begin();
+}
+
 void Input::loop() {
+  if (Commands.isRunning())
+    return;
   if (Serial.available()) {
     const char c = Serial.read();
     switch (_mode) {

@@ -154,7 +154,7 @@ bool Pins::readCycle() const {
   return (_previous.pins & Status::avma) && (_signals.pins & Status::rw);
 }
 
-void Pins::reset() {
+void Pins::reset(bool show) {
   digitalWrite(RESET, LOW);
   digitalWrite(HALT, HIGH);
   delayMicroseconds(10);
@@ -163,7 +163,7 @@ void Pins::reset() {
   do {
     cycle();
     digitalWrite(HALT, LOW);
-    print();
+    if (show) print();
   } while (!inHalt());
   digitalWrite(STEP, HIGH);
 }
@@ -191,6 +191,7 @@ void Pins::cycle() {
 void Pins::run() {
   digitalWrite(HALT, HIGH);
   digitalWrite(STEP, HIGH);
+  digitalWrite(USR_LED, LOW);
 }
 
 void Pins::halt(bool show) {
@@ -202,6 +203,7 @@ void Pins::halt(bool show) {
     if (show) print();
   } while (running());
   digitalWrite(STEP, HIGH);
+  digitalWrite(USR_LED, HIGH);
 }
 
 void Pins::setData(uint8_t data) {
@@ -282,6 +284,10 @@ void Pins::begin() {
   pinMode(ADR0, INPUT_PULLUP);
   pinMode(ADR1, INPUT_PULLUP);
 
+  pinMode(USR_SW, INPUT_PULLUP);
+  pinMode(USR_LED, OUTPUT);
+  digitalWrite(USR_LED, HIGH);
+
   _dbus.begin();
 
   _previous.get();
@@ -289,7 +295,7 @@ void Pins::begin() {
   reset();
 }
 
-void Pins::attachIoRequest(void (*isr)()) {
+void Pins::attachIoRequest(void (*isr)()) const {
   attachInterrupt(INT_INTERRUPT, isr, FALLING);
 }
 
@@ -304,14 +310,14 @@ void Pins::leaveIoRequest() {
   digitalWrite(ACK, HIGH);
 }
 
-uint16_t Pins::ioRequestAddress() {
+uint16_t Pins::ioRequestAddress() const {
   uint16_t addr = 0xFFC0;
   if (digitalRead(ADR0)) addr |= 0x01;
   if (digitalRead(ADR1)) addr |= 0x02;
   return addr;
 }
 
-bool Pins::ioRequestWrite() {
+bool Pins::ioRequestWrite() const {
   return digitalRead(RD_WR) == LOW;
 }
 
@@ -323,4 +329,8 @@ uint8_t Pins::ioGetData() {
 void Pins::ioSetData(uint8_t data) {
   _dbus.set(data);
   _dbus.output();
+}
+
+void Pins::attachUserSwitch(void (*isr)()) const {
+  attachInterrupt(USR_SW_INTERRUPT, isr, FALLING);
 }

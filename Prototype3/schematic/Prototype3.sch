@@ -1,6 +1,6 @@
 EESchema Schematic File Version 4
 LIBS:Prototype3-cache
-EELAYER 29 0
+EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -725,8 +725,6 @@ Wire Wire Line
 Connection ~ 8750 5600
 Wire Wire Line
 	8600 5800 9100 5800
-Wire Wire Line
-	8600 6000 9100 6000
 Connection ~ 2000 1800
 $Comp
 L 0-LocalLibrary:ATmega1284P-PU U1
@@ -749,16 +747,12 @@ Text Label 5750 5750 2    50   ~ 0
 SD_SCK
 Text Label 5750 5850 2    50   ~ 0
 SD_DO
-Text Label 5750 5950 2    50   ~ 0
-SD_CD
 Text Label 8600 5600 2    50   ~ 0
 ~DBG_RST~
 Text Label 8600 5700 2    50   ~ 0
 DBG_TX
 Text Label 8600 5800 2    50   ~ 0
 DBG_RX
-Text Label 8600 6000 2    50   ~ 0
-~DBG_RTS
 Text Label 1400 2100 2    50   ~ 0
 ~DBG_RST~
 Text Label 2950 3500 0    50   ~ 0
@@ -771,8 +765,6 @@ Text Label 2950 4800 0    50   ~ 0
 DBG_RX
 Text Label 2950 4900 0    50   ~ 0
 DBG_TX
-Text Label 2950 5200 0    50   ~ 0
-~DBG_RTS
 Wire Wire Line
 	4250 3900 4100 3900
 Wire Wire Line
@@ -910,8 +902,6 @@ $EndComp
 NoConn ~ 1500 2700
 Wire Wire Line
 	2500 5100 2950 5100
-Text Label 2950 5000 0    50   ~ 0
-SD_CD
 Wire Wire Line
 	9800 2100 9850 2100
 Wire Wire Line
@@ -1166,8 +1156,6 @@ Wire Wire Line
 Connection ~ 5950 7050
 Wire Wire Line
 	5950 7050 6150 7050
-Wire Wire Line
-	5850 5950 5750 5950
 Wire Wire Line
 	9100 6100 9050 6100
 Connection ~ 9100 6100
@@ -1483,20 +1471,103 @@ Text Label 6900 5750 2    50   ~ 0
 SD_DO
 Text Label 6900 5850 2    50   ~ 0
 SD_DI
+NoConn ~ 5850 5950
+Text Label 2950 5000 0    50   ~ 0
+~USR_SW~
+Wire Wire Line
+	9100 6000 9050 6000
+Wire Wire Line
+	9050 6000 9050 6100
+Connection ~ 9050 6100
+Text Label 2950 5200 0    50   ~ 0
+~USR_LED~
+$Comp
+L Switch:SW_Push SW1
+U 1 1 5DD93EEF
+P 3150 6750
+F 0 "SW1" H 3150 6900 50  0000 C CNN
+F 1 "USR_SW" H 3150 6700 50  0000 C CNN
+F 2 "" H 3150 6950 50  0001 C CNN
+F 3 "~" H 3150 6950 50  0001 C CNN
+	1    3150 6750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small R7
+U 1 1 5DD95AB3
+P 3450 6400
+F 0 "R7" V 3350 6350 50  0000 C CNN
+F 1 "560" V 3350 6500 50  0000 C CNN
+F 2 "" H 3450 6400 50  0001 C CNN
+F 3 "~" H 3450 6400 50  0001 C CNN
+	1    3450 6400
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:LED D1
+U 1 1 5DD963D0
+P 3150 6400
+F 0 "D1" H 3150 6300 50  0000 C CNN
+F 1 "USR_LED" H 3150 6550 50  0000 C CNN
+F 2 "" H 3150 6400 50  0001 C CNN
+F 3 "~" H 3150 6400 50  0001 C CNN
+	1    3150 6400
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:VCC #PWR011
+U 1 1 5DD9AAAF
+P 3700 6200
+F 0 "#PWR011" H 3700 6050 50  0001 C CNN
+F 1 "VCC" H 3717 6373 50  0000 C CNN
+F 2 "" H 3700 6200 50  0001 C CNN
+F 3 "" H 3700 6200 50  0001 C CNN
+	1    3700 6200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3550 6400 3700 6400
+Wire Wire Line
+	3350 6400 3300 6400
+Wire Wire Line
+	2950 6750 2800 6750
+Wire Wire Line
+	2800 6400 3000 6400
+Text Label 2800 6750 2    50   ~ 0
+~USR_SW~
+Text Label 2800 6400 2    50   ~ 0
+~USR_LED~
+Wire Wire Line
+	3350 6750 3700 6750
+Wire Wire Line
+	3700 6200 3700 6400
+Wire Wire Line
+	3700 6750 3700 6950
+Wire Bus Line
+	2750 1450 2750 4100
 Wire Wire Line
 	2500 4000 2950 4000
 Wire Bus Line
-	2750 1450 2750 4100
-Wire Bus Line
 	2650 1350 2650 2700
-Wire Bus Line
-	5400 1350 5400 2500
 Wire Bus Line
 	7650 1350 7650 2550
 Wire Bus Line
+	5400 1350 5400 2500
+Wire Bus Line
 	9950 1450 9950 4400
 Wire Bus Line
-	6350 1450 6350 3350
-Wire Bus Line
 	4100 1450 4100 3300
+Wire Bus Line
+	6350 1450 6350 3350
+$Comp
+L power:GND #PWR?
+U 1 1 5DD6FB12
+P 3700 6950
+F 0 "#PWR?" H 3700 6700 50  0001 C CNN
+F 1 "GND" H 3705 6777 50  0000 C CNN
+F 2 "" H 3700 6950 50  0001 C CNN
+F 3 "" H 3700 6950 50  0001 C CNN
+	1    3700 6950
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC

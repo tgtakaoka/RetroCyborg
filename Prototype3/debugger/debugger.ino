@@ -16,6 +16,7 @@ void setup() {
   Serial.begin(115200);
   Pins.begin();
   Pins.attachIoRequest(ioRequest);
+  Input.begin();
   interrupts();
   SD.begin();
 }

@@ -11,8 +11,12 @@
    r - print MPU registers.
    = - set MPU register. register value
    c - continuously run with printing register.
-   C - continuously run.
+   G - go, continuously run MPU.
    h - halt MPU.
+   D - disassemble
+   A - assemble
+   F - list files in SD card
+   L - load S-record file.
    ? - print version.
 */
 
@@ -31,8 +35,8 @@
 #include "memory.h"
 #include "symbol_table.h"
 
-#define VERSION F("* Cyborg09 Prototype3 1.7")
-#define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:asm s/S:tep c/C:ont h/H:alt p:ins F:iles L:oad")
+#define VERSION F("* Cyborg09 Prototype3 1.8")
+#define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:sm s/S:tep c:ont G:o h/H:alt p:ins F:iles L:oad")
 
 class Commands Commands;
 
@@ -363,7 +367,7 @@ void Commands::exec(char c) {
   if (c == 'p') Pins.print();
   if (c == 'R') {
     _target = HALT;
-    Pins.reset();
+    Pins.reset(true);
     Serial.println(F("RESET"));
     Regs.get(true);
   }
@@ -405,10 +409,10 @@ void Commands::exec(char c) {
   if (c == 'c') {
     _target = STEP;
   }
-  if (c == 'C' && _target != RUN) {
+  if (c == 'G' && _target != RUN) {
+    Serial.println(F("RUN"));
     _target = RUN;
     Pins.run();
-    Serial.println(F("RUN"));
   }
   if ((c == 'h' || c == 'H') && _target != HALT) {
     _target = HALT;
@@ -428,6 +432,15 @@ void Commands::exec(char c) {
     Serial.println(VERSION);
     Serial.println(USAGE);
   }
+}
+
+static void haltMpu() {
+  Commands.exec('h');
+}
+
+void Commands::begin() {
+  Pins.attachUserSwitch(haltMpu);
+  exec('?');
 }
 
 void Commands::loop() {

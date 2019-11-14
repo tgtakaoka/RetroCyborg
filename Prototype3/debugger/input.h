@@ -17,6 +17,7 @@ class Input {
     typedef void (*InputHandler)(State state, uint16_t value, uint8_t index);
     typedef void (*LineHandler)(State state, char *line);
 
+    void begin();
     void loop();
     void readUint8(InputHandler handler, uint8_t index);
     void readUint16(InputHandler handler, uint8_t index);
