@@ -5,11 +5,10 @@
 
 class Mc6850 {
   public:
-    Mc6850(uint16_t baseAddr)
-      : _baseAddr(baseAddr), _control(0), _status(0) {}
+    Mc6850(uint16_t baseAddr);
 
     bool isSelected(uint16_t addr) const {
-      return addr >= _baseAddr && addr < _baseAddr + 2;
+      return addr == _baseAddr || --addr == _baseAddr;
     }
 
     void write(uint8_t data, uint16_t addr);
@@ -18,8 +17,13 @@ class Mc6850 {
 
   private:
     const uint16_t _baseAddr;
+    const uint8_t _rxIrq;
+    const uint8_t _txIrq;
     uint8_t _control;
     uint8_t _status;
+    uint8_t _readFlags;
+    uint8_t _nextFlags;
+    uint8_t _sendingData;
     uint8_t _receivedData;
 
     // Bit Definition of control register
@@ -33,6 +37,15 @@ class Mc6850 {
     static constexpr uint8_t TCB1 = 0x40; // Transmit Control bit 1
     static constexpr uint8_t RIEB = 0x80; // Receive Interrupt Enable bit
 
+    bool txIntEnabled() const {
+      return (_control & (TCB0 | TCB1)) == TCB0;
+    }
+    bool rxIntEnabled() const {
+      return (_control & RIEB) != 0;
+    }
+    void assertIrq(uint8_t irq);
+    void negateIrq(uint8_t irq);
+
     // Bit definition of status register
     // DCD, CTS, FERR, PERR are always zero.
     static constexpr uint8_t RDRF = 0x01; // Receive Data Register Full
@@ -43,13 +56,6 @@ class Mc6850 {
     static constexpr uint8_t OVRN = 0x20; // Receiver Overrun
     static constexpr uint8_t PEER = 0x40; // Parity Error
     static constexpr uint8_t IRQF = 0x80; // Interrupt Request
-
-    bool txIntEnabled() const {
-      return (_control & (TCB0 | TCB1)) == TCB1;
-    }
-    bool rxIntEnabled() const {
-      return (_control & RIEB) != 0;
-    }
 };
 
 #endif

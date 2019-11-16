@@ -266,6 +266,8 @@ void Pins::begin() {
   digitalWrite(RESET, LOW);
   pinMode(HALT,  OUTPUT);
   digitalWrite(HALT, LOW);
+  pinMode(IRQ, OUTPUT);
+  digitalWrite(IRQ, HIGH);
 
   pinMode(STEP, OUTPUT);
   pinMode(ACK, OUTPUT);
@@ -293,6 +295,17 @@ void Pins::begin() {
   _previous.get();
 
   reset();
+}
+
+void Pins::assertIrq(uint8_t mask) {
+  _irq |= mask;
+    digitalWrite(IRQ, LOW);
+}
+
+void Pins::negateIrq(uint8_t mask) {
+  _irq &= ~mask;
+  if (_irq == 0)
+    digitalWrite(IRQ, HIGH);
 }
 
 void Pins::attachIoRequest(void (*isr)()) const {
