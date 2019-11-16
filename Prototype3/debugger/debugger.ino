@@ -9,8 +9,12 @@
 */
 #include <SD.h>
 
+#include "commands.h"
+#include "mc6850.h"
 #include "input.h"
 #include "pins.h"
+
+class Mc6850 Mc6850(Pins::ioBaseAddress());
 
 void setup() {
   Serial.begin(115200);
@@ -22,7 +26,11 @@ void setup() {
 }
 
 void loop() {
-  Input.loop();
+  if (Commands.isRunning()) {
+    Mc6850.loop();
+  } else {
+    Input.loop();
+  }
 }
 
 static uint8_t data;
@@ -30,20 +38,14 @@ static uint8_t data;
 void ioRequest() {
   const uint16_t ioAddr = Pins.ioRequestAddress();
   const bool ioWrite = Pins.ioRequestWrite();
-  if (ioWrite) data = Pins.ioGetData();
-  else Pins.ioSetData(data);
+  if (Mc6850.isSelected(ioAddr)) {
+    if (ioWrite) Mc6850.write(Pins.ioGetData(), ioAddr);
+    else Pins.ioSetData(Mc6850.read(ioAddr));
+  } else {
+    if (ioWrite) data = Pins.ioGetData();
+    else Pins.ioSetData(data);
+  }
 
   Pins.acknowledgeIoRequest();
-
-  Serial.print(F("IO Request: "));
-  if (ioWrite) {
-    Serial.print(F("write="));
-  } else {
-    Serial.print(F(" read="));
-  }
-  Serial.print(ioAddr, HEX);
-  Serial.print(F(" data="));
-  Serial.println(data, HEX);
-
   Pins.leaveIoRequest();
 }

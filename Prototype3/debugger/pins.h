@@ -1,6 +1,7 @@
 #ifndef __pins_h__
 #define __pins_h__
 
+#include <Arduino.h>
 #include <stdint.h>
 
 class Pins {
@@ -24,6 +25,7 @@ class Pins {
     bool ioRequestWrite() const;
     uint8_t ioGetData();
     void ioSetData(uint8_t data);
+    static constexpr uint16_t ioBaseAddress() { return 0xFFC0; }
 
     void attachUserSwitch(void (*isr)()) const;
 

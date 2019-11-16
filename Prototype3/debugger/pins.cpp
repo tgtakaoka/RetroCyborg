@@ -310,8 +310,9 @@ void Pins::leaveIoRequest() {
   digitalWrite(ACK, HIGH);
 }
 
+
 uint16_t Pins::ioRequestAddress() const {
-  uint16_t addr = 0xFFC0;
+  uint16_t addr = ioBaseAddress();
   if (digitalRead(ADR0)) addr |= 0x01;
   if (digitalRead(ADR1)) addr |= 0x02;
   return addr;
