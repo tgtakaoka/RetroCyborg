@@ -7,25 +7,25 @@ class Pins {
 
   public:
     void begin();
-    void reset();
-    void print() const;
 
-    uint8_t dbus() {
-      return _signals.dbus;
-    }
-    void execInst(const uint8_t *inst, uint8_t len, bool show = false);
-    void captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
-    void run();
+    void print() const;
+    void reset(bool show = false);
     void halt(bool show = false);
     void step(bool show = false);
+    void run();
+    uint8_t dbus() { return _signals.dbus; }
+    void execInst(const uint8_t *inst, uint8_t len, bool show = false);
+    void captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
 
-    void attachIoRequest(void (*isr)());
+    void attachIoRequest(void (*isr)()) const;
     void acknowledgeIoRequest();
     void leaveIoRequest();
-    uint16_t ioRequestAddress();
-    bool ioRequestWrite();
+    uint16_t ioRequestAddress() const;
+    bool ioRequestWrite() const;
     uint8_t ioGetData();
     void ioSetData(uint8_t data);
+
+    void attachUserSwitch(void (*isr)()) const;
 
   private:
 

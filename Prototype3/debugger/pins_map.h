@@ -31,6 +31,13 @@
 #define INT_PIN    PD3
 #define INT_INTERRUPT digitalPinToInterrupt(11)
 
+#define USR_SW_PORT D
+#define USR_SW_PIN  PD2
+#define USR_SW_INTERRUPT digitalPinToInterrupt(10)
+
+#define USR_LED_PORT D
+#define USR_LED_PIN  PD4
+
 #define RD_WR_PORT B
 #define RD_WR_PIN  PB3
 
