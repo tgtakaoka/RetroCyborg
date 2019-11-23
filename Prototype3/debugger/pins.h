@@ -25,7 +25,17 @@ class Pins {
     bool ioRequestWrite() const;
     uint8_t ioGetData();
     void ioSetData(uint8_t data);
+
     static constexpr uint16_t ioBaseAddress() { return 0xFFC0; }
+
+    void assertIrq(const uint8_t mask);
+    void negateIrq(const uint8_t mask);
+    uint8_t irqStatus(const uint8_t mask) const {
+        return _irq & mask;
+    }
+    static uint8_t getIrqMask(uint16_t addr) {
+        return 1 << (addr - ioBaseAddress());
+    }
 
     void attachUserSwitch(void (*isr)()) const;
 
@@ -80,6 +90,7 @@ class Pins {
     Status _signals;
     Status _previous;
     Dbus _dbus;
+    uint8_t _irq;
 };
 
 extern Pins Pins;

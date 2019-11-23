@@ -42,12 +42,19 @@ IRQF:	.equ	0x80		; Interrupt Request Flag
 	;; Data register
 ACIA_D:	.equ	ACIA+1		; Data register
 
+        .sm     ram
+        .org    $F000
+stack:  .equ    *
+
+        .sm     code
 	.org	$1000
 initialize:
-	lds	#initialize
-	lda	#CDS_0|WSB_5|TCB_0 ; 8 Bits, 1 Stop.
-				; Interrupt disabled.
+	lds	#stack
+        ;; 8 bits + No Parity + 1 Stop Bits
+        ;; Transmit, Receive interrupts enable
+	lda	#CDS_0|WSB_5|TCB_1|RIEB
 	sta	ACIA_C
+        sei                     ; Set Interrupt mask
 
 receive_loop:
 	lda	ACIA_S

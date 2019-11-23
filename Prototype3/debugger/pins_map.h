@@ -6,6 +6,9 @@
 #define HALT_PORT  B
 #define HALT_PIN   PB0
 
+#define IRQ_PORT   B
+#define IRQ_PIN    PB1
+
 #define BS_PORT    C
 #define BS_PIN     PC7
 
