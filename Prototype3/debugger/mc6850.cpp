@@ -65,13 +65,15 @@ void Mc6850::write(uint8_t data, uint16_t addr) {
     _control = data;
   } else {
 #if DEBUG
-    Serial.print(F("@@ Write 0x"));
-    Serial.print(data, HEX);
-    Serial.print(F(" 0x"));
-    Serial.println(_status, HEX);
+    const uint8_t prev_status = _status;
 #endif
     _sendingData = data;
     _status &= ~TDRE;
+#if DEBUG
+    Serial.print(F("@@ Write 0x")); Serial.print(_sendingData, HEX);
+    Serial.print(F(" 0x"));
+    Serial.println(_status, HEX);
+#endif
     if (txIntEnabled())
       negateIrq(_txIrq);
   }
@@ -83,15 +85,16 @@ uint8_t Mc6850::read(uint16_t addr) {
     return _status;
   } else {
 #if DEBUG
-    Serial.print(F("@@  Read 0x"));
-    Serial.print(_receivedData, HEX);
-    Serial.print(F(" 0x")); Serial.print(_status, HEX);
-    Serial.print(F(" 0x")); Serial.print(_readFlags, HEX);
-    Serial.print(F(" 0x")); Serial.println(_nextFlags, HEX);
+    const uint8_t prev_status = _status;
 #endif
     _status &= ~_readFlags;
     _status |= _nextFlags;
     _readFlags = _nextFlags = 0;
+#if DEBUG
+    Serial.print(F("@@  Read 0x")); Serial.print(_receivedData, HEX);
+    Serial.print(F(" 0x")); Serial.print(prev_status, HEX);
+    Serial.print(F("->0x")); Serial.println(_status, HEX);
+#endif
     if (rxIntEnabled()) {
       if (_status & (RDRF | OVRN)) {
         assertIrq(_rxIrq);
