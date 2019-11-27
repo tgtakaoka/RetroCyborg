@@ -299,6 +299,7 @@ void Pins::begin() {
 
 void Pins::assertIrq(uint8_t mask) {
   _irq |= mask;
+  if (_irq)
     digitalWrite(IRQ, LOW);
 }
 

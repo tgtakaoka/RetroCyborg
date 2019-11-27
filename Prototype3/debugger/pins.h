@@ -30,7 +30,7 @@ class Pins {
 
     void assertIrq(const uint8_t mask);
     void negateIrq(const uint8_t mask);
-    uint8_t irqStatus(const uint8_t mask) const {
+    uint8_t irqStatus(const uint8_t mask = 0xff) const {
         return _irq & mask;
     }
     static uint8_t getIrqMask(uint16_t addr) {

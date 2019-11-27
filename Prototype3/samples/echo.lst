@@ -1,0 +1,85 @@
+0000-                  4         .tf     echo.s19,s19
+0000-                  5
+0000-                  6 ;;; MC6850 Asynchronous Communication Interface Adapter
+FFC0-                  7 ACIA:   .equ    $FFC0
+0000-                  8         .inc    mc6850.inc
+0000-            I     1 ;;; -*- mode: asm; mode: flyspell-prog; -*-
+0000-            I     2
+0000-            I     3 ;;; MC6850
+0000-            I     4 ;;; Asynchronous Communication Interface Adapter
+0000-            I     5
+0000-            I     6 ;;; Control register
+FFC0-            I     7 ACIA_control:   .equ    ACIA+0
+0000-            I     8         ;; Counter Divider Select Bits
+0003-            I     9 CDS_gm:         .equ    0x03    ; Group mask
+0000-            I    10 CDS_DIV1_gc:    .equ    0x00    ; /1
+0001-            I    11 CDS_DIV16_gc:   .equ    0x01    ; /16
+0002-            I    12 CDS_DIV64_gc:   .equ    0x02    ; /64
+0003-            I    13 CDS_RESET_gc:   .equ    0x03    ; Master Reset
+0000-            I    14         ;; Word Select Bits
+001C-            I    15 WSB_gm:         .equ    0x1c    ; Group mask
+0000-            I    16 WSB_7E2_gc:     .equ    0x00    ; 7 Bits + Even Parity + 2 Stop Bits
+0004-            I    17 WSB_7O2_gc:     .equ    0x04    ; 7 bits + Odd Parity  + 2 Stop Bits
+0008-            I    18 WSB_7E1_gc:     .equ    0x08    ; 7 bits + Even Parity + 1 Stop Bits
+000C-            I    19 WSB_7O1_gc:     .equ    0x0C    ; 7 bits + Odd Parity  + 1 Stop Bits
+0010-            I    20 WSB_8N2_gc:     .equ    0x10    ; 8 bits + No Parity   + 2 Stop Bits
+0014-            I    21 WSB_8N1_gc:     .equ    0x14    ; 8 bits + No Parity   + 1 Stop Bits
+0018-            I    22 WSB_8E1_gc:     .equ    0x18    ; 8 bits + Even Parity + 1 Stop Bits
+001C-            I    23 WSB_8O1_gc:     .equ    0x1C    ; 8 bits + Odd Parity  + 1 Stop Bits
+0000-            I    24         ;; Transmit Control Bits
+0060-            I    25 TCB_gm:         .equ    0x60    ; Group mask
+0000-            I    26 TCB_DI_gc:      .equ    0x00    ; RTS=Low,  Tx Interrupt Disabled
+0020-            I    27 TCB_EI_gc:      .equ    0x20    ; RTS=Low,  Tx Interrupt Enabled
+0040-            I    28 TCB_RTS_gc:     .equ    0x40    ; RTS=High, Tx Interrupt Disabled
+0060-            I    29 TCB_BREAK_gc:   .equ    0x60    ; RTS=Low,  Tx Interrupt Disabled
+0000-            I    30                                 ; Transmit Break Level
+0080-            I    31 RIEB_bm:        .equ    0x80    ; Receive Interrupt Enable Bit mask
+0000-            I    32
+0000-            I    33 ;;; Status register
+FFC0-            I    34 ACIA_status:    .equ    ACIA+0
+0001-            I    35 RDRF_bm:        .equ    0x01            ; Receive Data Register Full
+0002-            I    36 TDRE_bm:        .equ    0x02            ; Transmit Data Register Empty
+0004-            I    37 DCDF_bm:        .equ    0x04            ; Data Carrier Detect Flag
+0008-            I    38 CTSF_bm:        .equ    0x08            ; Clear To Send Flag
+0010-            I    39 FERR_bm:        .equ    0x10            ; Frame Error Flag
+0020-            I    40 OVRN_bm:        .equ    0x20            ; Receiver Overrun Flag
+0040-            I    41 PERR_bm:        .equ    0x40            ; Parity Error Flag
+0080-            I    42 IRQF_bm:        .equ    0x80            ; Interrupt Request Flag
+0000-            I    43
+0000-            I    44 ;;; Data register
+FFC1-            I    45 ACIA_data:      .equ    ACIA+1          ; Data register
+0000-                  9
+0000-                 10         .sm     ram
+F000-                 11         .org    $F000
+F000-                 12 stack:  .equ    *
+F000-                 13
+0000-                 14         .sm     code
+1000-                 15         .org    $1000
+1000-                 16 initialize:
+1000-10 CE F0 00      17         lds     #stack
+1004-86 03            18         lda     #CDS_RESET_gc   ; Master reset
+1006-B7 FF C0         19         sta     ACIA_control
+1009-86 14            20         lda     #WSB_8N1_gc        ; 8 bits + No Parity + 1 Stop Bits
+100B-8A A0            21         ora     #TCB_EI_gc|RIEB_bm ; Transmit, Receive interrupts enable
+100D-B7 FF C0         22         sta     ACIA_control
+1010-1A 10            23         sei                     ; Set Interrupt mask
+1012-                 24
+1012-                 25 receive_loop:
+1012-B6 FF C0         26         lda     ACIA_status
+1015-85 01            27         bita    #RDRF_bm
+1017-27 F9            28         beq     receive_loop
+1019-                 29 receive_data:
+1019-F6 FF C1         30         ldb     ACIA_data
+101C-                 31 transmit_loop:
+101C-B6 FF C0         32         lda     ACIA_status
+101F-85 02            33         bita    #TDRE_bm
+1021-27 F9            34         beq     transmit_loop
+1023-                 35 transmit_data:
+1023-F7 FF C1         36         stb     ACIA_data
+1026-C1 0D            37         cmpb    #$0d
+1028-26 E8            38         bne     receive_loop
+102A-C6 0A            39         ldb     #$0a
+102C-20 EE            40         bra     transmit_loop
+102E-                 41
+FFFE                 42         .no     $FFFE
+FFFE-10 00            43         .dw     initialize
