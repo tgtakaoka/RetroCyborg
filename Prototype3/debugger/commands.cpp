@@ -151,9 +151,8 @@ static void disassemble(uint16_t addr, uint16_t max) {
   uint16_t len = 0;
   while (len < max) {
     char operands[20];
-    char comments[20];
     Insn insn;
-    dis.decode(memory, insn, operands, comments, nullptr);
+    dis.decode(memory, insn, operands, nullptr);
     len += insn.insnLen();
     print(insn);
     if (dis.getError()) {
@@ -163,10 +162,6 @@ static void disassemble(uint16_t addr, uint16_t max) {
     }
     print(insn.name(), 6);
     print(operands, 12);
-    if (*comments) {
-      Serial.print(';');
-      Serial.print(comments);
-    }
     Serial.println();
   }
 }
