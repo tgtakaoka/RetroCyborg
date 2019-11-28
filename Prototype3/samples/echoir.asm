@@ -1,24 +1,23 @@
-	.cr	6809
-	.list	toff
-	.lf	echoir.lst
-	.tf	echoir.s19,s19
+	listing on
+        page    0
+	cpu	6809
+
+        include "compat6800.inc"
 
 ;;; MC6850 Asynchronous Communication Interface Adapter
-ACIA:   .equ	$FFC0
-        .inc    mc6850.inc
+ACIA:   equ	$FFC0
+        include "mc6850.inc"
 
-	.sm	ram
-	.org	$2000
+	org	$2000
 
-rx_queue_size:	.equ	128
-rx_queue:	.bs	rx_queue_size
-RX_INT_TX_NO:	.equ    WSB_8N1_gc|RIEB_bm
+rx_queue_size:	equ	128
+rx_queue:	rmb	rx_queue_size
+RX_INT_TX_NO:	equ    WSB_8N1_gc|RIEB_bm
 
-	.no	$F000
-stack:	.equ	*
+	org	$F000
+stack:	equ	*
 
-	.sm	code
-	.org	$1000
+	org	$1000
 initialize:
 	lds	#stack
 	ldx	#rx_queue
@@ -48,7 +47,7 @@ transmit_data:
         lda     #$0a
 	bra	transmit_loop
 
-        .inc    queue.inc
+        include "queue.inc"
 
 isr_irq:
 	ldb	ACIA_status
@@ -64,8 +63,8 @@ isr_irq_recv_end:
 isr_irq_return:
 	rti
 
-	.no	$FFF8
-	.dw	isr_irq
+	org	$FFF8
+	fdb	isr_irq
 
-	.no	$FFFE
-	.dw	initialize
+	org	$FFFE
+	fdb	initialize

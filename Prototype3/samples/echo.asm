@@ -1,18 +1,18 @@
-	.cr	6809
-	.list	toff
-	.lf	echo.lst
-	.tf	echo.s19,s19
+	listing on
+        page    0
+	cpu	6809
+        macexp_dft      macro
+
+        include "compat6800.inc"
 
 ;;; MC6850 Asynchronous Communication Interface Adapter
-ACIA:   .equ	$FFC0
-        .inc    mc6850.inc
+ACIA:   equ	$FFC0
+        include "mc6850.inc"
 
-	.sm	ram
-	.org	$F000
-stack:	.equ	*
+	org	$F000
+stack:	equ	*
 
-	.sm	code
-	.org	$1000
+	org	$1000
 initialize:
 	lds	#stack
 	lda	#CDS_RESET_gc   ; Master reset
@@ -20,7 +20,7 @@ initialize:
 	lda	#WSB_8N1_gc        ; 8 bits + No Parity + 1 Stop Bits
 	ora	#TCB_EI_gc|RIEB_bm ; Transmit, Receive interrupts enable
 	sta	ACIA_control
-	sei			; Set Interrupt mask
+	sei                     ; Set Interrupt mask
 
 receive_loop:
 	lda	ACIA_status
@@ -39,5 +39,5 @@ transmit_data:
         ldb     #$0a
 	bra	transmit_loop
 
-	.no	$FFFE
-	.dw	initialize
+	org	$FFFE
+	fdb	initialize

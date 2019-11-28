@@ -1,15 +1,15 @@
+AS=asl -gnuerrors -L +t 0x1E -q
+OBJCOPY=p2hex -F Moto +5 -r '$$-$$'
+
 .PHONY: clean
 
 all: echo.s19 echoir.s19 echoitr.s19
 
-echo.s19: echo.asm
-	sbasm $^
-
-echoir.s19: echoir.asm
-	sbasm $^
-
-echoitr.s19: echoitr.asm
-	sbasm $^
+%.p:	%.asm
+	$(AS) $^
+%.s19:	%.p
+	$(OBJCOPY) $^
+	@mv -f $*.hex $@
 
 clean:
-	-rm -f *.lst *.s19
+	-rm -f *.p *.lst *.s19

@@ -1,13 +1,12 @@
 ;;; -*- mode: asm; mode: flying-spell; -*-
 
 ;;; [queue] queue structure
-queue_len:	.equ	0	; queue length
-queue_size:	.equ	1	; buffer size
-queue_put:	.equ	2	; queue put index
-queue_get:	.equ	3	; queue get index
-queue_buf:	.equ	4	; buffer start offset
+queue_len:	equ	0	; queue length
+queue_size:	equ	1	; buffer size
+queue_put:	equ	2	; queue put index
+queue_get:	equ	3	; queue get index
+queue_buf:	equ	4	; buffer start offset
 
-        .sm     code
 ;;; [queue] Initialize queue
 ;;; @param X queue work space pointer
 ;;; @param B queue work space size

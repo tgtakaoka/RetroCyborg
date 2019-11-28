@@ -1,28 +1,27 @@
-	.cr	6809
-	.list	toff
-	.lf	echoitr.lst
-	.tf	echoitr.s19,s19
+	listing on
+        page    0
+	cpu	6809
+
+        include "compat6800.inc"
 
 ;;; MC6850 Asynchronous Communication Interface Adapter
-ACIA:  	.equ	$FFC0
-        .in     mc6850.inc
+ACIA:  	equ	$FFC0
+        include "mc6850.inc"
 
-	.sm	ram
-	.org	$2000
+	org	$2000
 
-rx_queue_size:	.equ	128
-rx_queue:	.bs	rx_queue_size
-tx_queue_size:	.equ	128
-tx_queue:	.bs	tx_queue_size
-RX_INT_TX_NO:	.equ    WSB_8N1_gc|RIEB_bm
-RX_INT_TX_INT:  .equ    WSB_8N1_gc|RIEB_bm|TCB_EI_gc
-tx_int_control:	.bs	1
+rx_queue_size:	equ	128
+rx_queue:	rmb	rx_queue_size
+tx_queue_size:	equ	128
+tx_queue:	rmb	tx_queue_size
+RX_INT_TX_NO:	equ    WSB_8N1_gc|RIEB_bm
+RX_INT_TX_INT:  equ    WSB_8N1_gc|RIEB_bm|TCB_EI_gc
+tx_int_control:	rmb	1
 
-	.no	$F000
-stack:	.equ	*
+	org	$F000
+stack:	equ	*
 
-	.sm	code
-	.org	$1000
+	org	$1000
 initialize:
 	lds	#stack
 	ldx	#rx_queue
@@ -66,9 +65,9 @@ newline:
 ;;; @param B uint8_t value to be printed in hex.
 ;;; @clobber A
 put_hex8:
-	lda	#'0
+	lda	#'0'
 	lbsr	putchar
-	lda	#'x
+	lda	#'x'
 	lbsr	putchar
 	tfr	b,a
 	lsra
@@ -81,10 +80,10 @@ put_hex4:
 	anda	#$0f
 	cmpa	#10
 	blo	put_hex8_dec
-	adda	#'A-10
+	adda	#'A'-10
 	lbra	putchar
 put_hex8_dec:
-	adda	#'0
+	adda	#'0'
 	lbra   putchar
 
 ;;; Print uint8_t in binary
@@ -92,9 +91,9 @@ put_hex8_dec:
 ;;; @clobber A
 put_bin8:
 	pshs	b
-	lda	#'0
+	lda	#'0'
 	lbsr	putchar
-	lda	#'b
+	lda	#'b'
 	lbsr	putchar
 	bsr	put_bin4
         lslb
@@ -107,7 +106,7 @@ put_bin2:
 	bsr	put_bin1
 	lslb
 put_bin1:
-	lda	#'0
+	lda	#'0'
 	tstb			; chech MSB
 	bpl	put_bin0	; MSB=0
 	inca			; MSB=1
@@ -143,7 +142,7 @@ putchar:
 putchar_end:
 	puls	cc,a,x,pc
 
-        .inc    queue.inc
+        include "queue.inc"
 
 isr_irq:
 	ldb	ACIA_status
@@ -174,8 +173,8 @@ isr_irq_send_end:
 isr_irq_return:
 	rti
 
-	.no	$FFF8
-	.dw	isr_irq
+	org	$FFF8
+	fdb	isr_irq
 
-	.no	$FFFE
-	.dw	initialize
+	org	$FFFE
+	fdb	initialize
