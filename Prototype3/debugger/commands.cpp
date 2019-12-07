@@ -118,10 +118,10 @@ class Hd6309Memory : public Memory {
       _address = addr;
     }
   protected:
-    target::byte_t nextByte() {
+    uint8_t nextByte() {
       Regs.save();
       execInst3(0xB6, _address); // LDA $_address
-      target::byte_t data = Pins.dbus();
+      uint8_t data = Pins.dbus();
       Regs.restore();
       return data;
     }
@@ -145,7 +145,7 @@ static void print(const Insn& insn) {
 }
 
 static void disassemble(uint16_t addr, uint16_t max) {
-  Disassembler<HD6309> dis;
+  DisHd6309 dis;
   class Hd6309Memory memory;
   memory.setAddress(addr);
   uint16_t len = 0;
@@ -227,7 +227,7 @@ static void handlerAssembleLine(Input::State state, char *line) {
     Serial.println(F("end"));
     return;
   }
-  Assembler<MC6809> assembler;
+  AsmHd6309 assembler;
   Insn insn;
   if (assembler.encode(line, insn, addr, nullptr)) {
     Serial.print(F("Error: "));
