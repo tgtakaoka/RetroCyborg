@@ -253,6 +253,7 @@ static void handlerAssembler(Input::State state, uint16_t value, uint8_t index) 
 }
 
 static void handlerFileListing() {
+  SD.begin();
   File root = SD.open("/");
   while (true) {
     File entry = root.openNextFile();
@@ -299,6 +300,7 @@ static int loadS19Record(const char *line) {
 static void handlerLoadFile(Input::State state, char *line) {
   if (state != Input::State::FINISH) return;
   uint16_t size = 0;
+  SD.begin();
   File file = SD.open(line);
   if (file) {
     char s19[80];
