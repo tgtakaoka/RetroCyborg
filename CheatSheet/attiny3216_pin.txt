@@ -1,0 +1,31 @@
+          ATtiny3216
+            _____
+    VCC   1|*    |20  GND
+ SS/PA4   2|     |19  PA3/SCK
+    PA5   3|     |18  PA2/MISO
+    PA6   4|     |17  PA1/MOSI
+    PA7   5|     |16  PA0/UPDI
+    PB5   6|     |15  PC3
+    PB4   7|     |14  PC2
+RXD/PB3   8|     |13  PC1
+TXD/PB2   9|     |12  PC0
+SDA/PB1  10|_____|11  PB0/SCL
+
+PA0        D17/UPDI/RESET/0IN0
+PA1        D14/MOSI/TXD1/SDA1/0IN1
+PA2        D15/MISO/RXD1/SCL1/0IN2
+PA3        D16/SCK
+PA4        D0/A0/SS/0OUT
+PA5        D1/A1/VREF
+PA6        D2/A2/DAC
+PA7        D3/A3/1OUT
+PB0        D9/A9/SCL
+PB1        D8/A8/SDA
+PB2        D7/TXD
+PB3        D6/RXD
+PB4        D5/A5/0OUT1
+PB5        D4/A4
+PC0        D10/SCK1
+PC1        D11/MISO1/1OUT1
+PC2        D12/MOSI1
+PC3        D13/SS1/1IN0

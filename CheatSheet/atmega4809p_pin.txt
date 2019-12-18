@@ -1,0 +1,22 @@
+                        ATmega4809-P
+                         _________
+1IN0  TXD1  D14  PC0   1|*        |40  PA7  D7   SS
+1IN1  RXD1  D15  PC1   2|         |39  PA6  D6   SCK   0OUT'
+1IN2        D16  PC2   3|         |38  PA5  D5   MISO
+1OUT        D17  PC3   4|         |37  PA4  D4   MOSI
+                 VDD   5|         |36  PA3  D3   SCL   0OUT
+                 GND   6|         |35  PA2  D2   SDA   0IN2
+            D18  PC4   7|         |34  PA1  D1   RXD0  0IN1
+            D19  PC5   8|         |33  PA0  D0   TXD0  0IN0
+2IN0    A0  D22  PD0   9|         |32  GND
+2IN1    A1  D23  PD1  10|         |31  VDD
+2IN2    A2  D24  PD2  11|         |30  UPDI
+2OUT    A3  D25  PD3  12|         |29  PF6  D40        3OUT'
+        A4  D26  PD4  13|         |28  PF5  D39  A15   LED
+        A5  D27  PD5  14|         |27  PF4  D38  A14
+2OUT'   A6  D28  PD6  15|         |26  PF3  D37  A13   3OUT
+        A7  D29  PD7  16|         |25  PF2  D36  A12   3IN2
+                AVDD  17|         |24  PF1  D35  RXD2  3IN1
+                 GND  18|         |23  PF0  D34  TXD2  3IN0
+        A8  D30  PE0  19|         |22  PE3  D33  A11
+        A9  D31  PE1  20|_________|21  PE2  D32  A10
