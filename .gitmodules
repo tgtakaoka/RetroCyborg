@@ -1,3 +1,0 @@
-[submodule "Prototype3/debugger/libasm"]
-	path = Prototype3/debugger/libasm
-	url = git@github.com:tgtakaoka/libasm.git

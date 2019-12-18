@@ -23,17 +23,16 @@
 #include <Arduino.h>
 #include <string.h>
 #include <SD.h>
+#include <asm_hd6309.h>
+#include <dis_hd6309.h>
+#include <dis_memory.h>
+#include <symbol_table.h>
 
 #include "commands.h"
 #include "hex.h"
 #include "input.h"
 #include "pins.h"
 #include "regs.h"
-
-#include "asm_hd6309.h"
-#include "dis_hd6309.h"
-#include "memory.h"
-#include "symbol_table.h"
 
 #define VERSION F("* Cyborg09 Prototype3 1.9")
 #define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:sm s/S:tep c:ont G:o h/H:alt p:ins F:iles L:oad")
@@ -108,9 +107,9 @@ static void handleDumpMemory(Input::State state, uint16_t value, uint8_t index) 
 }
 
 
-class Hd6309Memory : public Memory {
+class Hd6309Memory : public DisMemory<target::uintptr_t> {
   public:
-    Hd6309Memory() : Memory(0) {}
+    Hd6309Memory() : DisMemory(0) {}
     bool hasNext() const override {
       return true;
     }
