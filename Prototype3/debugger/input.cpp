@@ -50,8 +50,12 @@ Input::State Input::HexBuffer::append(char c) {
     backspace(_len);
     set(_digits, _value);
     Serial.print(c);
-    return c == ' ' ? NEXT : FINISH;
+    if (c == ' ') return NEXT;
+    Serial.println();
+    return FINISH;
   }
+  // TODO: Handle cancel nicely.
+  // if (_len == 0 && isSpace(c)) return CANCEL;
   if (c == '\x1b') return CANCEL;
   return CONTINUE;
 }
@@ -157,7 +161,10 @@ void Input::loop() {
     const char c = Serial.read();
     switch (_mode) {
       case CHAR_COMMAND:
-        Commands.exec(c);
+        if (Commands.exec(c)) {
+          if (!Commands.isRunning() && _mode == CHAR_COMMAND)
+            Serial.print(F("> ")); // prompt
+        }
         break;
       case READ_UINT:
         processHexNumbers(c);

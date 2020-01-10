@@ -39,7 +39,7 @@
 
 class Commands Commands;
 
-static uint16_t addr;
+static uint16_t last_addr;
 static uint8_t buffer[16];
 #define NO_INDEX (sizeof(buffer) + 10)
 
@@ -91,19 +91,20 @@ static void handleDumpMemory(Input::State state, uint16_t value, uint8_t index) 
   if (state == Input::State::DELETE) {
     if (index == 1) {
       Input::backspace();
-      Input.readUint16(handleDumpMemory, 0, addr);
+      Input.readUint16(handleDumpMemory, 0, last_addr);
     }
     return;
   }
   if (index == 0) {
-    addr = value;
+    last_addr = value;
     if (state == Input::State::NEXT) {
       Input.readUint16(handleDumpMemory, 1);
       return;
     }
     value = 16;
   }
-  dumpMemory(addr, value);
+  dumpMemory(last_addr, value);
+  last_addr += value;
 }
 
 
@@ -143,7 +144,7 @@ static void print(const Insn& insn) {
   }
 }
 
-static void disassemble(uint16_t addr, uint16_t max) {
+static uint16_t disassemble(uint16_t addr, uint16_t max) {
   DisHd6309 dis;
   class Hd6309Memory memory;
   memory.setAddress(addr);
@@ -163,25 +164,26 @@ static void disassemble(uint16_t addr, uint16_t max) {
     print(operands, 12);
     Serial.println();
   }
+  return addr + len;
 }
 
 static void handleDisassemble(Input::State state , uint16_t value, uint8_t index) {
   if (state == Input::State::DELETE) {
     if (index == 1) {
       Input::backspace();
-      Input.readUint16(handleDisassemble, 0, addr);
+      Input.readUint16(handleDisassemble, 0, last_addr);
     }
     return;
   }
   if (index == 0) {
-    addr = value;
+    last_addr = value;
     if (state == Input::State::NEXT) {
       Input.readUint16(handleDisassemble, 1);
       return;
     }
     value = 16;
   }
-  disassemble(addr, value);
+  last_addr = disassemble(last_addr, value);
 }
 
 static void memoryWrite(uint16_t addr, const uint8_t values[], const uint8_t len) {
@@ -195,14 +197,14 @@ static void memoryWrite(uint16_t addr, const uint8_t values[], const uint8_t len
 
 static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index) {
   if (index == NO_INDEX) {
-    addr = value;
+    last_addr = value;
     Input.readUint8(handleMemoryWrite, 0);
     return;
   }
   if (state == Input::State::DELETE) {
     if (index-- == 0) {
       Input::backspace();
-      Input.readUint16(handleMemoryWrite, NO_INDEX, addr);
+      Input.readUint16(handleMemoryWrite, NO_INDEX, last_addr);
     } else {
       Input::backspace();
       Input.readUint8(handleMemoryWrite, index, buffer[index]);
@@ -217,8 +219,9 @@ static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index)
     }
     Serial.println();
   }
-  memoryWrite(addr, buffer, index);
-  dumpMemory(addr, index);
+  memoryWrite(last_addr, buffer, index);
+  dumpMemory(last_addr, index);
+  last_addr += index;
 }
 
 static void handlerAssembleLine(Input::State state, char *line) {
@@ -228,24 +231,24 @@ static void handlerAssembleLine(Input::State state, char *line) {
   }
   AsmHd6309 assembler;
   Insn insn;
-  if (assembler.encode(line, insn, addr, nullptr)) {
+  if (assembler.encode(line, insn, last_addr, nullptr)) {
     Serial.print(F("Error: "));
     Serial.println(assembler.getError(), DEC);
   } else {
     print(insn);
     Serial.println();
     memoryWrite(insn.address(), insn.bytes(), insn.insnLen());
-    addr += insn.insnLen();
+    last_addr += insn.insnLen();
   }
-  printHex16(addr, '?');
+  printHex16(last_addr, '?');
   Input.readLine(handlerAssembleLine);
 }
 
 static void handlerAssembler(Input::State state, uint16_t value, uint8_t index) {
   if (index == 0) {
-    addr = value;
+    last_addr = value;
     if (state == Input::State::FINISH) {
-      printHex16(addr, '?');
+      printHex16(last_addr, '?');
       Input.readLine(handlerAssembleLine);
     }
   }
@@ -359,36 +362,43 @@ void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
   Regs.print();
 }
 
-void Commands::exec(char c) {
-  if (c == 'p') Pins.print();
-  if (c == 'R') {
+bool Commands::exec(char c) {
+  switch (c) {
+  case 'p':
+    Serial.print(F("pins:"));
+    Pins.print();
+    break;
+  case 'R':
+    Serial.println(F("RESET"));
     _target = HALT;
     Pins.reset(true);
-    Serial.println(F("RESET"));
     Regs.get(true);
-  }
-  if (c == 'i') {
-    Serial.print(F("i?"));
+    break;
+  case 'i':
+    Serial.print(F("inst? "));
     Input.readUint8(handleInstruction, 0);
-  }
-  if (c == 'd') {
-    Serial.print(F("d?"));
+    break;
+  case 'd':
+    Serial.print(F("dump? "));
     Input.readUint16(handleDumpMemory, 0);
-  }
-  if (c == 'D') {
-    Serial.print(F("D?"));
+    break;
+  case 'D':
+    Serial.print(F("Dis? "));
     Input.readUint16(handleDisassemble, 0);
-  }
-  if (c == 'A') {
-    Serial.print(F("A?"));
+    break;
+  case 'A':
+    Serial.print(F("Asm? "));
     Input.readUint16(handlerAssembler, 0);
-  }
-  if (c == 'm') {
-    Serial.print(F("m?"));
+    break;
+  case 'm':
+    Serial.print(F("mem? "));
     Input.readUint16(handleMemoryWrite, NO_INDEX);
-  }
-  if (c == 's' || c == 'S') {
+    break;
+  case 's':
+  case 'S':
     if (_target == HALT) {
+      if (c == 's') Serial.print(F("step: "));
+      else Serial.println(F("Step"));
       Pins.step(c == 'S');
     } else {
       _target = HALT;
@@ -396,47 +406,64 @@ void Commands::exec(char c) {
     }
     Regs.get(true);
     disassemble(Regs.pc, 1);
-  }
-  if (c == 'r') Regs.get(true);
-  if (c == '=') {
-    Serial.print(c);
-    Input.readChar(handleSetRegister, 0);
-  }
-  if (c == 'c') {
-    _target = STEP;
-  }
-  if (c == 'G' && _target != RUN) {
-    Serial.println(F("RUN"));
-    _target = RUN;
-    Pins.run();
-  }
-  if ((c == 'h' || c == 'H') && _target != HALT) {
-    _target = HALT;
-    Pins.halt(c == 'H');
-    Serial.println(F("HALT"));
+    break;
+  case 'r':
+    Serial.print(F("regs: "));
     Regs.get(true);
-    disassemble(Regs.pc, 1);
-  }
-  if (c == 'F') {
+    break;
+  case '=':
+    Serial.print(F("set reg? "));
+    Input.readChar(handleSetRegister, 0);
+    break;
+  case 'c':
+    _target = STEP;
+    return false;
+  case 'G':
+    if (_target != RUN) {
+      Serial.println(F("GO"));
+      _target = RUN;
+      Pins.run();
+      break;
+    }
+    return false;
+  case 'h':
+  case 'H':
+    if (_target != HALT) {
+      _target = HALT;
+      Pins.halt(c == 'H');
+      Serial.println(F("HALT"));
+      Regs.get(true);
+      disassemble(Regs.pc, 1);
+      break;
+    }
+    return false;
+  case 'F':
+    Serial.println(F("Files"));
     handlerFileListing();
-  }
-  if (c == 'L') {
-    Serial.print(F("L?"));
+    break;
+  case 'L':
+    Serial.print(F("Load? "));
     Input.readLine(handlerLoadFile);
-  }
-  if (c == '?') {
+    break;
+  case '?':
     Serial.println(VERSION);
     Serial.println(USAGE);
+    break;
+  default:
+    return false;
   }
+  return true;
 }
 
 static void haltMpu() {
   Commands.exec('h');
+  Serial.print(F("> ")); // Initial prompt.
 }
 
 void Commands::begin() {
   Pins.attachUserSwitch(haltMpu);
   exec('?');
+  Serial.print(F("> ")); // Initial prompt.
 }
 
 void Commands::loop() {
