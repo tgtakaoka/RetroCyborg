@@ -1,5 +1,5 @@
 AS=asl -gnuerrors -L +t 0x1E -q
-OBJCOPY=p2hex -F Moto +5 -r '$$-$$'
+OBJCOPY=p2hex -l 32 -F Moto +5 -r '$$-$$' >/dev/null
 
 .PHONY: clean
 
