@@ -23,8 +23,8 @@
 #include <Arduino.h>
 #include <string.h>
 #include <SD.h>
-#include <asm_hd6309.h>
-#include <dis_hd6309.h>
+#include <asm_mc6809.h>
+#include <dis_mc6809.h>
 #include <dis_memory.h>
 #include <symbol_table.h>
 
@@ -108,9 +108,9 @@ static void handleDumpMemory(Input::State state, uint16_t value, uint8_t index) 
 }
 
 
-class Hd6309Memory : public DisMemory<target::uintptr_t> {
+class Mc6809Memory : public DisMemory<target::uintptr_t> {
   public:
-    Hd6309Memory() : DisMemory(0) {}
+    Mc6809Memory() : DisMemory(0) {}
     bool hasNext() const override {
       return true;
     }
@@ -145,19 +145,21 @@ static void print(const Insn& insn) {
 }
 
 static uint16_t disassemble(uint16_t addr, uint16_t max) {
-  DisHd6309 dis;
-  class Hd6309Memory memory;
+  DisMc6809 dis6809;
+  Disassembler<uint16_t> &disassembler(dis6809);
+  disassembler.acceptCpu("6309");
+  class Mc6809Memory memory;
   memory.setAddress(addr);
   uint16_t len = 0;
   while (len < max) {
     char operands[20];
     Insn insn;
-    dis.decode(memory, insn, operands, nullptr);
+    disassembler.decode(memory, insn, operands, nullptr, true);
     len += insn.insnLen();
     print(insn);
-    if (dis.getError()) {
+    if (disassembler.getError()) {
       Serial.print(F("Error: "));
-      Serial.println(dis.getError(), DEC);
+      Serial.println(disassembler.getError(), DEC);
       continue;
     }
     print(insn.name(), 6);
@@ -229,7 +231,9 @@ static void handlerAssembleLine(Input::State state, char *line) {
     Serial.println(F("end"));
     return;
   }
-  AsmHd6309 assembler;
+  AsmMc6809 as6809;
+  Assembler<uint16_t> &assembler(as6809);
+  assembler.acceptCpu("6309");
   Insn insn;
   if (assembler.encode(line, insn, last_addr, nullptr)) {
     Serial.print(F("Error: "));
