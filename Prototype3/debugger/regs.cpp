@@ -16,6 +16,10 @@ static void hex2(uint8_t v, const __FlashStringHelper *name) {
   printHex8(v, ' ');
 }
 
+static void bit1(uint8_t v, char name) {
+  Serial.print(v ? name : '_');
+}
+
 static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {
   const uint8_t insn[] = { inst, opr };
   Pins.captureWrites(insn, sizeof(insn), buf, max);
@@ -30,10 +34,15 @@ void Regs::print() const {
   hex2(dp, F("DP="));
   hex2(b,  F("B="));
   hex2(a,  F("A="));
-  Serial.print(F("EFHINZVC="));
-  for (uint8_t m = 0x80; m != 0; m >>= 1) {
-    Serial.print((m & cc) ? '1' : '0');
-  }
+  Serial.print(F("CC="));
+  bit1(cc & 0x80, 'E');
+  bit1(cc & 0x40, 'F');
+  bit1(cc & 0x20, 'H');
+  bit1(cc & 0x10, 'I');
+  bit1(cc & 0x08, 'N');
+  bit1(cc & 0x04, 'Z');
+  bit1(cc & 0x02, 'V');
+  bit1(cc & 0x01, 'C');
   Serial.println();
 }
 
