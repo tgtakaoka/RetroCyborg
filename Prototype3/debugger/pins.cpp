@@ -1,7 +1,8 @@
+/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
 #include <avr/pgmspace.h>
 #include <Arduino.h>
 
-#include "hex.h"
+#include "console.h"
 #include "pins.h"
 #include "pins_map.h"
 
@@ -18,17 +19,17 @@ class Pins Pins;
 #define DDR(name) __DDR__(__PORT__(name))
 #define PORT(name) __POUT__(__PORT__(name))
 #define PIN(name) __PIN__(__PORT__(name))
-#define pinMode(name, mode) do {                    \
-  if (mode == INPUT) DDR(name) &= ~BM(name);        \
-  if (mode == INPUT_PULLUP) DDR(name) &= ~BM(name); \
-  if (mode == INPUT_PULLUP) PORT(name) |= BM(name); \
-  if (mode == OUTPUT) DDR(name) |= BM(name);        \
-} while (0)
+#define pinMode(name, mode) do {                      \
+    if (mode == INPUT) DDR(name) &= ~BM(name);        \
+    if (mode == INPUT_PULLUP) DDR(name) &= ~BM(name); \
+    if (mode == INPUT_PULLUP) PORT(name) |= BM(name); \
+    if (mode == OUTPUT) DDR(name) |= BM(name);        \
+  } while (0)
 #define digitalRead(name) (PIN(name) & BM(name))
-#define digitalWrite(name, val) do {       \
-  if (val == LOW) PORT(name) &= ~BM(name); \
-  if (val == HIGH) PORT(name) |= BM(name); \
-} while (0)
+#define digitalWrite(name, val) do {            \
+    if (val == LOW) PORT(name) &= ~BM(name);    \
+    if (val == HIGH) PORT(name) |= BM(name);    \
+  } while (0)
 
 uint8_t Pins::Dbus::getDbus() {
   return PIN(DB);
@@ -40,7 +41,7 @@ void Pins::Dbus::begin() {
 
 void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
   if (dir == OUTPUT && digitalRead(RD_WR) == LOW) {
-    Serial.println(F("!! R/W is LOW"));
+    Console.println(F("!! R/W is LOW"));
     return;
   }
   if (dir == OUTPUT || _capture) {
@@ -81,10 +82,10 @@ void Pins::Dbus::capture(bool enabled) {
 
 void Pins::Status::get() {
   uint8_t p = 0;
-  if (digitalRead(RESET)) p |= Status::reset;
-  if (digitalRead(HALT))  p |= Status::halt;
   if (digitalRead(BA))    p |= Status::ba;
   if (digitalRead(BS))    p |= Status::bs;
+  if (digitalRead(RESET)) p |= Status::reset;
+  if (digitalRead(HALT))  p |= Status::halt;
   if (digitalRead(LIC))   p |= Status::lic;
   if (digitalRead(AVMA))  p |= Status::avma;
   if (digitalRead(RD_WR)) p |= Status::rw;
@@ -94,52 +95,47 @@ void Pins::Status::get() {
 
 bool Pins::unchanged() const {
   return _signals.pins == _previous.pins
-         && _signals.dbus == _previous.dbus;
-}
-
-static void printPin(uint8_t value, const __FlashStringHelper *name) {
-  Serial.print(name);
-  Serial.print(value ? 'H' : 'L');
+    && _signals.dbus == _previous.dbus;
 }
 
 void Pins::print() const {
-  printPin(_signals.pins & Status::reset, F(" #RES="));
-  printPin(_signals.pins & Status::halt,  F(" HALT="));
-  printPin(_signals.pins & Status::ba,    F(" BA="));
-  printPin(_signals.pins & Status::bs,    F(" BS="));
-  printPin(_signals.pins & Status::lic,   F(" LIC="));
-  printPin(_signals.pins & Status::avma,  F(" AVMA="));
-  printPin(_signals.pins & Status::rw,    F(" RW="));
+  Console.print(_signals.pins & Status::lic   ? 'L' : ' ');
+  Console.print(_signals.pins & Status::avma  ? 'A' : ' ');
+  Console.print(_signals.pins & Status::rw    ? 'R' : 'W');
+  Console.print(_signals.pins & Status::halt  ? 'H' : ' ');
+  Console.print(_signals.pins & Status::babs, DEC);
+  Console.print(_signals.pins & Status::reset ? ' ' : 'R');
 
-  Serial.print(F(" DB=0x"));
+  Console.print(F(" DB=0x"));
   printHex8(_signals.dbus);
-  Serial.print(' ');
+
+  Console.print(' ');
   if (vectorFetch()) {
-    Serial.print('V');
+    Console.print('V');
   } else if (running()) {
     if (writeCycle()) {
-      Serial.print('W');
+      Console.print('W');
     } else if (readCycle()) {
-      Serial.print('R');
+      Console.print('R');
     } else {
-      Serial.print('-');
+      Console.print('-');
     }
   } else {
-    Serial.print('H');
+    Console.print('H');
   }
-  Serial.println();
+  Console.println();
 }
 
 bool Pins::inHalt() const {
-  return (_signals.pins & Status::ba) && (_signals.pins & Status::bs);
+  return (_signals.pins & Status::babs) == Status::babs;
 }
 
 bool Pins::vectorFetch() const {
-  return (_signals.pins & (Status::ba | Status::bs)) == Status::bs;
+  return (_signals.pins & Status::babs) == Status::bs;
 }
 
 bool Pins::running() const {
-  return (_signals.pins & (Status::ba | Status::bs)) == 0;
+  return (_signals.pins & Status::babs) == 0;
 }
 
 bool Pins::lastInstCycle() const {

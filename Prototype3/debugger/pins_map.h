@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
 #ifndef __pins_map_h__
 #define __pins_map_h__
 

@@ -1,5 +1,6 @@
-#ifndef __REGS_H__
-#define __REGS_H__
+/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
+#ifndef __regs_h__
+#define __regs_h__
 
 #include <stdint.h>
 

@@ -1,23 +1,25 @@
-#include <Arduino.h>
+/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
 
-#include "hex.h"
+#include "console.h"
 #include "pins.h"
 #include "regs.h"
+
+#include <Arduino.h>
 
 union Regs Regs;
 
 static void hex4(uint16_t v, const __FlashStringHelper *name) {
-  Serial.print(name);
+  Console.print(name);
   printHex16(v, ' ');
 }
 
 static void hex2(uint8_t v, const __FlashStringHelper *name) {
-  Serial.print(name);
+  Console.print(name);
   printHex8(v, ' ');
 }
 
 static void bit1(uint8_t v, char name) {
-  Serial.print(v ? name : '_');
+  Console.print(v ? name : '_');
 }
 
 static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {
@@ -34,7 +36,7 @@ void Regs::print() const {
   hex2(dp, F("DP="));
   hex2(b,  F("B="));
   hex2(a,  F("A="));
-  Serial.print(F("CC="));
+  Console.print(F("CC="));
   bit1(cc & 0x80, 'E');
   bit1(cc & 0x40, 'F');
   bit1(cc & 0x20, 'H');
@@ -43,7 +45,7 @@ void Regs::print() const {
   bit1(cc & 0x04, 'Z');
   bit1(cc & 0x02, 'V');
   bit1(cc & 0x01, 'C');
-  Serial.println();
+  Console.println();
 }
 
 void Regs::get(bool show) {

@@ -1,23 +1,24 @@
+/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
 /*
   The Controller can accept commands represented by one letter.
 
-   R - reset MPU.
-   p - print MPU hardware signal status.
-   i - inject instruction.
-   d - dump memory. addr [length]
-   m - write memory. addr byte...
-   s - step one instruction.
-   S - step one instruction with printing signal status.
-   r - print MPU registers.
-   = - set MPU register. register value
-   c - continuously run with printing register.
-   G - go, continuously run MPU.
-   h - halt MPU.
-   D - disassemble
-   A - assemble
-   F - list files in SD card
-   L - load S-record file.
-   ? - print version.
+  R - reset MPU.
+  p - print MPU hardware signal status.
+  i - inject instruction.
+  d - dump memory. addr [length]
+  m - write memory. addr byte...
+  s - step one instruction.
+  S - step one instruction with printing signal status.
+  r - print MPU registers.
+  = - set MPU register. register value
+  c - continuously run with printing register.
+  G - go, continuously run MPU.
+  h - halt MPU.
+  D - disassemble
+  A - assemble
+  F - list files in SD card
+  L - load S-record file.
+  ? - print version.
 */
 
 #include <Arduino.h>
@@ -29,7 +30,7 @@
 #include <symbol_table.h>
 
 #include "commands.h"
-#include "hex.h"
+#include "console.h"
 #include "input.h"
 #include "pins.h"
 #include "regs.h"
@@ -68,7 +69,7 @@ static void handleInstruction(Input::State state, uint16_t value, uint8_t index)
       Input.readUint8(handleInstruction, index);
       return;
     }
-    Serial.println();
+    Console.println();
   }
   Pins.execInst(buffer, index, true /* show */);
 }
@@ -78,12 +79,12 @@ static void dumpMemory(uint16_t addr, uint16_t len) {
   for (uint16_t i = 0; i < len; i++, addr++) {
     execInst3(0xB6, addr); // LDA $addr
     if (i % 16 == 0) {
-      if (i) Serial.println();
+      if (i) Console.println();
       printHex16(addr, ':');
     }
     printHex8(Pins.dbus(), ' ');
   }
-  Serial.println();
+  Console.println();
   Regs.restore();
 }
 
@@ -109,28 +110,28 @@ static void handleDumpMemory(Input::State state, uint16_t value, uint8_t index) 
 
 
 class Mc6809Memory : public DisMemory<target::uintptr_t> {
-  public:
-    Mc6809Memory() : DisMemory(0) {}
-    bool hasNext() const override {
-      return true;
-    }
-    void setAddress(target::uintptr_t addr) {
-      _address = addr;
-    }
-  protected:
-    uint8_t nextByte() {
-      Regs.save();
-      execInst3(0xB6, _address); // LDA $_address
-      uint8_t data = Pins.dbus();
-      Regs.restore();
-      return data;
-    }
+public:
+  Mc6809Memory() : DisMemory(0) {}
+  bool hasNext() const override {
+    return true;
+  }
+  void setAddress(target::uintptr_t addr) {
+    _address = addr;
+  }
+protected:
+  uint8_t nextByte() {
+    Regs.save();
+    execInst3(0xB6, _address); // LDA $_address
+    uint8_t data = Pins.dbus();
+    Regs.restore();
+    return data;
+  }
 };
 
 static void print(const char *text, int width) {
-  Serial.print(text);
+  Console.print(text);
   for (int i = strlen(text); i < width; i++) {
-    Serial.print(' ');
+    Console.print(' ');
   }
 }
 
@@ -140,7 +141,7 @@ static void print(const Insn& insn) {
     printHex8(insn.bytes()[i], ' ');
   }
   for (int i = insn.insnLen(); i < 5; i++) {
-    Serial.print(F("   "));
+    Console.print(F("   "));
   }
 }
 
@@ -158,13 +159,13 @@ static uint16_t disassemble(uint16_t addr, uint16_t max) {
     len += insn.insnLen();
     print(insn);
     if (disassembler.getError()) {
-      Serial.print(F("Error: "));
-      Serial.println(disassembler.getError(), DEC);
+      Console.print(F("Error: "));
+      Console.println(disassembler.getError(), DEC);
       continue;
     }
     print(insn.name(), 6);
     print(operands, 12);
-    Serial.println();
+    Console.println();
   }
   return addr + len;
 }
@@ -219,7 +220,7 @@ static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index)
       Input.readUint8(handleMemoryWrite, index);
       return;
     }
-    Serial.println();
+    Console.println();
   }
   memoryWrite(last_addr, buffer, index);
   dumpMemory(last_addr, index);
@@ -228,7 +229,7 @@ static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index)
 
 static void handlerAssembleLine(Input::State state, char *line) {
   if (state == Input::State::CANCEL || *line == 0) {
-    Serial.println(F("end"));
+    Console.println(F("end"));
     return;
   }
   AsmMc6809 as6809;
@@ -236,11 +237,11 @@ static void handlerAssembleLine(Input::State state, char *line) {
   assembler.acceptCpu("6309");
   Insn insn;
   if (assembler.encode(line, insn, last_addr, nullptr)) {
-    Serial.print(F("Error: "));
-    Serial.println(assembler.getError(), DEC);
+    Console.print(F("Error: "));
+    Console.println(assembler.getError(), DEC);
   } else {
     print(insn);
-    Serial.println();
+    Console.println();
     memoryWrite(insn.address(), insn.bytes(), insn.insnLen());
     last_addr += insn.insnLen();
   }
@@ -265,9 +266,9 @@ static void handlerFileListing() {
     File entry = root.openNextFile();
     if (!entry) break;
     if (!entry.isDirectory()) {
-      Serial.print(entry.name());
-      Serial.print('\t');
-      Serial.println(entry.size(), DEC);
+      Console.print(entry.name());
+      Console.print('\t');
+      Console.println(entry.size(), DEC);
     }
     entry.close();
   }
@@ -279,7 +280,7 @@ static uint8_t toInt(const char c) {
 }
 
 static uint8_t toInt8Hex(const char *text) {
-    return (toInt(text[0]) << 4) | toInt(text[1]);
+  return (toInt(text[0]) << 4) | toInt(text[1]);
 }
 
 static uint16_t toInt16Hex(const char *text) {
@@ -299,7 +300,7 @@ static int loadS19Record(const char *line) {
   memoryWrite(addr, buffer, num);
   printHex16(addr, ':');
   printHex8(num);
-  Serial.print(' ');
+  Console.print(' ');
   return num;
 }
 
@@ -323,27 +324,27 @@ static void handlerLoadFile(Input::State state, char *line) {
     }
     file.close();
   }
-  Serial.println();
-  Serial.print(size, DEC);
-  Serial.println(F(" bytes loaded"));
+  Console.println();
+  Console.print(size, DEC);
+  Console.println(F(" bytes loaded"));
 }
 
 void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
   if (index == 0) {
     const char c = value & ~0x20;
     if (c == 'P' || c == 'S' || c == 'U' || c == 'Y' || c == 'X') {
-      Serial.print(c);
-      Serial.print('?');
+      Console.print(c);
+      Console.print('?');
       Input.readUint16(handleSetRegister, c);
       return;
     }
     if (c == 'D' || c == 'A' || c == 'B' || c == 'C') {
-      Serial.print(c);
-      Serial.print('?');
+      Console.print(c);
+      Console.print('?');
       Input.readUint8(handleSetRegister, c);
       return;
     }
-    Serial.println();
+    Console.println();
     return;
   }
   if (state == Input::State::DELETE) {
@@ -352,7 +353,7 @@ void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
     return;
   }
   if (state == Input::State::NEXT)
-    Serial.println();
+    Console.println();
   if (index == 'P') Regs.pc = value;
   else if (index == 'S') Regs.s = value;
   else if (index == 'U') Regs.u = value;
@@ -369,40 +370,40 @@ void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
 bool Commands::exec(char c) {
   switch (c) {
   case 'p':
-    Serial.print(F("pins:"));
+    Console.print(F("pins:"));
     Pins.print();
     break;
   case 'R':
-    Serial.println(F("RESET"));
+    Console.println(F("RESET"));
     _target = HALT;
     Pins.reset(true);
     Regs.get(true);
     break;
   case 'i':
-    Serial.print(F("inst? "));
+    Console.print(F("inst? "));
     Input.readUint8(handleInstruction, 0);
     break;
   case 'd':
-    Serial.print(F("dump? "));
+    Console.print(F("dump? "));
     Input.readUint16(handleDumpMemory, 0);
     break;
   case 'D':
-    Serial.print(F("Dis? "));
+    Console.print(F("Dis? "));
     Input.readUint16(handleDisassemble, 0);
     break;
   case 'A':
-    Serial.print(F("Asm? "));
+    Console.print(F("Asm? "));
     Input.readUint16(handlerAssembler, 0);
     break;
   case 'm':
-    Serial.print(F("mem? "));
+    Console.print(F("mem? "));
     Input.readUint16(handleMemoryWrite, NO_INDEX);
     break;
   case 's':
   case 'S':
     if (_target == HALT) {
-      if (c == 's') Serial.print(F("step: "));
-      else Serial.println(F("Step"));
+      if (c == 's') Console.print(F("step: "));
+      else Console.println(F("Step"));
       Pins.step(c == 'S');
     } else {
       _target = HALT;
@@ -412,11 +413,11 @@ bool Commands::exec(char c) {
     disassemble(Regs.pc, 1);
     break;
   case 'r':
-    Serial.print(F("regs: "));
+    Console.print(F("regs: "));
     Regs.get(true);
     break;
   case '=':
-    Serial.print(F("set reg? "));
+    Console.print(F("set reg? "));
     Input.readChar(handleSetRegister, 0);
     break;
   case 'c':
@@ -424,7 +425,7 @@ bool Commands::exec(char c) {
     return false;
   case 'G':
     if (_target != RUN) {
-      Serial.println(F("GO"));
+      Console.println(F("GO"));
       _target = RUN;
       Pins.run();
       break;
@@ -435,23 +436,23 @@ bool Commands::exec(char c) {
     if (_target != HALT) {
       _target = HALT;
       Pins.halt(c == 'H');
-      Serial.println(F("HALT"));
+      Console.println(F("HALT"));
       Regs.get(true);
       disassemble(Regs.pc, 1);
       break;
     }
     return false;
   case 'F':
-    Serial.println(F("Files"));
+    Console.println(F("Files"));
     handlerFileListing();
     break;
   case 'L':
-    Serial.print(F("Load? "));
+    Console.print(F("Load? "));
     Input.readLine(handlerLoadFile);
     break;
   case '?':
-    Serial.println(VERSION);
-    Serial.println(USAGE);
+    Console.println(VERSION);
+    Console.println(USAGE);
     break;
   default:
     return false;
@@ -461,13 +462,13 @@ bool Commands::exec(char c) {
 
 static void haltMpu() {
   Commands.exec('h');
-  Serial.print(F("> ")); // Initial prompt.
+  Console.print(F("> ")); // Initial prompt.
 }
 
 void Commands::begin() {
   Pins.attachUserSwitch(haltMpu);
   exec('?');
-  Serial.print(F("> ")); // Initial prompt.
+  Console.print(F("> ")); // Initial prompt.
 }
 
 void Commands::loop() {

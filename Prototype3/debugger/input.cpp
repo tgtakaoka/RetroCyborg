@@ -1,15 +1,17 @@
-#include <stdint.h>
-#include <Arduino.h>
+/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
 
 #include "commands.h"
-#include "hex.h"
+#include "console.h"
 #include "input.h"
+
+#include <stdint.h>
+#include <Arduino.h>
 
 class Input Input;
 
 static void printChars(const __FlashStringHelper *chars, int8_t n) {
   while (n-- > 0)
-    Serial.print(chars);
+    Console.print(chars);
 }
 
 void Input::backspace(int8_t n) {
@@ -33,7 +35,7 @@ void Input::HexBuffer::set(uint8_t digits, uint16_t value) {
 Input::State Input::HexBuffer::append(char c) {
   if (isHexadecimalDigit(c) && _len < _digits) {
     if (isLowerCase(c)) c &= ~0x20;
-    Serial.print(c);
+    Console.print(c);
     _len++;
     _value *= 16;
     _value += isDigit(c) ? c - '0' : c - 'A' + 10;
@@ -49,9 +51,9 @@ Input::State Input::HexBuffer::append(char c) {
   if (_len > 0 && isSpace(c)) {
     backspace(_len);
     set(_digits, _value);
-    Serial.print(c);
+    Console.print(c);
     if (c == ' ') return NEXT;
-    Serial.println();
+    Console.println();
     return FINISH;
   }
   // TODO: Handle cancel nicely.
@@ -104,20 +106,20 @@ void Input::readLine(LineHandler handler) {
 void Input::processHexNumbers(char c) {
   const State state = _buffer.append(c);
   switch (state) {
-    case NEXT:
-    case FINISH:
-      _mode = CHAR_COMMAND;
-      _handler(state, _buffer.value(), _index);
-      break;
-    case DELETE:
-      _handler(state, 0, _index);
-      break;
-    case CANCEL:
-      Serial.println(F(" cancel"));
-      _mode = CHAR_COMMAND;
-      break;
-    case CONTINUE:
-      break;
+  case NEXT:
+  case FINISH:
+    _mode = CHAR_COMMAND;
+    _handler(state, _buffer.value(), _index);
+    break;
+  case DELETE:
+    _handler(state, 0, _index);
+    break;
+  case CANCEL:
+    Console.println(F(" cancel"));
+    _mode = CHAR_COMMAND;
+    break;
+  case CONTINUE:
+    break;
   }
 }
 
@@ -133,7 +135,7 @@ static void trimLineBuffer(char *line) {
 void Input::processReadLine(char c) {
   if (c == '\r' || c == '\n') {
     _mode = CHAR_COMMAND;
-    Serial.println();
+    Console.println();
     trimLineBuffer(_lineBuffer);
     _lineHandler(FINISH, _lineBuffer);
   } else if (c == '\b' || c == '\x7f') {
@@ -142,11 +144,11 @@ void Input::processReadLine(char c) {
       _lineBuffer[--_lineLen] = 0;
     }
   } else if (c == '\x1b') {
-    Serial.println(F(" cancel"));
+    Console.println(F(" cancel"));
     _mode = CHAR_COMMAND;
     _lineHandler(CANCEL, _lineBuffer);
   } else if (_lineLen < sizeof(_lineBuffer) - 1) {
-    Serial.print(c);
+    Console.print(c);
     _lineBuffer[_lineLen++] = c;
     _lineBuffer[_lineLen] = 0;
   }
@@ -157,25 +159,25 @@ void Input::begin() {
 }
 
 void Input::loop() {
-  if (Serial.available()) {
-    const char c = Serial.read();
+  if (Console.available()) {
+    const char c = Console.read();
     switch (_mode) {
-      case CHAR_COMMAND:
-        if (Commands.exec(c)) {
-          if (!Commands.isRunning() && _mode == CHAR_COMMAND)
-            Serial.print(F("> ")); // prompt
-        }
-        break;
-      case READ_UINT:
-        processHexNumbers(c);
-        break;
-      case READ_CHAR:
-        _mode = CHAR_COMMAND;
-        _handler(FINISH, c, _index);
-        break;
-      case READ_LINE:
-        processReadLine(c);
-        break;
+    case CHAR_COMMAND:
+      if (Commands.exec(c)) {
+        if (!Commands.isRunning() && _mode == CHAR_COMMAND)
+          Console.print(F("> ")); // prompt
+      }
+      break;
+    case READ_UINT:
+      processHexNumbers(c);
+      break;
+    case READ_CHAR:
+      _mode = CHAR_COMMAND;
+      _handler(FINISH, c, _index);
+      break;
+    case READ_LINE:
+      processReadLine(c);
+      break;
     }
   }
 
