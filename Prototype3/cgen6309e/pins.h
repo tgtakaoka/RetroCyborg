@@ -1,5 +1,6 @@
-#ifndef __PINS_H__
-#define __PINS_H__
+/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
+#ifndef __pins_h__
+#define __pins_h__
 
 #include <stdint.h>
 
@@ -14,6 +15,7 @@ public:
   void clrE();
   void setQ();
   void clrQ();
+  void nop() const;
   void assertInt();
   void negateInt();
 };

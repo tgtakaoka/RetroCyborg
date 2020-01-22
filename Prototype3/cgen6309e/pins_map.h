@@ -1,7 +1,11 @@
-#ifndef __PINS_MAP_H__
-#define __PINS_MAP_H__
+/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
+#ifndef __pins_map_h__
+#define __pins_map_h__
 
 #include <avr/io.h>
+
+// 0xFFC0 ~ 0xFFDF
+#define IO_ADR_BASE 0xFFC0
 
 /* Bit pattern of ADRn of IO_ADR_BASE */
 #define IOA(n) (((IO_ADR_BASE >> (n)) & 1) << ADR##n)
@@ -49,5 +53,17 @@
 #define STEP_PIN   PC1
 
 #endif
+
+#define __concat2__(a,b) a##b
+
+#define __PIN__(name)  name##_PIN
+#define __BUS__(name)  (name ## _BUS)
+#define __PORT__(name) name##_PORT
+#define __PORT_DDR__(port) __concat2__(DDR,port)
+#define __PORT_OUT__(port) __concat2__(PORT,port)
+#define __PORT_IN__(port) __concat2__(PIN,port)
+#define DDR(name) __PORT_DDR__(__PORT__(name))
+#define POUT(name) __PORT_OUT__(__PORT__(name))
+#define PIN(name) __PORT_IN__(__PORT__(name))
 
 #endif

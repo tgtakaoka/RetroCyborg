@@ -1,63 +1,40 @@
+/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
 #include <Arduino.h>
-
-// 0xFFC0 ~ 0xFFDF
-#define IO_ADR_BASE 0xFFC0
 
 #include "pins.h"
 #include "pins_map.h"
 
 class Pins Pins;
 
-#if F_CPU == 20000000
-#define nop() do { \
-  __asm__ __volatile__ ("nop"); \
-  __asm__ __volatile__ ("nop"); \
-  __asm__ __volatile__ ("nop"); \
-} while (0)
-#endif
-#if F_CPU == 16000000
-#define nop() do { \
-  __asm__ __volatile__ ("nop"); \
-  __asm__ __volatile__ ("nop"); \
-} while (0)
-#endif
-
-#define __concat2__(a,b) a##b
-#define BP(name)  name##_PIN
-#define BM(name)   _BV(BP(name))
-#define BUS(name)  (name ## _BUS)
-#define __PORT__(name) name##_PORT
-#define __DDR__(port) __concat2__(DDR,port)
-#define __POUT__(port) __concat2__(PORT,port)
-#define __PIN__(port) __concat2__(PIN,port)
-#define DDR(name) __DDR__(__PORT__(name))
-#define PORT(name) __POUT__(__PORT__(name))
-#define PIN(name) __PIN__(__PORT__(name))
-#define pinMode(name, mode) do {                    \
-  if (mode == INPUT) DDR(name) &= ~BM(name);        \
-  if (mode == INPUT_PULLUP) DDR(name) &= ~BM(name); \
-  if (mode == INPUT_PULLUP) PORT(name) |= BM(name); \
-  if (mode == OUTPUT) DDR(name) |= BM(name);        \
-} while (0)
-#define digitalRead(name) (PIN(name) & BM(name))
-#define digitalWrite(name, val) do {       \
-  if (val == LOW) PORT(name) &= ~BM(name); \
-  if (val == HIGH) PORT(name) |= BM(name); \
-} while (0)
-#define busMode(name, mode) do {                     \
-  if (mode == INPUT) DDR(name) &= ~BUS(name);        \
-  if (mode == INPUT_PULLUP) DDR(name) &= ~BUS(name); \
-  if (mode == INPUT_PULLUP) PORT(name) |= BUS(name); \
-  if (mode == OUTPUT) DDR(name) |= BUS(name);         \
-} while (0)
-#define busRead(name) (PIN(name) & BUS(name))
-#define busWrite(name, val) \
-    (PORT(name) = (PORT(name) & ~(BUS(name)) | (val & BUS(name))))
+#define PIN_m(name)   _BV(__PIN__(name))
+#define pinMode(name, mode) do {                          \
+    if (mode == INPUT) DDR(name) &= ~PIN_m(name);         \
+    if (mode == INPUT_PULLUP) DDR(name) &= ~PIN_m(name);  \
+    if (mode == INPUT_PULLUP) POUT(name) |= PIN_m(name);  \
+    if (mode == OUTPUT) DDR(name) |= PIN_m(name);         \
+  } while (0)
+#define digitalRead(name) (PIN(name) & PIN_m(name))
+#define digitalWrite(name, val) do {            \
+    if (val == LOW) POUT(name) &= ~PIN_m(name); \
+    if (val == HIGH) POUT(name) |= PIN_m(name); \
+  } while (0)
+#define busMode(name, mode) do {                            \
+    if (mode == INPUT) DDR(name) &= ~__BUS__(name);         \
+    if (mode == INPUT_PULLUP) DDR(name) &= ~__BUS__(name);  \
+    if (mode == INPUT_PULLUP) POUT(name) |= __BUS__(name);  \
+    if (mode == OUTPUT) DDR(name) |= __BUS__(name);         \
+  } while (0)
+#define busRead(name) (PIN(name) & __BUS__(name))
+#define busWrite(name, val)                                             \
+  (POUT(name) = (POUT(name) & ~(__BUS__(name)) | (val & __BUS__(name))))
 
 void Pins::begin() {
   pinMode(CLK_E, OUTPUT);
   pinMode(CLK_Q, OUTPUT);
+  digitalWrite(CLK_E, LOW);
+  digitalWrite(CLK_Q, LOW);
   pinMode(INT, OUTPUT);
+  digitalWrite(INT, HIGH);
   pinMode(ACK, INPUT_PULLUP);
   pinMode(STEP, INPUT_PULLUP);
   busMode(ADRH, INPUT_PULLUP);
@@ -72,12 +49,12 @@ void Pins::begin() {
 bool Pins::isIoAddr() const {
   return busRead(ADRH) == IO_ADRH
 #if defined(IO_ADRM)
-      && busRead(ADRM) == IO_ADRM
+    && busRead(ADRM) == IO_ADRM
 #endif
 #if defined(IO_ADRL)
-      && busRead(ADRL) == IO_ADRL
+    && busRead(ADRL) == IO_ADRL
 #endif
-      ;
+    ;
 }
 
 bool Pins::isAck() const {
@@ -90,7 +67,6 @@ bool Pins::isStep() const {
 
 void Pins::setE() {
   digitalWrite(CLK_E, HIGH);
-  nop();
 }
 
 void Pins::clrE() {
@@ -99,11 +75,22 @@ void Pins::clrE() {
 
 void Pins::setQ() {
   digitalWrite(CLK_Q, HIGH);
-  nop();
 }
 
 void Pins::clrQ() {
   digitalWrite(CLK_Q, LOW);
+}
+
+void Pins::nop() const {
+#if F_CPU == 20000000
+  __asm__ __volatile__ ("nop");
+  __asm__ __volatile__ ("nop");
+  __asm__ __volatile__ ("nop");
+#endif
+#if F_CPU == 16000000
+  __asm__ __volatile__ ("nop");
+  __asm__ __volatile__ ("nop");
+#endif
 }
 
 void Pins::assertInt() {
