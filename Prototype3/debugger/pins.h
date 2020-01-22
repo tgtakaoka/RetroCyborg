@@ -9,6 +9,8 @@ class Pins {
 
 public:
   void begin();
+  void loop();
+  bool isRunning() const { return _freeRunning; }
 
   void print() const;
   void reset(bool show = false);
@@ -19,7 +21,6 @@ public:
   void execInst(const uint8_t *inst, uint8_t len, bool show = false);
   void captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
 
-  void attachIoRequest(void (*isr)()) const;
   void acknowledgeIoRequest();
   void leaveIoRequest();
   uint16_t ioRequestAddress() const;
@@ -89,6 +90,7 @@ private:
   bool writeCycle() const;
   bool readCycle() const;
 
+  bool _freeRunning;
   Status _signals;
   Status _previous;
   Dbus _dbus;

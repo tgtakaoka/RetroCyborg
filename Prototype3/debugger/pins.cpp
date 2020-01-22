@@ -3,10 +3,33 @@
 #include <Arduino.h>
 
 #include "console.h"
+#include "mc6850.h"
 #include "pins.h"
 #include "pins_map.h"
 
 class Pins Pins;
+class Mc6850 Mc6850(Pins::ioBaseAddress());
+
+static uint8_t data;
+
+void ioRequest() {
+  const uint16_t ioAddr = Pins.ioRequestAddress();
+  const bool ioWrite = Pins.ioRequestWrite();
+  if (Mc6850.isSelected(ioAddr)) {
+    if (ioWrite) Mc6850.write(Pins.ioGetData(), ioAddr);
+    else Pins.ioSetData(Mc6850.read(ioAddr));
+  } else {
+    if (ioWrite) data = Pins.ioGetData();
+    else Pins.ioSetData(data);
+  }
+
+  Pins.acknowledgeIoRequest();
+  Pins.leaveIoRequest();
+}
+
+void Pins::loop() {
+  Mc6850.loop();
+}
 
 #define __concat2__(a,b) a##b
 #define BP(name)  name##_PIN
@@ -188,9 +211,12 @@ void Pins::run() {
   digitalWrite(HALT, HIGH);
   digitalWrite(STEP, HIGH);
   digitalWrite(USR_LED, LOW);
+  _freeRunning = true;
+  attachInterrupt(INT_INTERRUPT, ioRequest, FALLING);
 }
 
 void Pins::halt(bool show) {
+  detachInterrupt(INT_INTERRUPT);
   digitalWrite(STEP, LOW);
   delayMicroseconds(10);
   digitalWrite(HALT, LOW);
@@ -200,6 +226,7 @@ void Pins::halt(bool show) {
   } while (running());
   digitalWrite(STEP, HIGH);
   digitalWrite(USR_LED, HIGH);
+  _freeRunning = false;
 }
 
 void Pins::setData(uint8_t data) {
@@ -305,22 +332,6 @@ void Pins::negateIrq(uint8_t mask) {
     digitalWrite(IRQ, HIGH);
 }
 
-void Pins::attachIoRequest(void (*isr)()) const {
-  attachInterrupt(INT_INTERRUPT, isr, FALLING);
-}
-
-void Pins::acknowledgeIoRequest() {
-  _previous = _signals;
-  _signals.get();
-  digitalWrite(ACK, LOW);
-}
-
-void Pins::leaveIoRequest() {
-  _dbus.input();
-  digitalWrite(ACK, HIGH);
-}
-
-
 uint16_t Pins::ioRequestAddress() const {
   uint16_t addr = ioBaseAddress();
   if (digitalRead(ADR0)) addr |= 0x01;
@@ -340,6 +351,15 @@ uint8_t Pins::ioGetData() {
 void Pins::ioSetData(uint8_t data) {
   _dbus.set(data);
   _dbus.output();
+}
+
+void Pins::acknowledgeIoRequest() {
+  digitalWrite(ACK, LOW);
+}
+
+void Pins::leaveIoRequest() {
+  _dbus.input();
+  digitalWrite(ACK, HIGH);
 }
 
 void Pins::attachUserSwitch(void (*isr)()) const {
