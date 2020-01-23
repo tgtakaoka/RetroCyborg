@@ -160,14 +160,14 @@ void Pins::Status::get() {
 }
 
 void Pins::Status::print() const {
-  char buffer[16];
+  char buffer[32];
   char *p = buffer;
-  *p++ = (_pins & lic)  ? 'L' : ' ';
-  *p++ = (_pins & avma) ? 'A' : ' ';
-  *p++ = (_pins & rw)   ? 'R' : 'W';
-  *p++ = (_pins & halt) ? ' ' : 'H';
-  *p++ = static_cast<uint8_t>(_pins & babs) + '0';
-  *p++ = (_pins & reset) ? ' ' : 'R';
+  p = outText(p, (_pins & halt) ? " HALT" : "     ");
+  p = outText(p, (_pins & ba) ?   " BA"   : "   ");
+  p = outText(p, (_pins & bs) ?   " BS"   : "   ");
+  p = outText(p, (_pins & lic) ?  " LIC"  : "    ");
+  p = outText(p, (_pins & avma) ? " AVMA" : "     ");
+  p = outText(p, (_pins & rw) ?   " RD"   : " WR");
   p = outText(p, " DB=0x");
   p = outHex8(p, _dbus);
   Console.print(buffer);
@@ -196,22 +196,48 @@ void Pins::print() const {
 }
 
 void Pins::reset(bool show) {
+  // Assert RESET and feed several clocks.
   assertReset();
   negateHalt();
+  if (isIntAsserted()) {
+    disableStep();
+    while (!isIntAsserted())
+      ;
+    assertAck();
+    delayMicroseconds(2);
+    negateAck();
+  }
   delayMicroseconds(10);
+
+  // Enable STEP to Q=H E=H
   enableStep();
+  while (!isIntAsserted())
+    ;
+
   negateReset();
-  do {
+  assertHalt();
+  for (;;) {
     cycle();
-    assertHalt();
     if (show) print();
-  } while (!_signals.halting());
-  disableStep();
+    if (_signals.halting())
+      break;
+    enableStep();
+    negateAck();
+    while (!isIntAsserted())
+      ;
+  }
+  negateAck();
 }
 
 void Pins::cycle() {
   _previous = _signals;
+  // Advance clock to Q=L E=H
+  disableStep();
+  while (isIntAsserted())
+    ;
+  // Get signal status while Q=L E=H
   _signals.get();
+  // Setup data bus
   if (_signals.running()) {
     if (_signals.writeCycle(_previous)) {
       _dbus.input();
@@ -222,31 +248,36 @@ void Pins::cycle() {
     _dbus.input();
   }
   _signals.get();
+  // Assert ACK to advance clock to Q=L E=L.
   assertAck();
-  delayMicroseconds(4);
+  // Cleanup data bus.
   _dbus.input();
-  negateAck();
-  delayMicroseconds(4);
 }
 
 void Pins::run() {
-  negateHalt();
-  disableStep();
   turnOnUserLed();
   _freeRunning = true;
   attachInterrupt(INT_INTERRUPT, ioRequest, FALLING);
+  negateHalt();
 }
 
 void Pins::halt(bool show) {
   detachInterrupt(INT_INTERRUPT);
   enableStep();
-  delayMicroseconds(10);
+  while (!isIntAsserted())
+    ;
   assertHalt();
-  do {
+  for (;;) {
     cycle();
     if (show) print();
-  } while (_signals.running());
-  disableStep();
+    if (_signals.halting())
+      break;
+    enableStep();
+    negateAck();
+    while (!isIntAsserted())
+      ;
+  }
+  negateAck();
   turnOffUserLed();
   _freeRunning = false;
 }
@@ -257,68 +288,122 @@ void Pins::setData(uint8_t data) {
 
 void Pins::unhalt() {
   enableStep();
-  delayMicroseconds(10);
+  while (!isIntAsserted())
+    ;
   negateHalt();
-  do {
+  cycle();
+  enableStep();
+  while (isIntAsserted())
+    ;
+  assertHalt();
+  for (;;) {
     cycle();
-    assertHalt();
-  } while (!_signals.running() || !_signals.lastInstructionCycle());
+    if (_signals.running() && _signals.lastInstructionCycle())
+      break;
+    enableStep();
+    negateAck();
+    while (!isIntAsserted())
+      ;
+  }
 }
 
 void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
   unhalt();
+  enableStep();
+  negateAck();
+  while (!isIntAsserted())
+    ;
   for (uint8_t i = 0; i < len; i++) {
     setData(inst[i]);
     cycle();
     if (show) print();
+    enableStep();
+    negateAck();
+    while (!isIntAsserted())
+      ;
   }
-  while (!_signals.lastInstructionCycle()) {
-    cycle();
-    if (show) print();
-  }
-  disableStep();
-}
-
-void Pins::captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max) {
-  unhalt();
-  for (uint8_t i = 0; i < len; i++) {
-    setData(inst[i]);
-    cycle();
-  }
-  _dbus.capture(true);
-  uint8_t i = 0;
-  while (!_signals.lastInstructionCycle()) {
-    cycle();
-    if (_signals.writeCycle(_previous) && i < max) {
-      buf[i++] = _signals.dbus();
+  if (!_signals.lastInstructionCycle()) {
+    for (;;) {
+      cycle();
+      if (show) print();
+      if (_signals.lastInstructionCycle())
+        break;
+      enableStep();
+      negateAck();
+      while (!isIntAsserted())
+        ;
     }
   }
-  _dbus.capture(false);
-  disableStep();
+  negateAck();
+}
+
+void Pins::captureWrites(
+  const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max) {
+  unhalt();
+  enableStep();
+  negateAck();
+  while (!isIntAsserted())
+    ;
+  for (uint8_t i = 0; i < len; i++) {
+    setData(inst[i]);
+    cycle();
+    enableStep();
+    negateAck();
+    while (!isIntAsserted())
+      ;
+  }
+  if (!_signals.lastInstructionCycle()) {
+    _dbus.capture(true);
+    uint8_t i = 0;
+    for (;;) {
+      cycle();
+      if (_signals.writeCycle(_previous) && i < max) {
+        buf[i++] = _signals.dbus();
+      }
+      if (_signals.lastInstructionCycle())
+        break;
+      enableStep();
+      negateAck();
+      while (!isIntAsserted())
+        ;
+    }
+    _dbus.capture(false);
+  }
+  negateAck();
 }
 
 void Pins::step(bool show) {
   unhalt();
-  do {
+  enableStep();
+  negateAck();
+  while (!isIntAsserted())
+    ;
+  for (;;) {
     cycle();
     if (show) print();
-  } while (!_signals.lastInstructionCycle());
-  disableStep();
+    if (_signals.lastInstructionCycle())
+      break;
+    enableStep();
+    negateAck();
+    while (!isIntAsserted())
+      ;
+  }
+  negateAck();
 }
 
 void Pins::begin() {
-  pinMode(RESET, OUTPUT);
   assertReset();
-  pinMode(HALT,  OUTPUT);
-  assertHalt();
-  pinMode(IRQ, OUTPUT);
+  pinMode(RESET, OUTPUT);
+  negateHalt();
+  pinMode(HALT, OUTPUT);
   negateIrq();
+  pinMode(IRQ, OUTPUT);
 
+  disableStep();
+  negateAck();
   pinMode(STEP, OUTPUT);
   pinMode(ACK, OUTPUT);
   pinMode(INT, INPUT_PULLUP);
-  enableStep();
-  negateAck();
 
   pinMode(BS,    INPUT);
   pinMode(BA,    INPUT);
@@ -377,6 +462,8 @@ void Pins::ioSetData(uint8_t data) {
 
 void Pins::acknowledgeIoRequest() {
   assertAck();
+  while (isIntAsserted())
+    ;
 }
 
 void Pins::leaveIoRequest() {

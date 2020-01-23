@@ -18,6 +18,7 @@ void setup() {
   Console.begin(115200);
   Pins.begin();
   Input.begin();
+  interrupts();
 }
 
 void loop() {

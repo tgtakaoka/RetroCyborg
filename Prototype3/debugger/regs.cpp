@@ -8,18 +8,8 @@
 
 union Regs Regs;
 
-static void hex4(uint16_t v, const __FlashStringHelper *name) {
-  Console.print(name);
-  printHex16(v, ' ');
-}
-
-static void hex2(uint8_t v, const __FlashStringHelper *name) {
-  Console.print(name);
-  printHex8(v, ' ');
-}
-
-static void bit1(uint8_t v, char name) {
-  Console.print(v ? name : '_');
+static char bit1(uint8_t v, char name) {
+  return v ? name : '_';
 }
 
 static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {
@@ -28,24 +18,27 @@ static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {
 }
 
 void Regs::print() const {
-  hex4(pc, F("PC="));
-  hex4(s,  F("S="));
-  hex4(u,  F("U="));
-  hex4(y,  F("Y="));
-  hex4(x,  F("X="));
-  hex2(dp, F("DP="));
-  hex2(b,  F("B="));
-  hex2(a,  F("A="));
-  Console.print(F("CC="));
-  bit1(cc & 0x80, 'E');
-  bit1(cc & 0x40, 'F');
-  bit1(cc & 0x20, 'H');
-  bit1(cc & 0x10, 'I');
-  bit1(cc & 0x08, 'N');
-  bit1(cc & 0x04, 'Z');
-  bit1(cc & 0x02, 'V');
-  bit1(cc & 0x01, 'C');
-  Console.println();
+  char buffer[29+13*2+8+2];
+  char *p = buffer;
+  p = outText(p, "PC="); p = outHex16(p, pc);
+  p = outText(p, " S="); p = outHex16(p, s);
+  p = outText(p, " U="); p = outHex16(p, u);
+  p = outText(p, " Y="); p = outHex16(p, y);
+  p = outText(p, " X="); p = outHex16(p, x);
+  p = outText(p, " DP="); p = outHex8(p, dp);
+  p = outText(p, " B="); p = outHex8(p, b);
+  p = outText(p, " A="); p = outHex8(p, a);
+  p = outText(p, " CC=");
+  *p++ = bit1(cc & 0x80, 'E');
+  *p++ = bit1(cc & 0x40, 'F');
+  *p++ = bit1(cc & 0x20, 'H');
+  *p++ = bit1(cc & 0x10, 'I');
+  *p++ = bit1(cc & 0x08, 'N');
+  *p++ = bit1(cc & 0x04, 'Z');
+  *p++ = bit1(cc & 0x02, 'V');
+  *p++ = bit1(cc & 0x01, 'C');
+  *p = 0;
+  Console.println(buffer);
 }
 
 void Regs::get(bool show) {
