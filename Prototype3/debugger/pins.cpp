@@ -31,28 +31,71 @@ void Pins::loop() {
   Mc6850.loop();
 }
 
-#define __concat2__(a,b) a##b
-#define BP(name)  name##_PIN
-#define BM(name)   _BV(BP(name))
-#define BUS(name)  (name ## _BUS)
-#define __PORT__(name) name##_PORT
-#define __DDR__(port) __concat2__(DDR,port)
-#define __POUT__(port) __concat2__(PORT,port)
-#define __PIN__(port) __concat2__(PIN,port)
-#define DDR(name) __DDR__(__PORT__(name))
-#define PORT(name) __POUT__(__PORT__(name))
-#define PIN(name) __PIN__(__PORT__(name))
-#define pinMode(name, mode) do {                      \
-    if (mode == INPUT) DDR(name) &= ~BM(name);        \
-    if (mode == INPUT_PULLUP) DDR(name) &= ~BM(name); \
-    if (mode == INPUT_PULLUP) PORT(name) |= BM(name); \
-    if (mode == OUTPUT) DDR(name) |= BM(name);        \
+#define PINM(name)   _BV(__PIN__(name))
+#define pinMode(name, mode) do {                        \
+    if (mode == INPUT) DDR(name) &= ~PINM(name);        \
+    if (mode == INPUT_PULLUP) DDR(name) &= ~PINM(name); \
+    if (mode == INPUT_PULLUP) PORT(name) |= PINM(name); \
+    if (mode == OUTPUT) DDR(name) |= PINM(name);        \
   } while (0)
-#define digitalRead(name) (PIN(name) & BM(name))
+#define digitalRead(name) (PIN(name) & PINM(name))
 #define digitalWrite(name, val) do {            \
-    if (val == LOW) PORT(name) &= ~BM(name);    \
-    if (val == HIGH) PORT(name) |= BM(name);    \
+    if (val == LOW) PORT(name) &= ~PINM(name);  \
+    if (val == HIGH) PORT(name) |= PINM(name);  \
   } while (0)
+
+static inline void assertReset() {
+  digitalWrite(RESET, LOW);
+}
+static inline void negateReset() {
+  digitalWrite(RESET, HIGH);
+}
+
+static inline void assertHalt() {
+  digitalWrite(HALT, LOW);
+}
+static inline void negateHalt() {
+  digitalWrite(HALT, HIGH);
+}
+
+static inline bool isReadDirection() {
+  return digitalRead(RD_WR) == HIGH;
+}
+static inline bool isWriteDirection() {
+  return digitalRead(RD_WR) == LOW;
+}
+
+static inline void enableStep() {
+  digitalWrite(STEP, LOW);
+}
+static inline void disableStep() {
+  digitalWrite(STEP, HIGH);
+}
+
+static inline bool isIntAsserted() {
+  return digitalRead(INT) == LOW;
+}
+
+static inline void assertAck() {
+  digitalWrite(ACK, LOW);
+}
+static inline void negateAck() {
+  digitalWrite(ACK, HIGH);
+}
+
+static inline void enableRam() {
+  digitalWrite(RAM_E, LOW);
+}
+static inline void disableRam() {
+  digitalWrite(RAM_E, HIGH);
+}
+
+static inline void turnOnUserLed() {
+  digitalWrite(USR_LED, LOW);
+}
+static inline void turnOffUserLed() {
+  digitalWrite(USR_LED, HIGH);
+}
 
 uint8_t Pins::Dbus::getDbus() {
   return PIN(DB);
@@ -63,14 +106,14 @@ void Pins::Dbus::begin() {
 }
 
 void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
-  if (dir == OUTPUT && digitalRead(RD_WR) == LOW) {
+  if (dir == OUTPUT && isWriteDirection()) {
     Console.println(F("!! R/W is LOW"));
     return;
   }
   if (dir == OUTPUT || _capture) {
-    digitalWrite(RAM_E, HIGH); // disable RAM
+    disableRam();
   } else {
-    digitalWrite(RAM_E, LOW);  // enable RAM
+    enableRam();
   }
   _dir = dir;
   if (dir == INPUT) {
@@ -122,7 +165,7 @@ void Pins::Status::print() const {
   *p++ = (_pins & lic)  ? 'L' : ' ';
   *p++ = (_pins & avma) ? 'A' : ' ';
   *p++ = (_pins & rw)   ? 'R' : 'W';
-  *p++ = (_pins & halt) ? 'H' : ' ';
+  *p++ = (_pins & halt) ? ' ' : 'H';
   *p++ = static_cast<uint8_t>(_pins & babs) + '0';
   *p++ = (_pins & reset) ? ' ' : 'R';
   p = outText(p, " DB=0x");
@@ -131,6 +174,7 @@ void Pins::Status::print() const {
 }
 
 void Pins::print() const {
+  _signals.print();
   char buffer[4];
   char *p = buffer;
   *p++ = ' ';
@@ -152,17 +196,17 @@ void Pins::print() const {
 }
 
 void Pins::reset(bool show) {
-  digitalWrite(RESET, LOW);
-  digitalWrite(HALT, HIGH);
+  assertReset();
+  negateHalt();
   delayMicroseconds(10);
-  digitalWrite(STEP, LOW);
-  digitalWrite(RESET, HIGH);
+  enableStep();
+  negateReset();
   do {
     cycle();
-    digitalWrite(HALT, LOW);
+    assertHalt();
     if (show) print();
   } while (!_signals.halting());
-  digitalWrite(STEP, HIGH);
+  disableStep();
 }
 
 void Pins::cycle() {
@@ -178,32 +222,32 @@ void Pins::cycle() {
     _dbus.input();
   }
   _signals.get();
-  digitalWrite(ACK, LOW);
+  assertAck();
   delayMicroseconds(4);
   _dbus.input();
-  digitalWrite(ACK, HIGH);
+  negateAck();
   delayMicroseconds(4);
 }
 
 void Pins::run() {
-  digitalWrite(HALT, HIGH);
-  digitalWrite(STEP, HIGH);
-  digitalWrite(USR_LED, LOW);
+  negateHalt();
+  disableStep();
+  turnOnUserLed();
   _freeRunning = true;
   attachInterrupt(INT_INTERRUPT, ioRequest, FALLING);
 }
 
 void Pins::halt(bool show) {
   detachInterrupt(INT_INTERRUPT);
-  digitalWrite(STEP, LOW);
+  enableStep();
   delayMicroseconds(10);
-  digitalWrite(HALT, LOW);
+  assertHalt();
   do {
     cycle();
     if (show) print();
   } while (_signals.running());
-  digitalWrite(STEP, HIGH);
-  digitalWrite(USR_LED, HIGH);
+  disableStep();
+  turnOffUserLed();
   _freeRunning = false;
 }
 
@@ -212,12 +256,12 @@ void Pins::setData(uint8_t data) {
 }
 
 void Pins::unhalt() {
-  digitalWrite(STEP, LOW);
+  enableStep();
   delayMicroseconds(10);
-  digitalWrite(HALT, HIGH);
+  negateHalt();
   do {
     cycle();
-    digitalWrite(HALT, LOW);
+    assertHalt();
   } while (!_signals.running() || !_signals.lastInstructionCycle());
 }
 
@@ -232,7 +276,7 @@ void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
     cycle();
     if (show) print();
   }
-  digitalWrite(STEP, HIGH);
+  disableStep();
 }
 
 void Pins::captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max) {
@@ -242,15 +286,15 @@ void Pins::captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t
     cycle();
   }
   _dbus.capture(true);
+  uint8_t i = 0;
   while (!_signals.lastInstructionCycle()) {
     cycle();
-    if (_signals.writeCycle(_previous) && max > 0) {
-      *buf++ = _signals.dbus();
-      max--;
+    if (_signals.writeCycle(_previous) && i < max) {
+      buf[i++] = _signals.dbus();
     }
   }
   _dbus.capture(false);
-  digitalWrite(STEP, HIGH);
+  disableStep();
 }
 
 void Pins::step(bool show) {
@@ -259,22 +303,22 @@ void Pins::step(bool show) {
     cycle();
     if (show) print();
   } while (!_signals.lastInstructionCycle());
-  digitalWrite(STEP, HIGH);
+  disableStep();
 }
 
 void Pins::begin() {
   pinMode(RESET, OUTPUT);
-  digitalWrite(RESET, LOW);
+  assertReset();
   pinMode(HALT,  OUTPUT);
-  digitalWrite(HALT, LOW);
+  assertHalt();
   pinMode(IRQ, OUTPUT);
-  digitalWrite(IRQ, HIGH);
+  negateIrq();
 
   pinMode(STEP, OUTPUT);
   pinMode(ACK, OUTPUT);
   pinMode(INT, INPUT_PULLUP);
-  digitalWrite(STEP, LOW);
-  digitalWrite(ACK, HIGH);
+  enableStep();
+  negateAck();
 
   pinMode(BS,    INPUT);
   pinMode(BA,    INPUT);
@@ -282,14 +326,14 @@ void Pins::begin() {
   pinMode(AVMA,  INPUT);
   pinMode(RD_WR, INPUT_PULLUP);
   pinMode(RAM_E, OUTPUT);
-  digitalWrite(RAM_E, HIGH);
+  disableRam();
 
   pinMode(ADR0, INPUT_PULLUP);
   pinMode(ADR1, INPUT_PULLUP);
 
   pinMode(USR_SW, INPUT_PULLUP);
   pinMode(USR_LED, OUTPUT);
-  digitalWrite(USR_LED, HIGH);
+  turnOffUserLed();
 
   _dbus.begin();
 
@@ -318,7 +362,7 @@ uint16_t Pins::ioRequestAddress() const {
 }
 
 bool Pins::ioRequestWrite() const {
-  return digitalRead(RD_WR) == LOW;
+  return isWriteDirection();
 }
 
 uint8_t Pins::ioGetData() {
@@ -332,12 +376,12 @@ void Pins::ioSetData(uint8_t data) {
 }
 
 void Pins::acknowledgeIoRequest() {
-  digitalWrite(ACK, LOW);
+  assertAck();
 }
 
 void Pins::leaveIoRequest() {
   _dbus.input();
-  digitalWrite(ACK, HIGH);
+  negateAck();
 }
 
 void Pins::attachUserSwitch(void (*isr)()) const {

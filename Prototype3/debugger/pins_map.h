@@ -58,4 +58,15 @@
 
 #endif
 
+#define __concat2__(a,b) a##b
+
+#define __PIN__(name)  name##_PIN
+#define __PORT__(name) name##_PORT
+#define __PORT_DDR__(port) __concat2__(DDR,port)
+#define __PORT_OUT__(port) __concat2__(PORT,port)
+#define __PORT_IN__(port) __concat2__(PIN,port)
+#define DDR(name) __PORT_DDR__(__PORT__(name))
+#define PORT(name) __PORT_OUT__(__PORT__(name))
+#define PIN(name) __PORT_IN__(__PORT__(name))
+
 #endif

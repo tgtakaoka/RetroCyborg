@@ -31,7 +31,7 @@ public:
   static constexpr uint16_t ioBaseAddress() { return 0xFFC0; }
 
   void assertIrq(const uint8_t mask);
-  void negateIrq(const uint8_t mask);
+  void negateIrq(const uint8_t mask = 0xff);
   uint8_t irqStatus(const uint8_t mask = 0xff) const {
     return _irq & mask;
   }
@@ -48,9 +48,9 @@ private:
     void get();
     void print() const;
     uint8_t dbus() const { return _dbus; }
-    bool running() const { return _pins & babs == 0; }
-    bool fetchingVector() const { return _pins & babs == bs; }
-    bool halting() const { return _pins & babs == babs; }
+    bool running() const { return (_pins & babs) == 0; }
+    bool fetchingVector() const { return (_pins & babs) == bs; }
+    bool halting() const { return (_pins & babs) == babs; }
     bool lastInstructionCycle() const { return _pins & lic; }
     bool unchanged(const Status &prev) const {
       return _pins == prev._pins && _dbus == prev._dbus;
@@ -61,6 +61,7 @@ private:
     bool writeCycle(const Status &prev) const {
       return (prev._pins & avma) && (_pins & rw) == 0;
     }
+
   private:
     enum {
       bs    = _BV(0),
