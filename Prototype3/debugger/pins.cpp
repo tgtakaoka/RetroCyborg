@@ -112,65 +112,43 @@ void Pins::Status::get() {
   if (digitalRead(LIC))   p |= Status::lic;
   if (digitalRead(AVMA))  p |= Status::avma;
   if (digitalRead(RD_WR)) p |= Status::rw;
-  pins = p;
-  dbus  = Dbus::getDbus();
+  _pins = p;
+  _dbus  = Dbus::getDbus();
 }
 
-bool Pins::unchanged() const {
-  return _signals.pins == _previous.pins
-    && _signals.dbus == _previous.dbus;
+void Pins::Status::print() const {
+  char buffer[16];
+  char *p = buffer;
+  *p++ = (_pins & lic)  ? 'L' : ' ';
+  *p++ = (_pins & avma) ? 'A' : ' ';
+  *p++ = (_pins & rw)   ? 'R' : 'W';
+  *p++ = (_pins & halt) ? 'H' : ' ';
+  *p++ = static_cast<uint8_t>(_pins & babs) + '0';
+  *p++ = (_pins & reset) ? ' ' : 'R';
+  p = outText(p, " DB=0x");
+  p = outHex8(p, _dbus);
+  Console.print(buffer);
 }
 
 void Pins::print() const {
-  Console.print(_signals.pins & Status::lic   ? 'L' : ' ');
-  Console.print(_signals.pins & Status::avma  ? 'A' : ' ');
-  Console.print(_signals.pins & Status::rw    ? 'R' : 'W');
-  Console.print(_signals.pins & Status::halt  ? 'H' : ' ');
-  Console.print(_signals.pins & Status::babs, DEC);
-  Console.print(_signals.pins & Status::reset ? ' ' : 'R');
-
-  Console.print(F(" DB=0x"));
-  printHex8(_signals.dbus);
-
-  Console.print(' ');
-  if (vectorFetch()) {
-    Console.print('V');
-  } else if (running()) {
-    if (writeCycle()) {
-      Console.print('W');
-    } else if (readCycle()) {
-      Console.print('R');
+  char buffer[4];
+  char *p = buffer;
+  *p++ = ' ';
+  if (_signals.fetchingVector()) {
+    *p++ = 'V';
+  } else if (_signals.running()) {
+    if (_signals.writeCycle(_previous)) {
+      *p++ = 'W';
+    } else if (_signals.readCycle(_previous)) {
+      *p++ = 'R';
     } else {
-      Console.print('-');
+      *p++ = '-';
     }
   } else {
-    Console.print('H');
+    *p++ = 'H';
   }
-  Console.println();
-}
-
-bool Pins::inHalt() const {
-  return (_signals.pins & Status::babs) == Status::babs;
-}
-
-bool Pins::vectorFetch() const {
-  return (_signals.pins & Status::babs) == Status::bs;
-}
-
-bool Pins::running() const {
-  return (_signals.pins & Status::babs) == 0;
-}
-
-bool Pins::lastInstCycle() const {
-  return _signals.pins & Status::lic;
-}
-
-bool Pins::writeCycle() const {
-  return (_previous.pins & Status::avma) && (_signals.pins & Status::rw) == 0;
-}
-
-bool Pins::readCycle() const {
-  return (_previous.pins & Status::avma) && (_signals.pins & Status::rw);
+  *p = 0;
+  Console.println(buffer);
 }
 
 void Pins::reset(bool show) {
@@ -183,17 +161,17 @@ void Pins::reset(bool show) {
     cycle();
     digitalWrite(HALT, LOW);
     if (show) print();
-  } while (!inHalt());
+  } while (!_signals.halting());
   digitalWrite(STEP, HIGH);
 }
 
 void Pins::cycle() {
   _previous = _signals;
   _signals.get();
-  if (running()) {
-    if (writeCycle()) {
+  if (_signals.running()) {
+    if (_signals.writeCycle(_previous)) {
       _dbus.input();
-    } else if (readCycle()) {
+    } else if (_signals.readCycle(_previous)) {
       _dbus.output();
     }
   } else {
@@ -223,7 +201,7 @@ void Pins::halt(bool show) {
   do {
     cycle();
     if (show) print();
-  } while (running());
+  } while (_signals.running());
   digitalWrite(STEP, HIGH);
   digitalWrite(USR_LED, HIGH);
   _freeRunning = false;
@@ -240,7 +218,7 @@ void Pins::unhalt() {
   do {
     cycle();
     digitalWrite(HALT, LOW);
-  } while (!running() || !lastInstCycle());
+  } while (!_signals.running() || !_signals.lastInstructionCycle());
 }
 
 void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
@@ -250,7 +228,7 @@ void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
     cycle();
     if (show) print();
   }
-  while (!lastInstCycle()) {
+  while (!_signals.lastInstructionCycle()) {
     cycle();
     if (show) print();
   }
@@ -264,10 +242,10 @@ void Pins::captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t
     cycle();
   }
   _dbus.capture(true);
-  while (!lastInstCycle()) {
+  while (!_signals.lastInstructionCycle()) {
     cycle();
-    if (writeCycle() && max > 0) {
-      *buf++ = _signals.dbus;
+    if (_signals.writeCycle(_previous) && max > 0) {
+      *buf++ = _signals.dbus();
       max--;
     }
   }
@@ -280,7 +258,7 @@ void Pins::step(bool show) {
   do {
     cycle();
     if (show) print();
-  } while (!lastInstCycle());
+  } while (!_signals.lastInstructionCycle());
   digitalWrite(STEP, HIGH);
 }
 

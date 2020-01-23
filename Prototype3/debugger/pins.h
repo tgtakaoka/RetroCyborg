@@ -17,7 +17,7 @@ public:
   void halt(bool show = false);
   void step(bool show = false);
   void run();
-  uint8_t dbus() { return _signals.dbus; }
+  uint8_t dbus() { return _signals.dbus(); }
   void execInst(const uint8_t *inst, uint8_t len, bool show = false);
   void captureWrites(const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
 
@@ -43,8 +43,25 @@ public:
 
 private:
 
-  struct Status {
+  class Status {
+  public:
     void get();
+    void print() const;
+    uint8_t dbus() const { return _dbus; }
+    bool running() const { return _pins & babs == 0; }
+    bool fetchingVector() const { return _pins & babs == bs; }
+    bool halting() const { return _pins & babs == babs; }
+    bool lastInstructionCycle() const { return _pins & lic; }
+    bool unchanged(const Status &prev) const {
+      return _pins == prev._pins && _dbus == prev._dbus;
+    }
+    bool readCycle(const Status &prev) const {
+      return (prev._pins & avma) && (_pins & rw);
+    }
+    bool writeCycle(const Status &prev) const {
+      return (prev._pins & avma) && (_pins & rw) == 0;
+    }
+  private:
     enum {
       bs    = _BV(0),
       ba    = _BV(1),
@@ -55,8 +72,8 @@ private:
       avma  = _BV(5),
       rw    = _BV(6),
     };
-    uint8_t pins;
-    uint8_t dbus;
+    uint8_t _pins;
+    uint8_t _dbus;
   };
 
   class Dbus {
@@ -81,14 +98,6 @@ private:
   void cycle();
   void setData(uint8_t data);
   void unhalt();
-
-  bool unchanged() const;
-  bool inHalt() const;
-  bool vectorFetch() const;
-  bool running() const;
-  bool lastInstCycle() const;
-  bool writeCycle() const;
-  bool readCycle() const;
 
   bool _freeRunning;
   Status _signals;
