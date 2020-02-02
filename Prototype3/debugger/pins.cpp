@@ -173,39 +173,35 @@ void Pins::Status::get() {
 }
 
 void Pins::Status::print() const {
-  char buffer[32];
-  char *p = buffer;
-  p = outText(p, (_pins & halt) ? " HALT" : "     ");
-  p = outText(p, (_pins & ba) ?   " BA"   : "   ");
-  p = outText(p, (_pins & bs) ?   " BS"   : "   ");
-  p = outText(p, (_pins & lic) ?  " LIC"  : "    ");
-  p = outText(p, (_pins & avma) ? " AVMA" : "     ");
-  p = outText(p, (_pins & rw) ?   " RD"   : " WR");
-  p = outText(p, " DB=0x");
-  p = outHex8(p, _dbus);
-  Console.print(buffer);
+  Console.print((_pins & halt) ? F(" HALT") : F("     "));
+  Console.print((_pins & ba) ?   F(" BA")   : F("   "));
+  Console.print((_pins & bs) ?   F(" BS")   : F("   "));
+  Console.print((_pins & lic) ?  F(" LIC")  : F("    "));
+  Console.print((_pins & avma) ? F(" AVMA") : F("     "));
+  Console.print((_pins & rw) ?   F(" RD")   : F(" WR"));
+  Console.print(F(" DB=0x"));
+  Console.hex8(_dbus);
 }
 
 void Pins::print() const {
   _signals.print();
-  char buffer[4];
-  char *p = buffer;
-  *p++ = ' ';
+  Console.print(' ');
+  char s;
   if (_signals.fetchingVector()) {
-    *p++ = 'V';
+    s = 'V';
   } else if (_signals.running()) {
     if (_signals.writeCycle(_previous)) {
-      *p++ = 'W';
+      s = 'W';
     } else if (_signals.readCycle(_previous)) {
-      *p++ = 'R';
+      s = 'R';
     } else {
-      *p++ = '-';
+      s = '-';
     }
   } else {
-    *p++ = 'H';
+    s = 'H';
   }
-  *p = 0;
-  Console.println(buffer);
+  Console.print(s);
+  Console.println();
 }
 
 void Pins::reset(bool show) {

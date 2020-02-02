@@ -4,11 +4,11 @@
 #include "mc6850.h"
 #include "pins.h"
 
-//#define DEBUG_IRQ
-//#define DEBUG_STATUS
-//#define DEBUG_CONTROL
-//#define DEBUG_READ
-//#define DEBUG_WRITE
+// #define DEBUG_IRQ
+// #define DEBUG_STATUS
+// #define DEBUG_CONTROL
+// #define DEBUG_READ
+// #define DEBUG_WRITE
 
 Mc6850::Mc6850(uint16_t baseAddr)
   : _baseAddr(baseAddr),
@@ -63,7 +63,9 @@ void Mc6850::loop() {
 void Mc6850::write(uint8_t data, uint16_t addr) {
   if (addr == _baseAddr) {
 #ifdef DEBUG_CONTROL
-    Console.print(F("@@ Control 0x")); Console.println(data, HEX);
+    Console.print(F("@@ Control 0x"));
+    Console.hex8(data);
+    Console.println();
 #endif
     const uint8_t delta = _control ^ data;
     _control = data;
@@ -93,9 +95,11 @@ void Mc6850::write(uint8_t data, uint16_t addr) {
     if (txIntEnabled())
       negateIrq(_txInt);
 #ifdef DEBUG_WRITE
-    Console.print(F("@@ Write 0x")); Console.print(data, HEX);
+    Console.print(F("@@ Write 0x"));
+    Console.hex8(data);
     Console.print(F(" 0x"));
-    Console.println(_status, HEX);
+    Console.hex8(_status);
+    Console.println();
 #endif
   }
 }
@@ -105,7 +109,9 @@ uint8_t Mc6850::read(uint16_t addr) {
     _readFlags = _status & (DCD_bm | OVRN_bm);
 #ifdef DEBUG_STATUS
     if (_readFlags) {
-      Console.print(F("@@ Status 0x")); Console.println(_status, HEX);
+      Console.print(F("@@ Status 0x"));
+      Console.hex8(_status);
+      Console.println();
     }
 #endif
     return _status;
@@ -117,9 +123,13 @@ uint8_t Mc6850::read(uint16_t addr) {
     _status |= _nextFlags;
     _readFlags = _nextFlags = 0;
 #ifdef DEBUG_READ
-    Console.print(F("@@ Read 0x")); Console.print(_rxData, HEX);
-    Console.print(F(" 0x")); Console.print(prev_status, HEX);
-    Console.print(F("->0x")); Console.println(_status, HEX);
+    Console.print(F("@@ Read 0x"));
+    Console.hex8(_rxData);
+    Console.print(F(" 0x"));
+    Console.hex8(prev_status);
+    Console.print(F("->0x"));
+    Console.hex8(_status);
+    Console.println();
 #endif
     if (rxIntEnabled()) {
       if (_status & (RDRF_bm | OVRN_bm)) {

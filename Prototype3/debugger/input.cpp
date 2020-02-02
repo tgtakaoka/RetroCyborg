@@ -9,13 +9,10 @@
 
 class Input Input;
 
-static void printChars(const __FlashStringHelper *chars, int8_t n) {
-  while (n-- > 0)
-    Console.print(chars);
-}
-
 void Input::backspace(int8_t n) {
-  printChars(F("\b \b"), n);
+  while (n-- > 0)
+    Console.print(F("\b \b"));
+  Console.flush();
 }
 
 void Input::HexBuffer::reset(uint8_t digits) {
@@ -27,15 +24,19 @@ void Input::HexBuffer::reset(uint8_t digits) {
 void Input::HexBuffer::set(uint8_t digits, uint16_t value) {
   _len = _digits = digits;
   _value = value;
-  if (digits == 4)
-    printHex8(value >> 8);
-  printHex8(value);
+  if (digits == 4) {
+    Console.hex16(value);
+  } else {
+    Console.hex8(static_cast<uint8_t>(value));
+  }
+  Console.flush();
 }
 
 Input::State Input::HexBuffer::append(char c) {
   if (isHexadecimalDigit(c) && _len < _digits) {
     if (isLowerCase(c)) c &= ~0x20;
     Console.print(c);
+    Console.flush();
     _len++;
     _value *= 16;
     _value += isDigit(c) ? c - '0' : c - 'A' + 10;
@@ -52,6 +53,7 @@ Input::State Input::HexBuffer::append(char c) {
     backspace(_len);
     set(_digits, _value);
     Console.print(c);
+    Console.flush();
     if (c == ' ') return NEXT;
     Console.println();
     return FINISH;
@@ -149,6 +151,7 @@ void Input::processReadLine(char c) {
     _lineHandler(CANCEL, _lineBuffer);
   } else if (_lineLen < sizeof(_lineBuffer) - 1) {
     Console.print(c);
+    Console.flush();
     _lineBuffer[_lineLen++] = c;
     _lineBuffer[_lineLen] = 0;
   }
@@ -164,8 +167,10 @@ void Input::loop() {
     switch (_mode) {
     case CHAR_COMMAND:
       if (Commands.exec(c)) {
-        if (!Commands.isRunning() && _mode == CHAR_COMMAND)
+        if (!Commands.isRunning() && _mode == CHAR_COMMAND) {
           Console.print(F("> ")); // prompt
+          Console.flush();
+        }
       }
       break;
     case READ_UINT:

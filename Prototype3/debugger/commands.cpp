@@ -36,7 +36,8 @@
 #include "regs.h"
 
 #define VERSION F("* Cyborg09 Prototype3 1.9.1")
-#define USAGE F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:sm s/S:tep c:ont G:o h/H:alt p:ins F:iles L:oad")
+#define USAGE1 F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst")
+#define USAGE2 F("A:sm s/S:tep c:ont G:o h/H:alt p:ins F:iles L:oad")
 
 class Commands Commands;
 
@@ -80,9 +81,11 @@ static void dumpMemory(uint16_t addr, uint16_t len) {
     execInst3(0xB6, addr); // LDA $addr
     if (i % 16 == 0) {
       if (i) Console.println();
-      printHex16(addr, ':');
+      Console.hex16(addr);
+      Console.print(':');
     }
-    printHex8(Pins.dbus(), ' ');
+    Console.hex8(Pins.dbus());
+    Console.print(' ');
   }
   Console.println();
   Regs.restore();
@@ -128,17 +131,12 @@ protected:
   }
 };
 
-static void print(const char *text, int width) {
-  Console.print(text);
-  for (int i = strlen(text); i < width; i++) {
-    Console.print(' ');
-  }
-}
-
 static void print(const Insn& insn) {
-  printHex16(insn.address(), ':');
+  Console.hex16(insn.address());
+  Console.print(':');
   for (int i = 0; i < insn.insnLen(); i++) {
-    printHex8(insn.bytes()[i], ' ');
+    Console.hex8(insn.bytes()[i]);
+    Console.print(' ');
   }
   for (int i = insn.insnLen(); i < 5; i++) {
     Console.print(F("   "));
@@ -160,11 +158,12 @@ static uint16_t disassemble(uint16_t addr, uint16_t max) {
     print(insn);
     if (disassembler.getError()) {
       Console.print(F("Error: "));
-      Console.println(disassembler.getError(), DEC);
+      Console.print((uint8_t)disassembler.getError());
+      Console.println();
       continue;
     }
-    print(insn.name(), 6);
-    print(operands, 12);
+    Console.print(insn.name(), 6);
+    Console.print(operands, 12);
     Console.println();
   }
   return addr + len;
@@ -238,14 +237,16 @@ static void handlerAssembleLine(Input::State state, char *line) {
   Insn insn;
   if (assembler.encode(line, insn, last_addr, nullptr)) {
     Console.print(F("Error: "));
-    Console.println(assembler.getError(), DEC);
+    Console.print((uint8_t)assembler.getError());
+    Console.println();
   } else {
     print(insn);
-    Console.println();
     memoryWrite(insn.address(), insn.bytes(), insn.insnLen());
     last_addr += insn.insnLen();
   }
-  printHex16(last_addr, '?');
+  Console.hex16(last_addr);
+  Console.print('?');
+  Console.flush();
   Input.readLine(handlerAssembleLine);
 }
 
@@ -253,7 +254,9 @@ static void handlerAssembler(Input::State state, uint16_t value, uint8_t index) 
   if (index == 0) {
     last_addr = value;
     if (state == Input::State::FINISH) {
-      printHex16(last_addr, '?');
+      Console.hex16(last_addr);
+      Console.print('?');
+      Console.flush();
       Input.readLine(handlerAssembleLine);
     }
   }
@@ -266,9 +269,9 @@ static void handlerFileListing() {
     File entry = root.openNextFile();
     if (!entry) break;
     if (!entry.isDirectory()) {
-      Console.print(entry.name());
-      Console.print('\t');
-      Console.println(entry.size(), DEC);
+      Console.print(entry.name(), 16);
+      Console.print(entry.size());
+      Console.println();
     }
     entry.close();
   }
@@ -291,16 +294,18 @@ static int loadS19Record(const char *line) {
   int len = strlen(line);
   if (len == 0 || line[0] != 'S' || line[1] != '1')
     return 0;
-  const int num = toInt8Hex(line + 2) - 3;
+  const uint8_t num = toInt8Hex(line + 2) - 3;
   const uint16_t addr = toInt16Hex(line + 4);
   uint8_t buffer[num];
   for (int i = 0; i < num; i++) {
     buffer[i] = toInt8Hex(line + i * 2 + 8);
   }
   memoryWrite(addr, buffer, num);
-  printHex16(addr, ':');
-  printHex8(num);
+  Console.hex16(addr);
+  Console.print(':');
+  Console.print(num);
   Console.print(' ');
+  Console.flush();
   return num;
 }
 
@@ -318,14 +323,14 @@ static void handlerLoadFile(Input::State state, char *line) {
         *p = 0;
         size += loadS19Record(s19);
         p = s19;
-      } else if (c != '\r' && p < s19 + sizeof(s19) -1) {
+      } else if (c != '\r' && p < s19 + sizeof(s19) - 1) {
         *p++ = c;
       }
     }
     file.close();
   }
   Console.println();
-  Console.print(size, DEC);
+  Console.print(size);
   Console.println(F(" bytes loaded"));
 }
 
@@ -335,12 +340,14 @@ void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
     if (c == 'P' || c == 'S' || c == 'U' || c == 'Y' || c == 'X') {
       Console.print(c);
       Console.print('?');
+      Console.flush();
       Input.readUint16(handleSetRegister, c);
       return;
     }
     if (c == 'D' || c == 'A' || c == 'B' || c == 'C') {
       Console.print(c);
       Console.print('?');
+      Console.flush();
       Input.readUint8(handleSetRegister, c);
       return;
     }
@@ -392,22 +399,27 @@ bool Commands::exec(char c) {
     break;
   case 'i':
     Console.print(F("inst? "));
+    Console.flush();
     Input.readUint8(handleInstruction, 0);
     break;
   case 'd':
     Console.print(F("dump? "));
+    Console.flush();
     Input.readUint16(handleDumpMemory, 0);
     break;
   case 'D':
     Console.print(F("Dis? "));
+    Console.flush();
     Input.readUint16(handleDisassemble, 0);
     break;
   case 'A':
     Console.print(F("Asm? "));
+    Console.flush();
     Input.readUint16(handlerAssembler, 0);
     break;
   case 'm':
     Console.print(F("mem? "));
+    Console.flush();
     Input.readUint16(handleMemoryWrite, NO_INDEX);
     break;
   case 's':
@@ -429,6 +441,7 @@ bool Commands::exec(char c) {
     break;
   case '=':
     Console.print(F("set reg? "));
+    Console.flush();
     Input.readChar(handleSetRegister, 0);
     break;
   case 'c':
@@ -456,11 +469,13 @@ bool Commands::exec(char c) {
     break;
   case 'L':
     Console.print(F("Load? "));
+    Console.flush();
     Input.readLine(handlerLoadFile);
     break;
   case '?':
     Console.println(VERSION);
-    Console.println(USAGE);
+    Console.println(USAGE1);
+    Console.println(USAGE2);
     break;
   default:
     return false;
@@ -471,6 +486,7 @@ bool Commands::exec(char c) {
 void Commands::begin() {
   exec('?');
   Console.print(F("> ")); // Initial prompt.
+  Console.flush();
 }
 
 void Commands::loop() {
