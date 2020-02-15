@@ -40,6 +40,7 @@ public:
   }
 
   void attachUserSwitch(void (*isr)()) const;
+  void detachUserSwitch() const;
 
 private:
 

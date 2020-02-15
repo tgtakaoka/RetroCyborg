@@ -367,6 +367,16 @@ void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
   Regs.print();
 }
 
+static void haltMpu() {
+  Pins.detachUserSwitch();
+  Commands.halt(false);
+}
+
+void Commands::halt(bool show) {
+  Pins.halt(show);
+  _target = PROMPT;
+}
+
 bool Commands::exec(char c) {
   switch (c) {
   case 'p':
@@ -378,6 +388,7 @@ bool Commands::exec(char c) {
     _target = HALT;
     Pins.reset(true);
     Regs.get(true);
+    disassemble(Regs.pc, 1);
     break;
   case 'i':
     Console.print(F("inst? "));
@@ -427,6 +438,7 @@ bool Commands::exec(char c) {
     if (_target != RUN) {
       Console.println(F("GO"));
       _target = RUN;
+      Pins.attachUserSwitch(haltMpu);
       Pins.run();
       break;
     }
@@ -434,11 +446,7 @@ bool Commands::exec(char c) {
   case 'h':
   case 'H':
     if (_target != HALT) {
-      _target = HALT;
-      Pins.halt(c == 'H');
-      Console.println(F("HALT"));
-      Regs.get(true);
-      disassemble(Regs.pc, 1);
+      halt(c == 'H');
       break;
     }
     return false;
@@ -460,18 +468,18 @@ bool Commands::exec(char c) {
   return true;
 }
 
-static void haltMpu() {
-  Commands.exec('h');
-  Console.print(F("> ")); // Initial prompt.
-}
-
 void Commands::begin() {
-  Pins.attachUserSwitch(haltMpu);
   exec('?');
   Console.print(F("> ")); // Initial prompt.
 }
 
 void Commands::loop() {
+  if (_target == PROMPT) {
+      _target = HALT;
+      Console.println(F("HALT"));
+      Regs.get(true);
+      disassemble(Regs.pc, 1);
+  }
   if (_target == STEP) {
     Pins.step();
     Regs.get(true);

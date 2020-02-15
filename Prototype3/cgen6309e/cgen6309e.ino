@@ -141,7 +141,7 @@ void loop() {
     " sbis %[step_port],%[step_pin]" "\n" // [1:no,2:skip] STEP=H?
     " rjmp .-4"                      "\n" // [2] STEP=L, wait STEP=H
     " cbi  %[qclk_port],%[qclk_pin]" "\n" // [2] QE=3:LH
-    " sbi  %[int_port],%[int_pin]"   "\n" // [2] INT=L
+    " sbi  %[int_port],%[int_pin]"   "\n" // [2] INT=H
     " sbic %[ack_port],%[ack_pin]"   "\n" // [1:no,2:skip] ACK=L?
     " rjmp .-4"                      "\n" // [2] ACK=H, wait ACK=L
     " cbi  %[eclk_port],%[eclk_pin]" "\n" // [2] QE=0:LL
