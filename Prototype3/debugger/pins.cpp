@@ -58,9 +58,6 @@ static inline void negateHalt() {
   digitalWrite(HALT, HIGH);
 }
 
-static inline bool isReadDirection() {
-  return digitalRead(RD_WR) == HIGH;
-}
 static inline bool isWriteDirection() {
   return digitalRead(RD_WR) == LOW;
 }
@@ -263,6 +260,10 @@ void Pins::run() {
 
 void Pins::halt(bool show) {
   detachInterrupt(INT_INTERRUPT);
+  if (digitalRead(INT) == LOW) {
+    EIFR |= 0x02;
+    ioRequest();
+  }
   enableStep();
   while (!isIntAsserted())
     ;
@@ -473,4 +474,10 @@ void Pins::leaveIoRequest() {
 
 void Pins::attachUserSwitch(void (*isr)()) const {
   attachInterrupt(USR_SW_INTERRUPT, isr, FALLING);
+}
+
+void Pins::detachUserSwitch() const {
+  detachInterrupt(USR_SW_INTERRUPT);
+  while (digitalRead(USR_SW) == LOW)
+    ;
 }
