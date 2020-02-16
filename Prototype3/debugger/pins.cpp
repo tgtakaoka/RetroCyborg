@@ -31,17 +31,33 @@ void Pins::loop() {
   Mc6850.loop();
 }
 
-#define PINM(name)   _BV(__PIN__(name))
-#define pinMode(name, mode) do {                        \
-    if (mode == INPUT) DDR(name) &= ~PINM(name);        \
-    if (mode == INPUT_PULLUP) DDR(name) &= ~PINM(name); \
-    if (mode == INPUT_PULLUP) PORT(name) |= PINM(name); \
-    if (mode == OUTPUT) DDR(name) |= PINM(name);        \
+#define pinMode(name, mode) do {                          \
+    if (mode == INPUT) PDIR(name) &= ~PIN_m(name);        \
+    if (mode == INPUT_PULLUP) PDIR(name) &= ~PIN_m(name); \
+    if (mode == INPUT_PULLUP) POUT(name) |= PIN_m(name);  \
+    if (mode == OUTPUT) PDIR(name) |= PIN_m(name);        \
   } while (0)
-#define digitalRead(name) (PIN(name) & PINM(name))
+#define digitalRead(name) (PIN(name) & PIN_m(name))
 #define digitalWrite(name, val) do {            \
-    if (val == LOW) PORT(name) &= ~PINM(name);  \
-    if (val == HIGH) PORT(name) |= PINM(name);  \
+    if (val == LOW) POUT(name) &= ~PIN_m(name); \
+    if (val == HIGH) POUT(name) |= PIN_m(name); \
+  } while (0)
+#define busMode(name, mode) do {                            \
+    if (mode == INPUT) PDIR(name) &= ~__BUS__(name);        \
+    if (mode == INPUT_PULLUP) PDIR(name) &= ~__BUS__(name); \
+    if (mode == INPUT_PULLUP) POUT(name) |= __BUS__(name);  \
+    if (mode == OUTPUT) PDIR(name) |= __BUS__(name);        \
+  } while (0)
+#define busRead(name) (PIN(name) & BUS_gm(name))
+#define busWrite(name, val) do {                \
+    if (BUS_gm(name) == 0xFF) {                 \
+      POUT(name) = (val);                       \
+    } else {                                    \
+      const uint8_t out =                       \
+        (POUT(name) & ~BUS_gm(name))            \
+        | (val & BUS_gm(name));                 \
+      POUT(name) = out;                         \
+    }                                           \
   } while (0)
 
 static inline void assertReset() {
@@ -95,7 +111,7 @@ static inline void turnOffUserLed() {
 }
 
 uint8_t Pins::Dbus::getDbus() {
-  return PIN(DB);
+  return busRead(DB);
 }
 
 void Pins::Dbus::begin() {
@@ -114,10 +130,10 @@ void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
   }
   _dir = dir;
   if (dir == INPUT) {
-    DDR(DB) = 0x00;
+    busMode(DB, INPUT);
   } else {
-    DDR(DB) = 0xFF;
-    PORT(DB) = data;
+    busWrite(DB, data);
+    busMode(DB, OUTPUT);
   }
 }
 
