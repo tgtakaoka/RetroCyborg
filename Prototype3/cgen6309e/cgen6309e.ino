@@ -108,17 +108,24 @@ void loop() {
     "L%=_check_io_addr:"             "\n"
     " in   %[tmp],%[adrh]"           "\n" // [1] QE=2[5]
     " cbi  %[qclk_port],%[qclk_pin]" "\n" // [2] QE=3:LH
+#if BUS_gm(ADRH) != 0xFF
+    " andi %[tmp],%[adrh_gm]"        "\n"
+#endif
     " cpse %[tmp],%[io_adrh]"        "\n" // [1:no,2:skip] IO_ADRH?
     " rjmp L%=_main_loop"            "\n" // [2] no, not IO access
 #ifdef IO_ADRM
     " in   %[tmp],%[adrm]"           "\n" // [1]
-    " andi %[tmp],%[adrm_bus]"       "\n" // [1]
+#if BUS_gm(ADRM) != 0xFF
+    " andi %[tmp],%[adrm_gm]"        "\n" // [1]
+#endif
     " cpse %[tmp],%[io_adrm]"        "\n" // [1:no,2:skip] IO_ADRM?
     " rjmp L%=_main_loop"            "\n" // [2] (QE=3[9])
 #endif
 #ifdef IO_ADRL
     " in   %[tmp],%[adrl]"           "\n" // [1]
-    " andi %[tmp],%[adrl_bus]"       "\n" // [1]
+#if BUS_gm(ADRL) != 0xFF
+    " andi %[tmp],%[adrl_gm]"        "\n" // [1]
+#endif
     " cpse %[tmp],%[io_adrl]"        "\n" // [1:no,2:skip] IO_ADRL?
     " rjmp L%=_main_loop"            "\n" // [2] (QE=3[9])
 #endif
@@ -152,15 +159,16 @@ void loop() {
     : [tmp]       "d" (tmp),
       [io_adrh]   "r" (io_adrh),
       [adrh]      "I" (_SFR_IO_ADDR(PIN(ADRH))),
+      [adrh_gm]   "M" (BUS_gm(ADRH)),
 #ifdef IO_ADRM
       [io_adrm]   "r" (io_adrm),
       [adrm]      "I" (_SFR_IO_ADDR(PIN(ADRM))),
-      [adrm_bus]  "M" (__BUS__(ADRM)),
+      [adrm_gm]   "M" (BUS_gm(ADRM)),
 #endif
 #ifdef IO_ADRL
       [io_adrl]   "r" (io_adrl),
       [adrl]      "I" (_SFR_IO_ADDR(PIN(ADRL))),
-      [adrl_bus]  "M" (__BUS__(ADRL)),
+      [adrl_gm]   "M" (BUS_gm(ADRL)),
 #endif
       [qclk_port] "I" (_SFR_IO_ADDR(POUT(CLK_Q))),
       [qclk_pin]  "I" (__PIN__(CLK_Q)),

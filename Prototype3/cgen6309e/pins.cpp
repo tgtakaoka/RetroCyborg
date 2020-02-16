@@ -6,12 +6,11 @@
 
 class Pins Pins;
 
-#define PIN_m(name)   _BV(__PIN__(name))
 #define pinMode(name, mode) do {                          \
-    if (mode == INPUT) DDR(name) &= ~PIN_m(name);         \
-    if (mode == INPUT_PULLUP) DDR(name) &= ~PIN_m(name);  \
+    if (mode == INPUT) PDIR(name) &= ~PIN_m(name);        \
+    if (mode == INPUT_PULLUP) PDIR(name) &= ~PIN_m(name); \
     if (mode == INPUT_PULLUP) POUT(name) |= PIN_m(name);  \
-    if (mode == OUTPUT) DDR(name) |= PIN_m(name);         \
+    if (mode == OUTPUT) PDIR(name) |= PIN_m(name);        \
   } while (0)
 #define digitalRead(name) (PIN(name) & PIN_m(name))
 #define digitalWrite(name, val) do {            \
@@ -19,14 +18,14 @@ class Pins Pins;
     if (val == HIGH) POUT(name) |= PIN_m(name); \
   } while (0)
 #define busMode(name, mode) do {                            \
-    if (mode == INPUT) DDR(name) &= ~__BUS__(name);         \
-    if (mode == INPUT_PULLUP) DDR(name) &= ~__BUS__(name);  \
+    if (mode == INPUT) PDIR(name) &= ~__BUS__(name);        \
+    if (mode == INPUT_PULLUP) PDIR(name) &= ~__BUS__(name); \
     if (mode == INPUT_PULLUP) POUT(name) |= __BUS__(name);  \
-    if (mode == OUTPUT) DDR(name) |= __BUS__(name);         \
+    if (mode == OUTPUT) PDIR(name) |= __BUS__(name);        \
   } while (0)
-#define busRead(name) (PIN(name) & __BUS__(name))
+#define busRead(name) (PIN(name) & BUS_gm(name))
 #define busWrite(name, val)                                             \
-  (POUT(name) = (POUT(name) & ~(__BUS__(name)) | (val & __BUS__(name))))
+  (POUT(name) = (POUT(name) & ~(BUS_gm(name)) | (val & BUS_gm(name))))
 
 void Pins::begin() {
   pinMode(CLK_E, OUTPUT);
