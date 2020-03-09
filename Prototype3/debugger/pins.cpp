@@ -8,7 +8,11 @@
 #include "pins_map.h"
 
 class Pins Pins;
-class Mc6850 Mc6850(Pins::ioBaseAddress());
+class Mc6850 Mc6850(
+  Serial,
+  Pins::ioBaseAddress(),
+  Pins::getIrqMask(Pins::ioBaseAddress()),
+  Pins::getIrqMask(Pins::ioBaseAddress() + 1));
 
 static uint8_t data;
 

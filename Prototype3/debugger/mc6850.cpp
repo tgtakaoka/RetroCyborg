@@ -10,18 +10,6 @@
 //#define DEBUG_READ
 //#define DEBUG_WRITE
 
-Mc6850::Mc6850(uint16_t baseAddr)
-  : _baseAddr(baseAddr),
-    _rxInt(Pins::getIrqMask(baseAddr)),
-    _txInt(Pins::getIrqMask(baseAddr + 1)),
-    _control(CDS_DIV1_gc),
-    _status(TDRE_bm),
-    _readFlags(0),
-    _nextFlags(0),
-    _txData(0),
-    _rxData(0)
-{}
-
 void Mc6850::assertIrq(uint8_t intMask) {
   _status |= IRQF_bm;
   Pins.assertIrq(intMask);
@@ -41,8 +29,8 @@ void Mc6850::negateIrq(uint8_t intMask) {
 }
 
 void Mc6850::loop() {
-  if (Console.available() > 0) {
-    _rxData = Console.read();
+  if (_serial.available() > 0) {
+    _rxData = _serial.read();
     if (rxRegFull())
       _nextFlags |= OVRN_bm;
     _status |= RDRF_bm;
@@ -50,9 +38,9 @@ void Mc6850::loop() {
       assertIrq(_rxInt);
   }
   // TODO: Implement flow control
-  if (Console.availableForWrite() > 0) {
+  if (_serial.availableForWrite() > 0) {
     if (!txRegEmpty()) {
-      Console.write(_txData);
+      _serial.write(_txData);
       _status |= TDRE_bm;
       if (txIntEnabled())
         assertIrq(_txInt);

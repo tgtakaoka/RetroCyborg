@@ -2,11 +2,24 @@
 #ifndef __mc6850_h__
 #define __mc6850_h__
 
+#include <Arduino.h>
 #include <stdint.h>
 
 class Mc6850 {
 public:
-  Mc6850(uint16_t baseAddr);
+  Mc6850(
+    HardwareSerial &serial, uint16_t baseAddr, uint8_t rxInt, uint8_t txInt)
+    : _serial(serial),
+      _baseAddr(baseAddr),
+      _rxInt(rxInt),
+      _txInt(txInt),
+      _control(CDS_DIV1_gc),
+      _status(TDRE_bm),
+      _readFlags(0),
+      _nextFlags(0),
+      _txData(0),
+      _rxData(0)
+  {}
 
   bool isSelected(uint16_t addr) const {
     return addr == _baseAddr || --addr == _baseAddr;
@@ -17,6 +30,7 @@ public:
   void loop();
 
 private:
+  HardwareSerial &_serial;
   const uint16_t _baseAddr;
   const uint8_t _rxInt;
   const uint8_t _txInt;
