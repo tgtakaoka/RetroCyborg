@@ -2,14 +2,15 @@
 #include <avr/pgmspace.h>
 #include <Arduino.h>
 
-#include "console.h"
+#include "libcli.h"
 #include "mc6850.h"
 #include "pins.h"
 #include "pins_map.h"
+#include "string_util.h"
 
 class Pins Pins;
 class Mc6850 Mc6850(
-  Serial,
+  Console,
   Pins::ioBaseAddress(),
   Pins::getIrqMask(Pins::ioBaseAddress()),
   Pins::getIrqMask(Pins::ioBaseAddress() + 1));
@@ -124,7 +125,7 @@ void Pins::Dbus::begin() {
 
 void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
   if (dir == OUTPUT && isWriteDirection()) {
-    Console.println(F("!! R/W is LOW"));
+    Cli.println(F("!! R/W is LOW"));
     return;
   }
   if (dir == OUTPUT || _capture) {
@@ -179,15 +180,15 @@ void Pins::Status::get() {
 void Pins::Status::print() const {
   char buffer[32];
   char *p = buffer;
-  p = outText(p, (_pins & halt) ? " HALT" : "     ");
-  p = outText(p, (_pins & ba) ?   " BA"   : "   ");
-  p = outText(p, (_pins & bs) ?   " BS"   : "   ");
-  p = outText(p, (_pins & lic) ?  " LIC"  : "    ");
-  p = outText(p, (_pins & avma) ? " AVMA" : "     ");
-  p = outText(p, (_pins & rw) ?   " RD"   : " WR");
-  p = outText(p, " DB=0x");
+  p = outText(p, (_pins & halt) ? F(" HALT") : F("     "));
+  p = outText(p, (_pins & ba) ?   F(" BA")   : F("   "));
+  p = outText(p, (_pins & bs) ?   F(" BS")   : F("   "));
+  p = outText(p, (_pins & lic) ?  F(" LIC")  : F("    "));
+  p = outText(p, (_pins & avma) ? F(" AVMA") : F("     "));
+  p = outText(p, (_pins & rw) ?   F(" RD")   : F(" WR"));
+  p = outText(p, F(" DB=0x"));
   p = outHex8(p, _dbus);
-  Console.print(buffer);
+  Cli.print(buffer);
 }
 
 void Pins::print() const {
@@ -209,7 +210,7 @@ void Pins::print() const {
     *p++ = 'H';
   }
   *p = 0;
-  Console.println(buffer);
+  Cli.println(buffer);
 }
 
 void Pins::reset(bool show) {
@@ -444,6 +445,9 @@ void Pins::begin() {
   _dbus.begin();
 
   _previous.get();
+
+  Console.begin(115200);
+  Cli.begin(Console);
 
   reset();
 }

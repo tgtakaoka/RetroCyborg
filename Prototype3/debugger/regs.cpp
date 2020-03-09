@@ -1,10 +1,8 @@
 /* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
-
-#include "console.h"
+#include "libcli.h"
 #include "pins.h"
 #include "regs.h"
-
-#include <Arduino.h>
+#include "string_util.h"
 
 union Regs Regs;
 
@@ -20,15 +18,15 @@ static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {
 void Regs::print() const {
   char buffer[29+13*2+8+2];
   char *p = buffer;
-  p = outText(p, "PC="); p = outHex16(p, pc);
-  p = outText(p, " S="); p = outHex16(p, s);
-  p = outText(p, " U="); p = outHex16(p, u);
-  p = outText(p, " Y="); p = outHex16(p, y);
-  p = outText(p, " X="); p = outHex16(p, x);
-  p = outText(p, " DP="); p = outHex8(p, dp);
-  p = outText(p, " B="); p = outHex8(p, b);
-  p = outText(p, " A="); p = outHex8(p, a);
-  p = outText(p, " CC=");
+  p = outText(p, F("PC=")); p = outHex16(p, pc);
+  p = outText(p, F(" S=")); p = outHex16(p, s);
+  p = outText(p, F(" U=")); p = outHex16(p, u);
+  p = outText(p, F(" Y=")); p = outHex16(p, y);
+  p = outText(p, F(" X=")); p = outHex16(p, x);
+  p = outText(p, F(" DP=")); p = outHex8(p, dp);
+  p = outText(p, F(" B=")); p = outHex8(p, b);
+  p = outText(p, F(" A=")); p = outHex8(p, a);
+  p = outText(p, F(" CC="));
   *p++ = bit1(cc & 0x80, 'E');
   *p++ = bit1(cc & 0x40, 'F');
   *p++ = bit1(cc & 0x20, 'H');
@@ -38,7 +36,7 @@ void Regs::print() const {
   *p++ = bit1(cc & 0x02, 'V');
   *p++ = bit1(cc & 0x01, 'C');
   *p = 0;
-  Console.println(buffer);
+  Cli.println(buffer);
 }
 
 void Regs::get(bool show) {

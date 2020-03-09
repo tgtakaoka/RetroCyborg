@@ -9,11 +9,10 @@ public:
   void loop();
   bool exec(char c);
   bool isRunning() const { return _target == RUN; }
-  void halt(bool show);
 
 private:
   enum {
-    HALT, STEP, RUN, PROMPT,
+    HALT, STEP, RUN,
   } _target = HALT;
 };
 
