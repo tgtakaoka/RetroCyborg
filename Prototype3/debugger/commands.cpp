@@ -148,7 +148,7 @@ static void print(const Insn& insn) {
 static uint16_t disassemble(uint16_t addr, uint16_t max) {
   DisMc6809 dis6809;
   Disassembler<uint16_t> &disassembler(dis6809);
-  disassembler.acceptCpu("6309");
+  disassembler.setCpu("6309");
   class Mc6809Memory memory;
   memory.setAddress(addr);
   uint16_t len = 0;
@@ -234,7 +234,7 @@ static void handlerAssembleLine(Input::State state, char *line) {
   }
   AsmMc6809 as6809;
   Assembler<uint16_t> &assembler(as6809);
-  assembler.acceptCpu("6309");
+  assembler.setCpu("6309");
   Insn insn;
   if (assembler.encode(line, insn, last_addr, nullptr)) {
     Console.print(F("Error: "));
