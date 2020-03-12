@@ -30,8 +30,7 @@
 #include <symbol_table.h>
 
 #include "commands.h"
-#include "console.h"
-#include "input.h"
+#include "libcli.h"
 #include "pins.h"
 #include "regs.h"
 
@@ -41,8 +40,17 @@
 class Commands Commands;
 
 static uint16_t last_addr;
+#define DUMP_ADDR   0
+#define DUMP_LENGTH 1
+#define ASM_ADDR    0
+#define DIS_ADDR    0
+#define DIS_LENGTH  1
+#define INST_DATA(i) ((uintptr_t)(i))
+#define REG_NAME    0
+
 static uint8_t buffer[16];
-#define NO_INDEX (sizeof(buffer) + 10)
+#define MEMORY_ADDR static_cast<uintptr_t>(sizeof(buffer) + 10)
+#define MEMORY_DATA(i) ((uintptr_t)(i))
 
 static void execInst2(uint8_t inst, uint8_t opr, bool show = false) {
   const uint8_t insn[] = { inst, opr };
@@ -54,58 +62,64 @@ static void execInst3(uint8_t inst, uint16_t opr, bool show = false) {
   Pins.execInst(insn, sizeof(insn), show);
 }
 
-static void handleInstruction(Input::State state, uint16_t value, uint8_t index) {
-  if (state == Input::State::DELETE) {
-    if (index-- > 0) {
-      Input::backspace();
-      Input.readUint8(handleInstruction, index, buffer[index]);
+static bool handleInstruction(Cli::State state, uint16_t value, uintptr_t extra) {
+  uint16_t index = extra;
+  if (state == Cli::State::CLI_DELETE) {
+    if (index > 0) {
+      index--;
+      Cli.backspace();
+      Cli.readUint8(handleInstruction, INST_DATA(index), buffer[index]);
     }
-    return;
+    return false;
   }
 
   buffer[index++] = value;
-  if (state == Input::State::NEXT) {
+  if (state == Cli::State::CLI_SPACE) {
     if (index < sizeof(buffer)) {
-      Input.readUint8(handleInstruction, index);
-      return;
+      Cli.readUint8(handleInstruction, INST_DATA(index));
+      return false;
     }
-    Console.println();
+    Cli.println();
   }
   Pins.execInst(buffer, index, true /* show */);
+  return true;
 }
 
-static void dumpMemory(uint16_t addr, uint16_t len) {
+static void memoryDump(uint16_t addr, uint16_t len) {
   Regs.save();
   for (uint16_t i = 0; i < len; i++, addr++) {
     execInst3(0xB6, addr); // LDA $addr
     if (i % 16 == 0) {
-      if (i) Console.println();
-      printHex16(addr, ':');
+      if (i) Cli.println();
+      Cli.printUint16(addr);
+      Cli.print(':');
     }
-    printHex8(Pins.dbus(), ' ');
+    Cli.printUint8(Pins.dbus());
+    Cli.print(' ');
   }
-  Console.println();
+  Cli.println();
   Regs.restore();
 }
 
-static void handleDumpMemory(Input::State state, uint16_t value, uint8_t index) {
-  if (state == Input::State::DELETE) {
-    if (index == 1) {
-      Input::backspace();
-      Input.readUint16(handleDumpMemory, 0, last_addr);
+static bool handleDump(Cli::State state, uint16_t value, uintptr_t extra) {
+  if (state == Cli::State::CLI_DELETE) {
+    if (extra == DUMP_LENGTH) {
+      Cli.backspace();
+      Cli.readUint16(handleDump, DUMP_ADDR, last_addr);
     }
-    return;
+    return false;
   }
-  if (index == 0) {
+  if (extra == DUMP_ADDR) {
     last_addr = value;
-    if (state == Input::State::NEXT) {
-      Input.readUint16(handleDumpMemory, 1);
-      return;
+    if (state == Cli::State::CLI_SPACE) {
+      Cli.readUint16(handleDump, DUMP_LENGTH);
+      return false;
     }
     value = 16;
   }
-  dumpMemory(last_addr, value);
+  memoryDump(last_addr, value);
   last_addr += value;
+  return true;
 }
 
 
@@ -129,19 +143,21 @@ protected:
 };
 
 static void print(const char *text, int width) {
-  Console.print(text);
+  Cli.print(text);
   for (int i = strlen(text); i < width; i++) {
-    Console.print(' ');
+    Cli.print(' ');
   }
 }
 
 static void print(const Insn& insn) {
-  printHex16(insn.address(), ':');
+  Cli.printUint16(insn.address());
+  Cli.print(':');
   for (int i = 0; i < insn.insnLen(); i++) {
-    printHex8(insn.bytes()[i], ' ');
+    Cli.printUint8(insn.bytes()[i]);
+    Cli.print(' ');
   }
   for (int i = insn.insnLen(); i < 5; i++) {
-    Console.print(F("   "));
+    Cli.print(F("   "));
   }
 }
 
@@ -159,34 +175,35 @@ static uint16_t disassemble(uint16_t addr, uint16_t max) {
     len += insn.insnLen();
     print(insn);
     if (disassembler.getError()) {
-      Console.print(F("Error: "));
-      Console.println(disassembler.getError(), DEC);
+      Cli.print(F("Error: "));
+      Cli.println(disassembler.getError());
       continue;
     }
     print(insn.name(), 6);
     print(operands, 12);
-    Console.println();
+    Cli.println();
   }
   return addr + len;
 }
 
-static void handleDisassemble(Input::State state , uint16_t value, uint8_t index) {
-  if (state == Input::State::DELETE) {
-    if (index == 1) {
-      Input::backspace();
-      Input.readUint16(handleDisassemble, 0, last_addr);
+static bool handleDisassemble(Cli::State state , uint16_t value, uintptr_t extra) {
+  if (state == Cli::State::CLI_DELETE) {
+    if (extra == DIS_LENGTH) {
+      Cli.backspace();
+      Cli.readUint16(handleDisassemble, DIS_ADDR, last_addr);
     }
-    return;
+    return false;
   }
-  if (index == 0) {
+  if (extra == DIS_ADDR) {
     last_addr = value;
-    if (state == Input::State::NEXT) {
-      Input.readUint16(handleDisassemble, 1);
-      return;
+    if (state == Cli::State::CLI_SPACE) {
+      Cli.readUint16(handleDisassemble, DIS_LENGTH);
+      return false;
     }
     value = 16;
   }
   last_addr = disassemble(last_addr, value);
+  return true;
 }
 
 static void memoryWrite(uint16_t addr, const uint8_t values[], const uint8_t len) {
@@ -198,77 +215,83 @@ static void memoryWrite(uint16_t addr, const uint8_t values[], const uint8_t len
   Regs.restore();
 }
 
-static void handleMemoryWrite(Input::State state, uint16_t value, uint8_t index) {
-  if (index == NO_INDEX) {
+static bool handleMemory(Cli::State state, uint16_t value, uintptr_t extra) {
+  if (extra == MEMORY_ADDR) {
     last_addr = value;
-    Input.readUint8(handleMemoryWrite, 0);
-    return;
+    Cli.readUint8(handleMemory, MEMORY_DATA(0));
+    return false;
   }
-  if (state == Input::State::DELETE) {
-    if (index-- == 0) {
-      Input::backspace();
-      Input.readUint16(handleMemoryWrite, NO_INDEX, last_addr);
+  uint16_t index = extra;
+  if (state == Cli::State::CLI_DELETE) {
+    Cli.backspace();
+    if (index == 0) {
+      Cli.readUint16(handleMemory, MEMORY_ADDR, last_addr);
     } else {
-      Input::backspace();
-      Input.readUint8(handleMemoryWrite, index, buffer[index]);
+      index--;
+      Cli.readUint8(handleMemory, MEMORY_DATA(index), buffer[index]);
     }
-    return;
+    return false;
   }
   buffer[index++] = value;
-  if (state == Input::State::NEXT) {
+  if (state == Cli::State::CLI_SPACE) {
     if (index < sizeof(buffer)) {
-      Input.readUint8(handleMemoryWrite, index);
-      return;
+      Cli.readUint8(handleMemory, MEMORY_DATA(index));
+      return false;
     }
-    Console.println();
+    Cli.println();
   }
   memoryWrite(last_addr, buffer, index);
-  dumpMemory(last_addr, index);
+  memoryDump(last_addr, index);
   last_addr += index;
+  return true;
 }
 
-static void handlerAssembleLine(Input::State state, char *line) {
-  if (state == Input::State::CANCEL || *line == 0) {
-    Console.println(F("end"));
-    return;
+static bool handleAssembleLine(Cli::State state, char *line, uintptr_t extra) {
+  if (*line == 0) {
+    Cli.println(F("end"));
+    return true;
   }
   AsmMc6809 as6809;
   Assembler<uint16_t> &assembler(as6809);
   assembler.setCpu("6309");
   Insn insn;
   if (assembler.encode(line, insn, last_addr, nullptr)) {
-    Console.print(F("Error: "));
-    Console.println(assembler.getError(), DEC);
+    Cli.print(F("Error: "));
+    Cli.println(assembler.getError());
   } else {
     print(insn);
-    Console.println();
+    Cli.println();
     memoryWrite(insn.address(), insn.bytes(), insn.insnLen());
     last_addr += insn.insnLen();
   }
-  printHex16(last_addr, '?');
-  Input.readLine(handlerAssembleLine);
+  Cli.printUint16(last_addr);
+  Cli.print('?');
+  Cli.readLine(handleAssembleLine, 0);
+  return false;
 }
 
-static void handlerAssembler(Input::State state, uint16_t value, uint8_t index) {
-  if (index == 0) {
+static bool handleAssembler(Cli::State state, uint16_t value, uintptr_t extra) {
+  if (extra == ASM_ADDR) {
     last_addr = value;
-    if (state == Input::State::FINISH) {
-      printHex16(last_addr, '?');
-      Input.readLine(handlerAssembleLine);
+    if (state == Cli::State::CLI_NEWLINE) {
+      Cli.printUint16(last_addr);
+      Cli.print('?');
+      Cli.readLine(handleAssembleLine, 0);
     }
   }
+  return false;
 }
 
-static void handlerFileListing() {
+static void handleFileListing() {
   SD.begin();
   File root = SD.open("/");
   while (true) {
     File entry = root.openNextFile();
     if (!entry) break;
     if (!entry.isDirectory()) {
-      Console.print(entry.name());
-      Console.print('\t');
-      Console.println(entry.size(), DEC);
+      Cli.print(entry.name());
+      Cli.print('\t');
+      Cli.println(entry.size());
     }
     entry.close();
   }
@@ -298,14 +321,15 @@ static int loadS19Record(const char *line) {
     buffer[i] = toInt8Hex(line + i * 2 + 8);
   }
   memoryWrite(addr, buffer, num);
-  printHex16(addr, ':');
-  printHex8(num);
-  Console.print(' ');
+  Cli.printUint16(addr);
+  Cli.print(':');
+  Cli.printUint8(num);
+  Cli.print(' ');
   return num;
 }
 
-static void handlerLoadFile(Input::State state, char *line) {
-  if (state != Input::State::FINISH) return;
+static bool handleLoadFile(Cli::State state, char *line, uint16_t extra) {
+  if (state != Cli::State::CLI_NEWLINE) return false;
   uint16_t size = 0;
   SD.begin();
   File file = SD.open(line);
@@ -324,97 +348,91 @@ static void handlerLoadFile(Input::State state, char *line) {
     }
     file.close();
   }
-  Console.println();
-  Console.print(size, DEC);
-  Console.println(F(" bytes loaded"));
+  Cli.println();
+  Cli.print(size);
+  Cli.println(F(" bytes loaded"));
+  return true;
 }
 
-void handleSetRegister(Input::State state, uint16_t value, uint8_t index) {
-  if (index == 0) {
+static bool handleSetRegister(Cli::State state, uint16_t value, uintptr_t extra) {
+  if (extra == REG_NAME) {
     const char c = value & ~0x20;
     if (c == 'P' || c == 'S' || c == 'U' || c == 'Y' || c == 'X') {
-      Console.print(c);
-      Console.print('?');
-      Input.readUint16(handleSetRegister, c);
-      return;
+      Cli.print(c);
+      Cli.print('?');
+      Cli.readUint16(handleSetRegister, (uintptr_t)c);
+      return false;
     }
     if (c == 'D' || c == 'A' || c == 'B' || c == 'C') {
-      Console.print(c);
-      Console.print('?');
-      Input.readUint8(handleSetRegister, c);
-      return;
+      Cli.print(c);
+      Cli.print('?');
+      Cli.readUint8(handleSetRegister, (uintptr_t)c);
+      return false;
     }
-    Console.println();
-    return;
+    Cli.println();
+    return true;
   }
-  if (state == Input::State::DELETE) {
-    Input::backspace(2);
-    Input.readChar(handleSetRegister, 0);
-    return;
+  if (state == Cli::State::CLI_DELETE) {
+    Cli.backspace(2);
+    Cli.readLetter(handleSetRegister, REG_NAME);
+    return false;
   }
-  if (state == Input::State::NEXT)
-    Console.println();
-  if (index == 'P') Regs.pc = value;
-  else if (index == 'S') Regs.s = value;
-  else if (index == 'U') Regs.u = value;
-  else if (index == 'Y') Regs.y = value;
-  else if (index == 'X') Regs.x = value;
-  else if (index == 'D') Regs.dp = value;
-  else if (index == 'B') Regs.b = value;
-  else if (index == 'A') Regs.a = value;
-  else if (index == 'C') Regs.cc = value;
+  if (state == Cli::State::CLI_SPACE)
+    Cli.println();
+  if (extra == 'P') Regs.pc = value;
+  else if (extra == 'S') Regs.s = value;
+  else if (extra == 'U') Regs.u = value;
+  else if (extra == 'Y') Regs.y = value;
+  else if (extra == 'X') Regs.x = value;
+  else if (extra == 'D') Regs.dp = value;
+  else if (extra == 'B') Regs.b = value;
+  else if (extra == 'A') Regs.a = value;
+  else if (extra == 'C') Regs.cc = value;
   Regs.restore();
   Regs.print();
+  return true;
 }
 
-static void haltMpu() {
-  Pins.detachUserSwitch();
-  Commands.halt(false);
-}
-
-void Commands::halt(bool show) {
-  Pins.halt(show);
-  _target = PROMPT;
-}
+static bool commandHandler(char);
 
 bool Commands::exec(char c) {
   switch (c) {
   case 'p':
-    Console.print(F("pins:"));
+    Cli.print(F("pins:"));
     Pins.print();
-    break;
+    return true;
   case 'R':
-    Console.println(F("RESET"));
+    Cli.println(F("RESET"));
     _target = HALT;
     Pins.reset(true);
     Regs.get(true);
     disassemble(Regs.pc, 1);
-    break;
+    return true;
   case 'i':
-    Console.print(F("inst? "));
-    Input.readUint8(handleInstruction, 0);
-    break;
+    Cli.print(F("inst? "));
+    Cli.readUint8(handleInstruction, INST_DATA(0));
+    return false;
   case 'd':
-    Console.print(F("dump? "));
-    Input.readUint16(handleDumpMemory, 0);
-    break;
+    Cli.print(F("dump? "));
+    Cli.readUint16(handleDump, DUMP_ADDR);
+    return false;
   case 'D':
-    Console.print(F("Dis? "));
-    Input.readUint16(handleDisassemble, 0);
-    break;
+    Cli.print(F("Dis? "));
+    Cli.readUint16(handleDisassemble, DIS_ADDR);
+    return false;
   case 'A':
-    Console.print(F("Asm? "));
-    Input.readUint16(handlerAssembler, 0);
-    break;
+    Cli.print(F("Asm? "));
+    Cli.readUint16(handleAssembler, ASM_ADDR);
+    return false;
   case 'm':
-    Console.print(F("mem? "));
-    Input.readUint16(handleMemoryWrite, NO_INDEX);
-    break;
+    Cli.print(F("mem? "));
+    Cli.readUint16(handleMemory, MEMORY_ADDR);
+    return false;
   case 's':
   case 'S':
     if (_target == HALT) {
-      if (c == 's') Console.print(F("step: "));
-      else Console.println(F("Step"));
+      if (c == 's') Cli.print(F("step: "));
+      else Cli.println(F("Step"));
       Pins.step(c == 'S');
     } else {
       _target = HALT;
@@ -422,64 +440,67 @@ bool Commands::exec(char c) {
     }
     Regs.get(true);
     disassemble(Regs.pc, 1);
-    break;
+    return true;
   case 'r':
-    Console.print(F("regs: "));
+    Cli.print(F("regs: "));
     Regs.get(true);
-    break;
+    return true;
   case '=':
-    Console.print(F("set reg? "));
-    Input.readChar(handleSetRegister, 0);
-    break;
+    Cli.print(F("set reg? "));
+    Cli.readLetter(handleSetRegister, REG_NAME);
+    return false;
   case 'c':
     _target = STEP;
     return false;
   case 'G':
     if (_target != RUN) {
-      Console.println(F("GO"));
+      Cli.println(F("GO"));
       _target = RUN;
-      Pins.attachUserSwitch(haltMpu);
       Pins.run();
-      break;
     }
     return false;
   case 'h':
   case 'H':
     if (_target != HALT) {
-      halt(c == 'H');
-      break;
+      _target = HALT;
+      Pins.halt(c == 'H');
+      Cli.println(F("HALT"));
+      Regs.get(true);
+      disassemble(Regs.pc, 1);
     }
-    return false;
+    return true;
   case 'F':
-    Console.println(F("Files"));
-    handlerFileListing();
-    break;
+    Cli.println(F("Files"));
+    handleFileListing();
+    return true;
   case 'L':
-    Console.print(F("Load? "));
-    Input.readLine(handlerLoadFile);
-    break;
+    Cli.print(F("Load? "));
+    Cli.readLine(handleLoadFile, 0);
+    return false;
   case '?':
-    Console.println(VERSION);
-    Console.println(USAGE);
-    break;
+    Cli.println(VERSION);
+    Cli.println(USAGE);
+    return true;
   default:
     return false;
   }
-  return true;
+}
+
+static bool commandHandler(char c) {
+  return Commands.exec(c);
+}
+
+static void printPrompt(Stream &console) {
+  console.print(F("> "));
 }
 
 void Commands::begin() {
-  exec('?');
-  Console.print(F("> ")); // Initial prompt.
+  Cli.setPrompt(printPrompt);
+  Cli.readCommand(commandHandler);
+  _target = HALT;
 }
 
 void Commands::loop() {
-  if (_target == PROMPT) {
-      _target = HALT;
-      Console.println(F("HALT"));
-      Regs.get(true);
-      disassemble(Regs.pc, 1);
-  }
   if (_target == STEP) {
     Pins.step();
     Regs.get(true);

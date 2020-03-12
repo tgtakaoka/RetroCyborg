@@ -4,6 +4,8 @@
 
 #if defined(ARDUINO_AVR_ATmega32) || defined(ARDUINO_AVR_ATmega1284)
 
+#define Console Serial
+
 #define HALT_PORT  B
 #define HALT_PIN   0
 

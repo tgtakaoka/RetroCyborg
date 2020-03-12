@@ -10,14 +10,12 @@
 */
 
 #include "commands.h"
-#include "console.h"
-#include "input.h"
+#include "libcli.h"
 #include "pins.h"
 
 void setup() {
-  Console.begin(115200);
   Pins.begin();
-  Input.begin();
+  Commands.begin();
   interrupts();
 }
 
@@ -25,6 +23,7 @@ void loop() {
   if (Pins.isRunning()) {
     Pins.loop();
   } else {
-    Input.loop();
+    Cli.loop();
+    Commands.loop();
   }
 }
