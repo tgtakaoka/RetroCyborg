@@ -114,7 +114,7 @@ put_bin0:
 ;;; @return A
 ;;; @return CC.C 0 if no character
 getchar:
-        orcc    #1              ; set carry
+        orcc    #CC_CARRY       ; set carry
         pshs    x,cc
         orcc    #CC_IRQ         ; disable IRQ
         ldx     #rx_queue

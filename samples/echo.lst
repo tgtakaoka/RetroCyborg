@@ -1,4 +1,4 @@
- AS V1.42 Beta [Bld 153] - Source File echo.asm - Page 1 - 01/15/2020 09:55:19 PM
+ AS V1.42 Beta [Bld 157] - Source File echo.asm - Page 1 - 03/12/2020 11:32:45 PM
 
 
           0 :                             cpu     6809
@@ -61,7 +61,7 @@
 (1)       0 : =$80                IRQF_bm:        equ     %10000000 ; Interrupt Request Flag
 (1)       0 :                     
 (1)       0 :                     ;;; Data register
- AS V1.42 Beta [Bld 153] - Source File echo.asm(mc6850.inc) - Page 2 - 01/15/2020 09:55:19 PM
+ AS V1.42 Beta [Bld 157] - Source File echo.asm(mc6850.inc) - Page 2 - 03/12/2020 11:32:45 PM
 
 
 (1)       0 : =$FFC1              ACIA_data:      equ     ACIA+1          ; Data register
@@ -100,7 +100,7 @@
        FFFE :                             org     $FFFE
        FFFE : 10 00                       fdb     initialize
       10000 :                     
- AS V1.42 Beta [Bld 153] - Source File echo.asm - Page 3 - 01/15/2020 09:55:19 PM
+ AS V1.42 Beta [Bld 157] - Source File echo.asm - Page 3 - 03/12/2020 11:32:45 PM
 
 
   Code Pages:

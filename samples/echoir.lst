@@ -1,4 +1,4 @@
- AS V1.42 Beta [Bld 153] - Source File echoir.asm - Page 1 - 01/15/2020 09:55:20 PM
+ AS V1.42 Beta [Bld 157] - Source File echoir.asm - Page 1 - 03/12/2020 11:32:45 PM
 
 
           0 :                             cpu     6809
@@ -61,7 +61,7 @@
 (1)       0 : =$80                IRQF_bm:        equ     %10000000 ; Interrupt Request Flag
 (1)       0 :                     
 (1)       0 :                     ;;; Data register
- AS V1.42 Beta [Bld 153] - Source File echoir.asm(mc6850.inc) - Page 2 - 01/15/2020 09:55:20 PM
+ AS V1.42 Beta [Bld 157] - Source File echoir.asm(mc6850.inc) - Page 2 - 03/12/2020 11:32:45 PM
 
 
 (1)       0 : =$FFC1              ACIA_data:      equ     ACIA+1          ; Data register
@@ -92,7 +92,7 @@
        1018 : 8E 20 00                    ldx     #rx_queue
        101B :                     receive_loop:
        101B : 1A 10                       orcc    #CC_IRQ         ; Set IRQ mask
-       101D : 17 00 4A                    lbsr    queue_remove
+       101D : 17 00 4B                    lbsr    queue_remove
        1020 : 1C EF                       andcc   #~CC_IRQ        ; Clear IRQ mask
        1022 : 24 F7                       bcc     receive_loop
        1024 :                     transmit_loop:
@@ -122,96 +122,97 @@
 (1)    1036 :                     ;;; @clobber B
 (1)    1036 :                     queue_init:
 (1)    1036 : 34 16               	pshs	x,d
-(1)    1038 :                     .clear_loop:
-(1)    1038 : 6F 80               	clr	,x+
- AS V1.42 Beta [Bld 153] - Source File echoir.asm(queue.inc) - Page 3 - 01/15/2020 09:55:20 PM
+(1)    1038 : 4F                          clra
+(1)    1039 :                     .clear_loop:
+ AS V1.42 Beta [Bld 157] - Source File echoir.asm(queue.inc) - Page 3 - 03/12/2020 11:32:45 PM
 
 
-(1)    103A : 83 00 01            	subd	#1
-(1)    103D : 26 F9               	bne	.clear_loop
-(1)    103F : 35 16               	puls	d,x
-(1)    1041 : C0 04               	subb	#queue_buf
-(1)    1043 : E7 01               	stb	queue_size,x
-(1)    1045 : 39                  	rts
-(1)    1046 :                     
-(1)    1046 :                     ;;; [queue] Add an element to queue
-(1)    1046 :                     ;;; @param X queue work space pointer
-(1)    1046 :                     ;;; @param A an element
-(1)    1046 :                     ;;; @return CC.C 0 if queue is full
-(1)    1046 :                     queue_add:
-(1)    1046 : 34 46               	pshs	u,b,a
-(1)    1048 : E6 84               	ldb	queue_len,x
-(1)    104A : E1 01               	cmpb	queue_size,x
-(1)    104C : 25 02               	blo	.add_elem
-(1)    104E : 35 C6               	puls	a,b,u,pc        ; carry is cleared
-(1)    1050 :                     .add_elem:
-(1)    1050 : 4F                  	clra
-(1)    1051 : E6 02               	ldb	queue_put,x	; 16 bits offset
-(1)    1053 : 33 04               	leau	queue_buf,x
-(1)    1055 : 33 CB               	leau	d,u
-(1)    1057 : A6 E4               	lda	,s		; an element
-(1)    1059 : A7 C4               	sta	,u
-(1)    105B : 6C 84               	inc	queue_len,x
-(1)    105D : 5C                  	incb
-(1)    105E : E7 02               	stb	queue_put,x
-(1)    1060 : E1 01               	cmpb	queue_size,x
-(1)    1062 : 25 04               	blo	.return         ; carry is set
-(1)    1064 : 6F 02               	clr	queue_put,x
-(1)    1066 : 1A 01               	orcc	#1		; set carry
-(1)    1068 :                     .return:
-(1)    1068 : 35 C6               	puls	a,b,u,pc
-(1)    106A :                     
-(1)    106A :                     ;;; [queue] Remove an element from queue
-(1)    106A :                     ;;; @param X queue work space pointer
-(1)    106A :                     ;;; @return A an element
-(1)    106A :                     ;;; @return CC.C 0 if queue is empty
-(1)    106A :                     queue_remove:
-(1)    106A : 6D 84               	tst	queue_len,x
-(1)    106C : 26 03               	bne	.remove_elem
-(1)    106E : 1C FE               	andcc	#~1		; clear carry
-(1)    1070 : 39                  	rts
-(1)    1071 :                     .remove_elem: 
-(1)    1071 : 34 44               	pshs	u,b
-(1)    1073 : 4F                  	clra
-(1)    1074 : E6 03               	ldb	queue_get,x	; 16 bits offset
-(1)    1076 : 33 04               	leau	queue_buf,x
-(1)    1078 : A6 CB               	lda	d,u
-(1)    107A : 6A 84               	dec	queue_len,x
-(1)    107C : 5C                  	incb
-(1)    107D : E7 03               	stb	queue_get,x
-(1)    107F : E1 01               	cmpb	queue_size,x
-(1)    1081 : 25 04               	blo	.return         ; carry is set
-(1)    1083 : 6F 03               	clr	queue_get,x
-(1)    1085 : 1A 01               	orcc	#1		; set carry
-(1)    1087 :                     .return:
-(1)    1087 : 35 C4                       puls	b,u,pc
-(1)    1089 :                             
-(1)    1089 :                     
- AS V1.42 Beta [Bld 153] - Source File echoir.asm(queue.inc) - Page 4 - 01/15/2020 09:55:20 PM
+(1)    1039 : 6F 80               	clr	,x+
+(1)    103B : 83 00 01            	subd	#1
+(1)    103E : 26 F9               	bne	.clear_loop
+(1)    1040 : 35 16               	puls	d,x
+(1)    1042 : C0 04               	subb	#queue_buf
+(1)    1044 : E7 01               	stb	queue_size,x
+(1)    1046 : 39                  	rts
+(1)    1047 :                     
+(1)    1047 :                     ;;; [queue] Add an element to queue
+(1)    1047 :                     ;;; @param X queue work space pointer
+(1)    1047 :                     ;;; @param A an element
+(1)    1047 :                     ;;; @return CC.C 0 if queue is full
+(1)    1047 :                     queue_add:
+(1)    1047 : 34 46               	pshs	u,b,a
+(1)    1049 : E6 84               	ldb	queue_len,x
+(1)    104B : E1 01               	cmpb	queue_size,x
+(1)    104D : 25 02               	blo	.add_elem
+(1)    104F : 35 C6               	puls	a,b,u,pc        ; carry is cleared
+(1)    1051 :                     .add_elem:
+(1)    1051 : 4F                  	clra
+(1)    1052 : E6 02               	ldb	queue_put,x	; 16 bits offset
+(1)    1054 : 33 04               	leau	queue_buf,x
+(1)    1056 : 33 CB               	leau	d,u
+(1)    1058 : A6 E4               	lda	,s		; an element
+(1)    105A : A7 C4               	sta	,u
+(1)    105C : 6C 84               	inc	queue_len,x
+(1)    105E : 5C                  	incb
+(1)    105F : E7 02               	stb	queue_put,x
+(1)    1061 : E1 01               	cmpb	queue_size,x
+(1)    1063 : 25 04               	blo	.return         ; carry is set
+(1)    1065 : 6F 02               	clr	queue_put,x
+(1)    1067 : 1A 01               	orcc	#1		; set carry
+(1)    1069 :                     .return:
+(1)    1069 : 35 C6               	puls	a,b,u,pc
+(1)    106B :                     
+(1)    106B :                     ;;; [queue] Remove an element from queue
+(1)    106B :                     ;;; @param X queue work space pointer
+(1)    106B :                     ;;; @return A an element
+(1)    106B :                     ;;; @return CC.C 0 if queue is empty
+(1)    106B :                     queue_remove:
+(1)    106B : 6D 84               	tst	queue_len,x
+(1)    106D : 26 03               	bne	.remove_elem
+(1)    106F : 1C FE               	andcc	#~1		; clear carry
+(1)    1071 : 39                  	rts
+(1)    1072 :                     .remove_elem: 
+(1)    1072 : 34 44               	pshs	u,b
+(1)    1074 : 4F                  	clra
+(1)    1075 : E6 03               	ldb	queue_get,x	; 16 bits offset
+(1)    1077 : 33 04               	leau	queue_buf,x
+(1)    1079 : A6 CB               	lda	d,u
+(1)    107B : 6A 84               	dec	queue_len,x
+(1)    107D : 5C                  	incb
+(1)    107E : E7 03               	stb	queue_get,x
+(1)    1080 : E1 01               	cmpb	queue_size,x
+(1)    1082 : 25 04               	blo	.return         ; carry is set
+(1)    1084 : 6F 03               	clr	queue_get,x
+(1)    1086 : 1A 01               	orcc	#1		; set carry
+(1)    1088 :                     .return:
+(1)    1088 : 35 C4                       puls	b,u,pc
+(1)    108A :                             
+ AS V1.42 Beta [Bld 157] - Source File echoir.asm(queue.inc) - Page 4 - 03/12/2020 11:32:45 PM
 
 
-       1089 :                     
-       1089 :                     isr_irq:
-       1089 : F6 FF C0                    ldb     ACIA_status
-       108C : C5 80                       bitb    #IRQF_bm
-       108E : 27 0D                       beq     isr_irq_return
-       1090 :                     isr_irq_receive:
-       1090 : C5 01                       bitb    #RDRF_bm
-       1092 : 27 09                       beq     isr_irq_recv_end
-       1094 : B6 FF C1                    lda     ACIA_data
-       1097 : 8E 20 00                    ldx     #rx_queue
-       109A : 17 FF A9                    lbsr    queue_add
-       109D :                     isr_irq_recv_end:
-       109D :                     isr_irq_return:
-       109D : 3B                          rti
-       109E :                     
+(1)    108A :                     
+       108A :                     
+       108A :                     isr_irq:
+       108A : F6 FF C0                    ldb     ACIA_status
+       108D : C5 80                       bitb    #IRQF_bm
+       108F : 27 0D                       beq     isr_irq_return
+       1091 :                     isr_irq_receive:
+       1091 : C5 01                       bitb    #RDRF_bm
+       1093 : 27 09                       beq     isr_irq_recv_end
+       1095 : B6 FF C1                    lda     ACIA_data
+       1098 : 8E 20 00                    ldx     #rx_queue
+       109B : 17 FF A9                    lbsr    queue_add
+       109E :                     isr_irq_recv_end:
+       109E :                     isr_irq_return:
+       109E : 3B                          rti
+       109F :                     
        FFF8 :                             org     $FFF8
-       FFF8 : 10 89                       fdb     isr_irq
+       FFF8 : 10 8A                       fdb     isr_irq
        FFFA :                     
        FFFE :                             org     $FFFE
        FFFE : 10 00                       fdb     initialize
       10000 :                     
- AS V1.42 Beta [Bld 153] - Source File echoir.asm - Page 5 - 01/15/2020 09:55:20 PM
+ AS V1.42 Beta [Bld 157] - Source File echoir.asm - Page 5 - 03/12/2020 11:32:45 PM
 
 
   Code Pages:
@@ -223,7 +224,7 @@ STANDARD (0 changed characters)
 
 0.01 seconds assembly time
 
-    201 lines source file
+    202 lines source file
       2 passes
       0 errors
       0 warnings

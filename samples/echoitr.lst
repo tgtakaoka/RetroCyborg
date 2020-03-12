@@ -1,4 +1,4 @@
- AS V1.42 Beta [Bld 153] - Source File echoitr.asm - Page 1 - 01/15/2020 09:55:20 PM
+ AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 1 - 03/12/2020 11:39:23 PM
 
 
           0 :                             cpu     6809
@@ -61,7 +61,7 @@
 (1)       0 : =$80                IRQF_bm:        equ     %10000000 ; Interrupt Request Flag
 (1)       0 :                     
 (1)       0 :                     ;;; Data register
- AS V1.42 Beta [Bld 153] - Source File echoitr.asm(mc6850.inc) - Page 2 - 01/15/2020 09:55:20 PM
+ AS V1.42 Beta [Bld 157] - Source File echoitr.asm(mc6850.inc) - Page 2 - 03/12/2020 11:39:23 PM
 
 
 (1)       0 : =$FFC1              ACIA_data:      equ     ACIA+1          ; Data register
@@ -124,7 +124,7 @@
        1048 :                     ;;; @param B uint8_t value to be printed in hex.
        1048 :                     ;;; @clobber A
        1048 :                     put_hex8:
- AS V1.42 Beta [Bld 153] - Source File echoitr.asm - Page 3 - 01/15/2020 09:55:20 PM
+ AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 3 - 03/12/2020 11:39:23 PM
 
 
        1048 : 86 30                       lda     #'0'
@@ -179,15 +179,15 @@
        108E :                     ;;; @return A
        108E :                     ;;; @return CC.C 0 if no character
        108E :                     getchar:
-       108E : 1A 01                       orcc    #1              ; set carry
+       108E : 1A 01                       orcc    #CC_CARRY       ; set carry
        1090 : 34 11                       pshs    x,cc
        1092 : 1A 10                       orcc    #CC_IRQ         ; disable IRQ
        1094 : 8E 20 00                    ldx     #rx_queue
-       1097 : 8D 53                       bsr     queue_remove
+       1097 : 8D 54                       bsr     queue_remove
        1099 : 25 02                       bcs     getchar_end
        109B : 6A E4                       dec     ,s              ; clear carry
        109D :                     getchar_end:
- AS V1.42 Beta [Bld 153] - Source File echoitr.asm - Page 4 - 01/15/2020 09:55:20 PM
+ AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 4 - 03/12/2020 11:39:23 PM
 
 
        109D : 35 91                       puls    cc,x,pc
@@ -198,7 +198,7 @@
        109F : 34 13                       pshs    x,a,cc
        10A1 : 1A 10                       orcc    #CC_IRQ         ; disable IRQ
        10A3 : 8E 20 80                    ldx     #tx_queue
-       10A6 : 17 00 1F                    lbsr    queue_add
+       10A6 : 17 00 20                    lbsr    queue_add
        10A9 : 7D 21 00                    tst     tx_int_control
        10AC : 26 08                       bne     putchar_end
        10AE : 86 B4                       lda     #RX_INT_TX_INT  ; enable Tx interrupt
@@ -223,111 +223,112 @@
 (1)    10B8 :                     ;;; @clobber B
 (1)    10B8 :                     queue_init:
 (1)    10B8 : 34 16               	pshs	x,d
-(1)    10BA :                     .clear_loop:
-(1)    10BA : 6F 80               	clr	,x+
-(1)    10BC : 83 00 01            	subd	#1
-(1)    10BF : 26 F9               	bne	.clear_loop
-(1)    10C1 : 35 16               	puls	d,x
-(1)    10C3 : C0 04               	subb	#queue_buf
-(1)    10C5 : E7 01               	stb	queue_size,x
-(1)    10C7 : 39                  	rts
-(1)    10C8 :                     
-(1)    10C8 :                     ;;; [queue] Add an element to queue
-(1)    10C8 :                     ;;; @param X queue work space pointer
-(1)    10C8 :                     ;;; @param A an element
-(1)    10C8 :                     ;;; @return CC.C 0 if queue is full
-(1)    10C8 :                     queue_add:
-(1)    10C8 : 34 46               	pshs	u,b,a
-(1)    10CA : E6 84               	ldb	queue_len,x
-(1)    10CC : E1 01               	cmpb	queue_size,x
-(1)    10CE : 25 02               	blo	.add_elem
-(1)    10D0 : 35 C6               	puls	a,b,u,pc        ; carry is cleared
-(1)    10D2 :                     .add_elem:
-(1)    10D2 : 4F                  	clra
-(1)    10D3 : E6 02               	ldb	queue_put,x	; 16 bits offset
-(1)    10D5 : 33 04               	leau	queue_buf,x
-(1)    10D7 : 33 CB               	leau	d,u
-(1)    10D9 : A6 E4               	lda	,s		; an element
-(1)    10DB : A7 C4               	sta	,u
-(1)    10DD : 6C 84               	inc	queue_len,x
- AS V1.42 Beta [Bld 153] - Source File echoitr.asm(queue.inc) - Page 5 - 01/15/2020 09:55:20 PM
+(1)    10BA : 4F                          clra
+(1)    10BB :                     .clear_loop:
+(1)    10BB : 6F 80               	clr	,x+
+(1)    10BD : 83 00 01            	subd	#1
+(1)    10C0 : 26 F9               	bne	.clear_loop
+(1)    10C2 : 35 16               	puls	d,x
+(1)    10C4 : C0 04               	subb	#queue_buf
+(1)    10C6 : E7 01               	stb	queue_size,x
+(1)    10C8 : 39                  	rts
+(1)    10C9 :                     
+(1)    10C9 :                     ;;; [queue] Add an element to queue
+(1)    10C9 :                     ;;; @param X queue work space pointer
+(1)    10C9 :                     ;;; @param A an element
+(1)    10C9 :                     ;;; @return CC.C 0 if queue is full
+(1)    10C9 :                     queue_add:
+(1)    10C9 : 34 46               	pshs	u,b,a
+(1)    10CB : E6 84               	ldb	queue_len,x
+(1)    10CD : E1 01               	cmpb	queue_size,x
+(1)    10CF : 25 02               	blo	.add_elem
+(1)    10D1 : 35 C6               	puls	a,b,u,pc        ; carry is cleared
+(1)    10D3 :                     .add_elem:
+(1)    10D3 : 4F                  	clra
+(1)    10D4 : E6 02               	ldb	queue_put,x	; 16 bits offset
+(1)    10D6 : 33 04               	leau	queue_buf,x
+(1)    10D8 : 33 CB               	leau	d,u
+(1)    10DA : A6 E4               	lda	,s		; an element
+(1)    10DC : A7 C4               	sta	,u
+ AS V1.42 Beta [Bld 157] - Source File echoitr.asm(queue.inc) - Page 5 - 03/12/2020 11:39:23 PM
 
 
-(1)    10DF : 5C                  	incb
-(1)    10E0 : E7 02               	stb	queue_put,x
-(1)    10E2 : E1 01               	cmpb	queue_size,x
-(1)    10E4 : 25 04               	blo	.return         ; carry is set
-(1)    10E6 : 6F 02               	clr	queue_put,x
-(1)    10E8 : 1A 01               	orcc	#1		; set carry
-(1)    10EA :                     .return:
-(1)    10EA : 35 C6               	puls	a,b,u,pc
-(1)    10EC :                     
-(1)    10EC :                     ;;; [queue] Remove an element from queue
-(1)    10EC :                     ;;; @param X queue work space pointer
-(1)    10EC :                     ;;; @return A an element
-(1)    10EC :                     ;;; @return CC.C 0 if queue is empty
-(1)    10EC :                     queue_remove:
-(1)    10EC : 6D 84               	tst	queue_len,x
-(1)    10EE : 26 03               	bne	.remove_elem
-(1)    10F0 : 1C FE               	andcc	#~1		; clear carry
-(1)    10F2 : 39                  	rts
-(1)    10F3 :                     .remove_elem: 
-(1)    10F3 : 34 44               	pshs	u,b
-(1)    10F5 : 4F                  	clra
-(1)    10F6 : E6 03               	ldb	queue_get,x	; 16 bits offset
-(1)    10F8 : 33 04               	leau	queue_buf,x
-(1)    10FA : A6 CB               	lda	d,u
-(1)    10FC : 6A 84               	dec	queue_len,x
-(1)    10FE : 5C                  	incb
-(1)    10FF : E7 03               	stb	queue_get,x
-(1)    1101 : E1 01               	cmpb	queue_size,x
-(1)    1103 : 25 04               	blo	.return         ; carry is set
-(1)    1105 : 6F 03               	clr	queue_get,x
-(1)    1107 : 1A 01               	orcc	#1		; set carry
-(1)    1109 :                     .return:
-(1)    1109 : 35 C4                       puls	b,u,pc
-(1)    110B :                             
-(1)    110B :                     
-       110B :                     
-       110B :                     isr_irq:
-       110B : F6 FF C0                    ldb     ACIA_status
-       110E : C5 80                       bitb    #IRQF_bm
-       1110 : 27 2B                       beq     isr_irq_return
-       1112 :                     isr_irq_receive:
-       1112 : C5 01                       bitb    #RDRF_bm
-       1114 : 27 09                       beq     isr_irq_recv_end
-       1116 : B6 FF C1                    lda     ACIA_data       ; receive character
-       1119 : 8E 20 00                    ldx     #rx_queue
-       111C : 17 FF A9                    lbsr    queue_add
-       111F :                     isr_irq_recv_end:
-       111F :                     isr_irq_send:
-       111F : C5 02                       bitb    #TDRE_bm
-       1121 : 27 1A                       beq     isr_irq_send_end
-       1123 : 8E 20 80                    ldx     #tx_queue
-       1126 : 17 FF C3                    lbsr    queue_remove
-       1129 : 24 05                       bcc     isr_irq_send_empty
-       112B : B7 FF C1                    sta     ACIA_data       ; send character
-       112E : 20 0D                       bra     isr_irq_send_end
-       1130 :                     isr_irq_send_empty:
-       1130 : 7D 21 00                    tst     tx_int_control
-       1133 : 27 08                       beq     isr_irq_send_end
-       1135 : 86 94                       lda     #RX_INT_TX_NO
-       1137 : B7 FF C0                    sta     ACIA_control    ; disable Tx interrupt
- AS V1.42 Beta [Bld 153] - Source File echoitr.asm - Page 6 - 01/15/2020 09:55:20 PM
+(1)    10DE : 6C 84               	inc	queue_len,x
+(1)    10E0 : 5C                  	incb
+(1)    10E1 : E7 02               	stb	queue_put,x
+(1)    10E3 : E1 01               	cmpb	queue_size,x
+(1)    10E5 : 25 04               	blo	.return         ; carry is set
+(1)    10E7 : 6F 02               	clr	queue_put,x
+(1)    10E9 : 1A 01               	orcc	#1		; set carry
+(1)    10EB :                     .return:
+(1)    10EB : 35 C6               	puls	a,b,u,pc
+(1)    10ED :                     
+(1)    10ED :                     ;;; [queue] Remove an element from queue
+(1)    10ED :                     ;;; @param X queue work space pointer
+(1)    10ED :                     ;;; @return A an element
+(1)    10ED :                     ;;; @return CC.C 0 if queue is empty
+(1)    10ED :                     queue_remove:
+(1)    10ED : 6D 84               	tst	queue_len,x
+(1)    10EF : 26 03               	bne	.remove_elem
+(1)    10F1 : 1C FE               	andcc	#~1		; clear carry
+(1)    10F3 : 39                  	rts
+(1)    10F4 :                     .remove_elem: 
+(1)    10F4 : 34 44               	pshs	u,b
+(1)    10F6 : 4F                  	clra
+(1)    10F7 : E6 03               	ldb	queue_get,x	; 16 bits offset
+(1)    10F9 : 33 04               	leau	queue_buf,x
+(1)    10FB : A6 CB               	lda	d,u
+(1)    10FD : 6A 84               	dec	queue_len,x
+(1)    10FF : 5C                  	incb
+(1)    1100 : E7 03               	stb	queue_get,x
+(1)    1102 : E1 01               	cmpb	queue_size,x
+(1)    1104 : 25 04               	blo	.return         ; carry is set
+(1)    1106 : 6F 03               	clr	queue_get,x
+(1)    1108 : 1A 01               	orcc	#1		; set carry
+(1)    110A :                     .return:
+(1)    110A : 35 C4                       puls	b,u,pc
+(1)    110C :                             
+(1)    110C :                     
+       110C :                     
+       110C :                     isr_irq:
+       110C : F6 FF C0                    ldb     ACIA_status
+       110F : C5 80                       bitb    #IRQF_bm
+       1111 : 27 2B                       beq     isr_irq_return
+       1113 :                     isr_irq_receive:
+       1113 : C5 01                       bitb    #RDRF_bm
+       1115 : 27 09                       beq     isr_irq_recv_end
+       1117 : B6 FF C1                    lda     ACIA_data       ; receive character
+       111A : 8E 20 00                    ldx     #rx_queue
+       111D : 17 FF A9                    lbsr    queue_add
+       1120 :                     isr_irq_recv_end:
+       1120 :                     isr_irq_send:
+       1120 : C5 02                       bitb    #TDRE_bm
+       1122 : 27 1A                       beq     isr_irq_send_end
+       1124 : 8E 20 80                    ldx     #tx_queue
+       1127 : 17 FF C3                    lbsr    queue_remove
+       112A : 24 05                       bcc     isr_irq_send_empty
+       112C : B7 FF C1                    sta     ACIA_data       ; send character
+       112F : 20 0D                       bra     isr_irq_send_end
+       1131 :                     isr_irq_send_empty:
+       1131 : 7D 21 00                    tst     tx_int_control
+       1134 : 27 08                       beq     isr_irq_send_end
+       1136 : 86 94                       lda     #RX_INT_TX_NO
+ AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 6 - 03/12/2020 11:39:23 PM
 
 
-       113A : 7F 21 00                    clr     tx_int_control
-       113D :                     isr_irq_send_end:
-       113D :                     isr_irq_return:
-       113D : 3B                          rti
-       113E :                     
+       1138 : B7 FF C0                    sta     ACIA_control    ; disable Tx interrupt
+       113B : 7F 21 00                    clr     tx_int_control
+       113E :                     isr_irq_send_end:
+       113E :                     isr_irq_return:
+       113E : 3B                          rti
+       113F :                     
        FFF8 :                             org     $FFF8
-       FFF8 : 11 0B                       fdb     isr_irq
+       FFF8 : 11 0C                       fdb     isr_irq
        FFFA :                     
        FFFE :                             org     $FFFE
        FFFE : 10 00                       fdb     initialize
       10000 :                     
- AS V1.42 Beta [Bld 153] - Source File echoitr.asm - Page 7 - 01/15/2020 09:55:20 PM
+ AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 7 - 03/12/2020 11:39:23 PM
 
 
   Code Pages:
@@ -337,9 +338,9 @@ STANDARD (0 changed characters)
 
 1 code page
 
-0.01 seconds assembly time
+0.02 seconds assembly time
 
-    311 lines source file
+    312 lines source file
       2 passes
       0 errors
       0 warnings

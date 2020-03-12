@@ -13,6 +13,7 @@ queue_buf:	equ	4	; buffer start offset
 ;;; @clobber B
 queue_init:
 	pshs	x,d
+        clra
 .clear_loop:
 	clr	,x+
 	subd	#1
