@@ -2,39 +2,12 @@
 #include <avr/pgmspace.h>
 #include <Arduino.h>
 
+#include "commands.h"
 #include "libcli.h"
 #include "mc6850.h"
 #include "pins.h"
 #include "pins_map.h"
 #include "string_util.h"
-
-class Pins Pins;
-class Mc6850 Mc6850(
-  Console,
-  Pins::ioBaseAddress(),
-  Pins::getIrqMask(Pins::ioBaseAddress()),
-  Pins::getIrqMask(Pins::ioBaseAddress() + 1));
-
-static uint8_t data;
-
-void ioRequest() {
-  const uint16_t ioAddr = Pins.ioRequestAddress();
-  const bool ioWrite = Pins.ioRequestWrite();
-  if (Mc6850.isSelected(ioAddr)) {
-    if (ioWrite) Mc6850.write(Pins.ioGetData(), ioAddr);
-    else Pins.ioSetData(Mc6850.read(ioAddr));
-  } else {
-    if (ioWrite) data = Pins.ioGetData();
-    else Pins.ioSetData(data);
-  }
-
-  Pins.acknowledgeIoRequest();
-  Pins.leaveIoRequest();
-}
-
-void Pins::loop() {
-  Mc6850.loop();
-}
 
 #define pinMode(name, mode) do {                          \
     if (mode == INPUT) PDIR(name) &= ~PIN_m(name);        \
@@ -108,11 +81,45 @@ static inline void disableRam() {
   digitalWrite(RAM_E, HIGH);
 }
 
+static inline bool userSwitchAsserted() {
+  return digitalRead(USR_SW) == LOW;
+}
 static inline void turnOnUserLed() {
   digitalWrite(USR_LED, LOW);
 }
 static inline void turnOffUserLed() {
   digitalWrite(USR_LED, HIGH);
+}
+
+class Pins Pins;
+
+class Mc6850 Mc6850(
+  Console,
+  Pins::ioBaseAddress(),
+  Pins::getIrqMask(Pins::ioBaseAddress()),
+  Pins::getIrqMask(Pins::ioBaseAddress() + 1));
+
+static uint8_t data;
+
+static void ioRequest() {
+  const uint16_t ioAddr = Pins.ioRequestAddress();
+  const bool ioWrite = Pins.ioRequestWrite();
+  if (Mc6850.isSelected(ioAddr)) {
+    if (ioWrite) Mc6850.write(Pins.ioGetData(), ioAddr);
+    else Pins.ioSetData(Mc6850.read(ioAddr));
+  } else {
+    if (ioWrite) data = Pins.ioGetData();
+    else Pins.ioSetData(data);
+  }
+
+  if (userSwitchAsserted()) {
+    enableStep();
+    detachInterrupt(INT_INTERRUPT);
+    Pins.stopRunning();
+  }
+
+  Pins.acknowledgeIoRequest();
+  Pins.leaveIoRequest();
 }
 
 uint8_t Pins::Dbus::getDbus() {
@@ -245,6 +252,9 @@ void Pins::reset(bool show) {
       ;
   }
   negateAck();
+
+  _freeRunning = false;
+  _stopRunning = false;
 }
 
 void Pins::cycle() {
@@ -272,19 +282,36 @@ void Pins::cycle() {
   _dbus.input();
 }
 
+void Pins::stopRunning() {
+  _stopRunning = true;
+}
+
+void Pins::loop() {
+  if (_freeRunning) {
+    Mc6850.loop();
+    if (userSwitchAsserted()) {
+      enableStep();
+      detachInterrupt(INT_INTERRUPT);
+      stopRunning();
+    }
+  }
+
+  if (_stopRunning) {
+    _stopRunning = false;
+    _freeRunning = false;
+    halt(false);
+    Commands.begin();
+  }
+}
+
 void Pins::run() {
-  turnOnUserLed();
   _freeRunning = true;
   attachInterrupt(INT_INTERRUPT, ioRequest, FALLING);
+  turnOnUserLed();
   negateHalt();
 }
 
 void Pins::halt(bool show) {
-  detachInterrupt(INT_INTERRUPT);
-  if (digitalRead(INT) == LOW) {
-    EIFR |= 0x02;
-    ioRequest();
-  }
   enableStep();
   while (!isIntAsserted())
     ;
@@ -301,7 +328,6 @@ void Pins::halt(bool show) {
   }
   negateAck();
   turnOffUserLed();
-  _freeRunning = false;
 }
 
 void Pins::setData(uint8_t data) {
@@ -494,14 +520,4 @@ void Pins::acknowledgeIoRequest() {
 void Pins::leaveIoRequest() {
   _dbus.input();
   negateAck();
-}
-
-void Pins::attachUserSwitch(void (*isr)()) const {
-  attachInterrupt(USR_SW_INTERRUPT, isr, FALLING);
-}
-
-void Pins::detachUserSwitch() const {
-  detachInterrupt(USR_SW_INTERRUPT);
-  while (digitalRead(USR_SW) == LOW)
-    ;
 }

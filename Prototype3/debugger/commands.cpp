@@ -394,11 +394,6 @@ static bool handleSetRegister(Cli::State state, uint16_t value, uintptr_t extra)
 }
 
 static bool commandHandler(char);
-static void haltMpu() {
-  Pins.detachUserSwitch();
-  Pins.halt();
-  Cli.readCommand(commandHandler);
-}
 
 bool Commands::exec(char c) {
   switch (c) {
@@ -461,9 +456,7 @@ bool Commands::exec(char c) {
     if (_target != RUN) {
       Cli.println(F("GO"));
       _target = RUN;
-      Pins.attachUserSwitch(haltMpu);
       Pins.run();
-      break;
     }
     return false;
   case 'h':
@@ -504,6 +497,7 @@ static void printPrompt(Stream &console) {
 void Commands::begin() {
   Cli.setPrompt(printPrompt);
   Cli.readCommand(commandHandler);
+  _target = HALT;
 }
 
 void Commands::loop() {
