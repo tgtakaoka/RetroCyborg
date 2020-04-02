@@ -472,7 +472,7 @@ void Pins::begin() {
 
   _previous.get();
 
-  Console.begin(115200);
+  Console.begin(CONSOLE_BAUD);
   Cli.begin(Console);
 
   reset();
