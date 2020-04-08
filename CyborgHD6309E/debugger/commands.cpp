@@ -24,15 +24,18 @@
 #include <Arduino.h>
 #include <string.h>
 #include <SD.h>
-#include <asm_mc6809.h>
-#include <dis_mc6809.h>
-#include <dis_memory.h>
-#include <symbol_table.h>
 
 #include "commands.h"
-#include "libcli.h"
 #include "pins.h"
 #include "regs.h"
+
+#include "src/libasm/asm_mc6809.h"
+#include "src/libasm/dis_mc6809.h"
+#include "src/libasm/dis_memory.h"
+#include "src/libcli/libcli.h"
+
+using namespace libasm;
+using namespace libasm::mc6809;
 
 #define VERSION "* CyborgHD6309 Prototype3 2.0.0"
 #define USAGE "R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:sm s/S:tep c:ont G:o h/H:alt p:ins F:iles L:oad"
@@ -119,13 +122,13 @@ static bool handleDump(Cli::State state, uint16_t value, uintptr_t extra) {
 }
 
 
-class Mc6809Memory : public DisMemory<target::uintptr_t> {
+class Mc6809Memory : public DisMemory {
 public:
   Mc6809Memory() : DisMemory(0) {}
   bool hasNext() const override {
     return true;
   }
-  void setAddress(target::uintptr_t addr) {
+  void setAddress(uint16_t addr) {
     _address = addr;
   }
 protected:
@@ -145,21 +148,21 @@ static void print(const char *text, int width) {
   }
 }
 
-static void print(const Insn& insn) {
+static void print(const Insn &insn) {
   Cli.printUint16(insn.address());
   Cli.print(':');
-  for (int i = 0; i < insn.insnLen(); i++) {
+  for (int i = 0; i < insn.length(); i++) {
     Cli.printUint8(insn.bytes()[i]);
     Cli.print(' ');
   }
-  for (int i = insn.insnLen(); i < 5; i++) {
+  for (int i = insn.length(); i < 5; i++) {
     Cli.print("   ");
   }
 }
 
 static uint16_t disassemble(uint16_t addr, uint16_t max) {
   DisMc6809 dis6809;
-  Disassembler<uint16_t> &disassembler(dis6809);
+  Disassembler &disassembler(dis6809);
   disassembler.setCpu("6309");
   class Mc6809Memory memory;
   memory.setAddress(addr);
@@ -168,7 +171,7 @@ static uint16_t disassemble(uint16_t addr, uint16_t max) {
     char operands[20];
     Insn insn;
     disassembler.decode(memory, insn, operands, nullptr, true);
-    len += insn.insnLen();
+    len += insn.length();
     print(insn);
     if (disassembler.getError()) {
       Cli.print("Error: ");
@@ -240,7 +243,7 @@ static bool handleAssembleLine(Cli::State state, char *line, uintptr_t extra) {
     return true;
   }
   AsmMc6809 as6809;
-  Assembler<uint16_t> &assembler(as6809);
+  Assembler &assembler(as6809);
   assembler.setCpu("6309");
   Insn insn;
   if (assembler.encode(line, insn, last_addr, nullptr)) {
@@ -249,8 +252,8 @@ static bool handleAssembleLine(Cli::State state, char *line, uintptr_t extra) {
   } else {
     print(insn);
     Cli.println();
-    memoryWrite(insn.address(), insn.bytes(), insn.insnLen());
-    last_addr += insn.insnLen();
+    memoryWrite(insn.address(), insn.bytes(), insn.length());
+    last_addr += insn.length();
   }
   Cli.printUint16(last_addr);
   Cli.print('?');

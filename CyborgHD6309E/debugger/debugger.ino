@@ -10,8 +10,9 @@
 */
 
 #include "commands.h"
-#include "libcli.h"
 #include "pins.h"
+
+#include "src/libcli/libcli.h"
 
 void setup() {
   Pins.begin();

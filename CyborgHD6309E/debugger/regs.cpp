@@ -1,8 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
-#include "libcli.h"
 #include "pins.h"
 #include "regs.h"
 #include "string_util.h"
+
+#include "src/libcli/libcli.h"
 
 union Regs Regs;
 

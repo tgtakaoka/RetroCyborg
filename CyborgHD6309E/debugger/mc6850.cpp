@@ -1,8 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
 
-#include "libcli.h"
 #include "mc6850.h"
 #include "pins.h"
+
+#include "src/libcli/libcli.h"
 
 //#define DEBUG_IRQ
 //#define DEBUG_STATUS

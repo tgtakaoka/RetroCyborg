@@ -1,0 +1,6 @@
+[submodule "Arduino/libraries/libcli"]
+	path = Arduino/libraries/libcli
+	url = https://github.com/tgtakaoka/libcli.git
+[submodule "Arduino/libraries/libasm"]
+	path = Arduino/libraries/libasm
+	url = https://github.com/tgtakaoka/libasm.git

@@ -3,11 +3,12 @@
 #include <Arduino.h>
 
 #include "commands.h"
-#include "libcli.h"
 #include "mc6850.h"
 #include "pins.h"
 #include "pins_map.h"
 #include "string_util.h"
+
+#include "src/libcli/libcli.h"
 
 #define pinMode(name, mode) do {                \
     if ((mode) == INPUT) {                      \
