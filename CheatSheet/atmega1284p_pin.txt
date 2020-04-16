@@ -1,0 +1,22 @@
+           ATmega1284P/MightyCore
+                 _________
+LED  D0  PB0   1|*        |40  PA0 D24 ADC0
+     D1  PB1   2|         |39  PA1 D25 ADC1
+INT2 D2  PB2   3|         |38  PA2 D26 ADC2
+     D3  PB3   4|         |37  PA3 D27 ADC3
+  SS D4  PB4   5|         |36  PA4 D28 ADC4
+MOSI D5  PB5   6|         |35  PA5 D29 ADC5
+MISO D6  PB6   7|         |34  PA6 D30 ADC6
+ SCK D7  PB7   8|         |33  PA7 D31 ADC7
+       RESET   9|         |32  AREF
+         VCC  10|         |31  GND
+         GND  11|         |30  AVCC
+       XTAL2  12|         |29  PC7 D23
+       XTAL1  13|         |28  PC6 D22
+ RXD D8  PD0  14|         |27  PC5 D21
+ TXD D9  PD1  15|         |26  PC4 D20
+INT0 D10 PD2  16|         |25  PC3 D19
+INT1 D11 PD3  17|         |24  PC2 D18
+OC1B D12 PD4  18|         |23  PC1 D17 SDA
+OC1A D13 PD5  19|         |22  PC0 D16 SCL
+OC2B D14 PD6  20|_________|21  PD7 D15 OC2A
