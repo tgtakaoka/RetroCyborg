@@ -11,7 +11,7 @@
 2IN0    A0  D22  PD0   9|         |32  GND
 2IN1    A1  D23  PD1  10|         |31  VDD
 2IN2    A2  D24  PD2  11|         |30  UPDI
-2OUT    A3  D25  PD3  12|         |29  PF6  D40        3OUT'
+2OUT    A3  D25  PD3  12|         |29  PF6  D40  RESET 3OUT'
         A4  D26  PD4  13|         |28  PF5  D39  A15   LED
         A5  D27  PD5  14|         |27  PF4  D38  A14
 2OUT'   A6  D28  PD6  15|         |26  PF3  D37  A13   3OUT
