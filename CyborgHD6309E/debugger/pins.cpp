@@ -12,27 +12,26 @@
 
 #define pinMode(name, mode) do {                \
     if ((mode) == INPUT) {                      \
-      PORT(name).DIRCLR = PIN_m(name);          \
+      PORT(name).DIRCLR = PIN_bm(name);         \
       PINCTRL(name) &= ~PORT_PULLUPEN_bm;       \
     }                                           \
     if ((mode) == INPUT_PULLUP) {               \
-      PORT(name).DIRCLR = PIN_m(name);          \
+      PORT(name).DIRCLR = PIN_bm(name);         \
       PINCTRL(name) |= PORT_PULLUPEN_bm;        \
     }                                           \
     if ((mode) == OUTPUT)                       \
-      PORT(name).DIRSET = PIN_m(name);          \
+      PORT(name).DIRSET = PIN_bm(name);         \
   } while (0)
 #define pinModeInvert(name) PINCTRL(name) |= PORT_INVEN_bm
-#define digitalRead(name) (PIN(name) & PIN_m(name))
+#define digitalRead(name) (PIN(name) & PIN_bm(name))
 #define digitalWrite(name, val) do {            \
     if ((val) == LOW) {                         \
-      PORT(name).OUTCLR = PIN_m(name);          \
+      PORT(name).OUTCLR = PIN_bm(name);         \
     } else {                                    \
-      PORT(name).OUTSET = PIN_m(name);          \
+      PORT(name).OUTSET = PIN_bm(name);         \
     }                                           \
   } while (0)
 
-#define BUS_gm(name) name##_BUS
 static void enablePullup(register8_t *pinctrl, uint8_t mask) {
   while (mask) {
     if (mask & 1) *pinctrl |= PORT_PULLUPEN_bm;
@@ -166,7 +165,6 @@ uint8_t Pins::Dbus::getDbus() {
 }
 
 void Pins::Dbus::begin() {
-  setup40pin();
   setDbus(INPUT, 0);
 }
 
@@ -221,18 +219,26 @@ void Pins::Status::get() {
   if (digitalRead(AVMA))  p |= Status::avma;
   if (digitalRead(RD_WR)) p |= Status::rw;
   _pins = p;
-  _dbus  = Dbus::getDbus();
+  _dbus = Dbus::getDbus();
+}
+
+static char *outPin(char *p, uint8_t value, const char *name) {
+  if (value) return outText(p, name);
+  for (const char *s = name; *s; s++)
+    *p++ = ' ';
+  *p = 0;
+  return p;
 }
 
 void Pins::Status::print() const {
   char buffer[32];
   char *p = buffer;
-  p = outText(p, (_pins & halt) ? " HALT" : "     ");
-  p = outText(p, (_pins & ba) ?   " BA"   : "   ");
-  p = outText(p, (_pins & bs) ?   " BS"   : "   ");
-  p = outText(p, (_pins & lic) ?  " LIC"  : "    ");
-  p = outText(p, (_pins & avma) ? " AVMA" : "     ");
-  p = outText(p, (_pins & rw) ?   " RD"   : " WR");
+  p = outPin(p, _pins & halt, " HALT");
+  p = outPin(p, _pins & ba,   " BA");
+  p = outPin(p, _pins & bs,   " BS");
+  p = outPin(p, _pins & lic,  " LIC");
+  p = outPin(p, _pins & avma, " AVMA");
+  p = outText(p, (_pins & rw) ? " RD"   : " WR");
   p = outText(p, " DB=0x");
   p = outHex8(p, _dbus);
   Cli.print(buffer);
@@ -480,6 +486,8 @@ void Pins::step(bool show) {
 }
 
 void Pins::begin() {
+  setup40pin();
+
   assertReset();
   pinMode(RESET, OUTPUT);
   negateHalt();

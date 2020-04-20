@@ -37,7 +37,7 @@
 using namespace libasm;
 using namespace libasm::mc6809;
 
-#define VERSION "* CyborgHD6309 Prototype3 2.0.0"
+#define VERSION "* CyborgHD6309E Prototype3 2.0.0"
 #define USAGE "R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:sm s/S:tep c:ont G:o h/H:alt p:ins F:iles L:oad"
 
 class Commands Commands;
@@ -272,7 +272,7 @@ static bool handleAssembler(Cli::State state, uint16_t value, uintptr_t extra) {
   return false;
 }
 
-static void handleFileListing() {
+static bool handleFileListing() {
   SD.begin();
   File root = SD.open("/");
   while (true) {
@@ -286,6 +286,7 @@ static void handleFileListing() {
     entry.close();
   }
   root.close();
+  return true;
 }
 
 static uint8_t toInt(const char c) {
@@ -318,7 +319,7 @@ static int loadS19Record(const char *line) {
   return num;
 }
 
-static bool handleLoadFile(Cli::State state, char *line, uint16_t extra) {
+static bool handleLoadFile(Cli::State state, char *line, uintptr_t extra) {
   if (state != Cli::State::CLI_NEWLINE) return false;
   uint16_t size = 0;
   SD.begin();
@@ -379,8 +380,6 @@ static bool handleSetRegister(Cli::State state, uint16_t value, uintptr_t extra)
   Regs.print();
   return true;
 }
-
-static bool commandHandler(char);
 
 bool Commands::exec(char c) {
   switch (c) {
@@ -452,8 +451,7 @@ bool Commands::exec(char c) {
     return true;
   case 'F':
     Cli.println("Files");
-    handleFileListing();
-    return true;
+    return handleFileListing();
   case 'L':
     Cli.print("Load? ");
     return Cli.readLine(handleLoadFile, 0);

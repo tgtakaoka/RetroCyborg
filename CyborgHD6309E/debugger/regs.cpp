@@ -17,7 +17,8 @@ static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {
 }
 
 void Regs::print() const {
-  char buffer[29+13*2+8+2];
+  // text=29, hex=(sizeof(bytes)-1)*2, cc=8, eos=1
+  char buffer[29 + (sizeof(bytes)-1)*2 + 8 + 1];
   char *p = buffer;
   p = outText(p, "PC="); p = outHex16(p, pc);
   p = outText(p, " S="); p = outHex16(p, s);

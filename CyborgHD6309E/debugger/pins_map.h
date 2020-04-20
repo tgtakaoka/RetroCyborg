@@ -77,7 +77,7 @@
 #define PINCTRL(name) PORT(name).__PINCTRL__(__PIN__(name))
 #define POUT(name)    __VPOUT__(__PORT__(name))
 #define PIN(name)     __VPIN__(__PORT__(name))
-#define PIN_m(name)   _BV(__PIN__(name))
+#define PIN_bm(name)  _BV(__PIN__(name))
 #define BUS_gm(name)  __BUS__(name)
 
 #endif
