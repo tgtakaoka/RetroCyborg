@@ -27,7 +27,6 @@ class Pins Pins;
     }                                           \
   } while (0)
 
-#define BUS_gm(name) name##_BUS
 static void enablePullup(register8_t *pinctrl, uint8_t mask) {
   while (mask) {
     if (mask & 1) *pinctrl |= PORT_PULLUPEN_bm;
@@ -61,7 +60,12 @@ void Pins::begin() {
   pinMode(INT, OUTPUT);
   pinMode(ACK, INPUT_PULLUP);
   pinMode(STEP, INPUT_PULLUP);
+#if defined(IOR_PIN)
+  pinMode(IOR, INPUT);
+#endif
+#if defined(IO_ADRH)
   busMode(ADRH, INPUT_PULLUP);
+#endif
 #if defined(IO_ADRM)
   busMode(ADRM, INPUT_PULLUP);
 #endif
@@ -71,6 +75,9 @@ void Pins::begin() {
 }
 
 bool Pins::isIoAddr() const {
+#if defined(IOR_PIN)
+  return digitalRead(IOR) == LOW;
+#else
   return busRead(ADRH) == IO_ADRH
 #if defined(IO_ADRM)
     && busRead(ADRM) == IO_ADRM
@@ -79,6 +86,7 @@ bool Pins::isIoAddr() const {
     && busRead(ADRL) == IO_ADRL
 #endif
     ;
+#endif
 }
 
 bool Pins::isAck() const {

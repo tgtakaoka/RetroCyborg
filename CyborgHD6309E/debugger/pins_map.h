@@ -5,52 +5,52 @@
 /* Optiboot UART1 default pins       */
 #if defined(ARDUINO_AVR_ATmega4809)
 
-#define Console      Serial2
+#define Console      Serial1
 #define CONSOLE_BAUD 115200
 
-#define HALT_PORT  D
-#define HALT_PIN   0
+#define HALT_PORT  A
+#define HALT_PIN   7
 
-#define IRQ_PORT   D
-#define IRQ_PIN    1
+#define IRQ_PORT   A
+#define IRQ_PIN    6
 
-#define BS_PORT    F
+#define BS_PORT    A
 #define BS_PIN     0
 
-#define BA_PORT    F
+#define BA_PORT    A
 #define BA_PIN     1
 
-#define LIC_PORT   F
-#define LIC_PIN    2
+#define LIC_PORT   A
+#define LIC_PIN    4
 
-#define AVMA_PORT  F
+#define AVMA_PORT  A
 #define AVMA_PIN   3
 
-#define RESET_PORT D
+#define RESET_PORT A
 #define RESET_PIN  5
 
-#define STEP_PORT  D
-#define STEP_PIN   7
+#define STEP_PORT  F
+#define STEP_PIN   2
 
-#define ACK_PORT   D
-#define ACK_PIN    6
+#define ACK_PORT   F
+#define ACK_PIN    1
 
-#define INT_PORT   D
-#define INT_PIN    3
-#define INT_INTERRUPT digitalPinToInterrupt(11)
+#define INT_PORT   F
+#define INT_PIN    0
+#define INT_INTERRUPT digitalPinToInterrupt(26)
 
-#define USR_SW_PORT D
-#define USR_SW_PIN  2
-#define USR_SW_INTERRUPT digitalPinToInterrupt(10)
+#define USR_SW_PORT F
+#define USR_SW_PIN  5
+#define USR_SW_INTERRUPT digitalPinToInterrupt(31)
 
-#define USR_LED_PORT D
+#define USR_LED_PORT F
 #define USR_LED_PIN  4
 
-#define RD_WR_PORT F
-#define RD_WR_PIN  4
+#define RD_WR_PORT A
+#define RD_WR_PIN  2
 
 #define RAM_E_PORT F
-#define RAM_E_PIN  5
+#define RAM_E_PIN  3
 
 #define ADR0_PORT  C
 #define ADR0_PIN   4
@@ -58,7 +58,7 @@
 #define ADR1_PORT  C
 #define ADR1_PIN   5
 
-#define DB_PORT    A
+#define DB_PORT    D
 #define DB_BUS     0xff
 
 #endif

@@ -1,0 +1,12 @@
+         ATtiny3216-SS
+            _____
+    VCC   1|*    |20  GND
+ SS/PA4   2|     |19  PA3/SCK
+    PA5   3|     |18  PA2/MISO
+    PA6   4|     |17  PA1/MOSI
+    PA7   5|     |16  PA0/UPDI
+    PB5   6|     |15  PC3
+    PB4   7|     |14  PC2
+RXD/PB3   8|     |13  PC1
+TXD/PB2   9|     |12  PC0
+SDA/PB1  10|_____|11  PB0/SCL

@@ -1,0 +1,9 @@
+       ATtiny1614-SS
+          _____
+  VDD   1|*    |14  GND
+  PA4   2|     |13  PA3
+  PA5   3|     |12  PA2
+  PA6   4|     |11  PA1
+  PA7   5|     |10  PA0/#RESET/UPDI
+  PB3   6|     |9   PB0
+  PB2   7|_____|8   PB1
