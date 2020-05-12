@@ -1,0 +1,22 @@
+            P80C88A
+           _________
+   GND   1|*        |40  VCC
+   A14   2|         |39  A15
+   A13   3|         |38  A16/S3
+   A12   4|         |37  A17/S4
+   A11   5|         |36  A18/S5
+   A10   6|         |35  A19/S6
+    A9   7|         |34  #SS0(HIGH)
+    A8   8|         |33  MN(#MX)
+   AD7   9|         |32  #RD
+   AD6  10|         |31  HOLD(#RQ/GT0)
+   AD5  11|         |30  HLDA(#RQ/GT1)
+   AD4  12|         |29  #WR(#LOCK)
+   AD3  13|         |28  M/#IO(#S2)
+   AD2  14|         |27  DT/#R(#S1)
+   AD1  15|         |26  #DEN(#S0)
+   AD0  16|         |25  ALE(QS0)
+   NMI  17|         |24  #INTA(QS1)
+  INTR  18|         |23  #TEST
+   CLK  19|         |22  READY
+   GND  20|_________|21  RESET

@@ -1,0 +1,28 @@
+             MC68HC11A0
+              _________
+      PA7   1|*        |48  VDD
+      PA6   2|         |47  PD5/#SS
+      PA5   3|         |46  PD4/SCK
+      PA4   4|         |45  PD3/MOSI
+      PA3   5|         |44  PD2/MISO
+      PA2   6|         |43  PD1/TxD
+      PA1   7|         |42  PD0/RxD
+      PA0   8|         |41  #IRQ
+      A15   9|         |40  #XIRQ
+      A14  10|         |39  #RESET
+      A13  11|         |38  AD7
+      A12  12|         |37  AD6
+      A11  13|         |36  AD5
+      A10  14|         |35  AD4
+       A9  15|         |34  AD3
+       A8  16|         |33  AD2
+      PE0  17|         |32  AD1
+      PE1  18|         |31  AD0
+      PE2  19|         |30  XTAL
+      PE3  20|         |29  EXTAL
+      VRL  21|         |28  R/W
+      VRH  22|         |27  E
+      VSS  23|         |26  AS
+STBY/MODB  24|_________|25  MODA/#LIR
+
+Extended Multiplex Mode (MODA/B=1/1)

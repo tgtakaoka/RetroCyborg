@@ -1,0 +1,22 @@
+            INS8060
+           _________
+  #WDS   1|*        |40  VCC
+  #RDS   2|         |39  #ADS
+ #ENIN   3|         |38  XOUT
+#ENOUT   4|         |37  XIN
+ #BREQ   5|         |36  A11
+ #HOLD   6|         |35  A10
+  #RST   7|         |34  A9
+  CONT   8|         |33  A8
+A12/D0   9|         |32  A7
+A13/D1  10|         |31  A6
+A14/D2  11|         |30  A5
+A15/D3  12|         |29  A4
+  R/D4  13|         |28  A3
+  I/D5  14|         |27  A2
+  D/D6  15|         |26  A1
+  H/D7  16|         |25  A0
+SENSEA  17|         |24  SIN
+SENSEB  18|         |23  SOUT
+ FLAG0  19|         |22  FLAG2
+   GND  20|_________|21  FLAG1

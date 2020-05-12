@@ -1,0 +1,26 @@
+         NS32016NN
+         _________
+ A22   1|*        |48  VCC
+ A21   2|         |47  A23
+ A20   3|         |46  #INT
+ A19   4|         |45  #NMI
+ A18   5|         |44  #ILO
+ A17   6|         |43  ST0
+ A16   7|         |42  ST1
+AD15   8|         |41  ST2
+AD14   9|         |40  ST3
+AD13  10|         |39  #PFS
+AD12  11|         |38  #DDIN
+AD11  12|         |37  #ADS
+AD10  13|         |36  U/#S
+ AD9  14|         |35  #AT/#SPC
+ AD8  15|         |34  #RST/#ABT
+ AD7  16|         |33  #DS/#FLT
+ AD6  17|         |32  #HBE
+ AD5  18|         |31  #HLDA
+ AD4  19|         |30  #HOLD
+ AD3  20|         |29  BBG
+ AD2  21|         |28  RDY
+ AD1  22|         |27  PHI2
+ AD0  23|         |26  PHI1
+GNDL  24|_________|25  GNDB

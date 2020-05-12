@@ -1,0 +1,26 @@
+          Z16C01/Z08001
+            _________
+    AD0   1|*        |48  AD6
+    AD9   2|         |47  SN6
+   AD10   3|         |46  SN5
+   AD11   4|         |45  AD7
+   AD12   5|         |44  AD6
+   AD13   6|         |43  AD4
+  #STOP   7|         |42  SN4
+    #MI   8|         |41  AD5
+   AD15   9|         |40  AD3
+   AD14  10|         |39  AD2
+    VCC  11|         |38  AD1
+    #VI  12|         |37  SN2
+   #NVI  13|         |36  GND
+  #SEGT  14|         |35  CLOCK
+   #NMI  15|         |34  #AS
+ #RESET  16|         |33  NC
+    #MO  17|         |32  B/W
+  #MREQ  18|         |31  N/S
+    #DS  19|         |30  R/W
+    ST3  20|         |29  #BUSACK
+    ST2  21|         |28  #WAIT
+    ST1  22|         |27  #BUSREQ
+    ST0  23|         |26  SN0
+    SN3  24|_________|25  SN1

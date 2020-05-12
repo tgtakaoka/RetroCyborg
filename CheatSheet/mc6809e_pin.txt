@@ -1,4 +1,4 @@
-           MC6809E
+       MC6809E/HD6309E
           _________
   VSS   1|*        |40  #HALT
  #NMI   2|         |39  TSC

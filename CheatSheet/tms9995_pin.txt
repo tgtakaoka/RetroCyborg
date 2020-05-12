@@ -1,0 +1,22 @@
+                 TMS9995
+                _________
+      XTAL1   1|*        |40  A15/CRUOUT
+CLKIN/XTAL2   2|         |39  A14
+     CLKOUT   3|         |38  A13
+         D7   4|         |37  A12
+         D6   5|         |36  A11
+         D5   6|         |35  A10
+         D4   7|         |34  A9
+         D3   8|         |33  A8
+         D2   9|         |32  A7
+        VCC  10|         |31  GND
+         D1  11|         |30  A6
+         D0  12|         |29  A5
+      CRUIN  13|         |28  A4
+  #INT4/#EC  14|         |27  A3
+      #INT1  15|         |26  A2
+  IAQ/HOLDA  16|         |25  A1
+      #DBIN  17|         |24  A0
+      #HOLD  18|         |23  READY
+#WE/#CRUCLK  19|         |22  #RESET
+     #MEMEN  20|_________|21  #NMI

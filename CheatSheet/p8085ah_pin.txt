@@ -1,0 +1,22 @@
+        P8085AH/M80C85AH
+           _________
+    X1   1|*        |40  VCC
+    X2   2|         |39  HOLD
+RESOUT   3|         |38  HLDA
+   SOD   4|         |37  CLKO
+   SID   5|         |36  #RESIN
+  TRAP   6|         |35  READY
+RST7.5   7|         |34  IO/M
+RST6.5   8|         |33  S1
+RST5.5   9|         |32  #RD
+  INTR  10|         |31  #WR
+ #INTA  11|         |30  ALE
+   AD0  12|         |29  S0
+   AD1  13|         |28  A15
+   AD2  14|         |27  A14
+   AD3  15|         |26  A13
+   AD4  16|         |25  A12
+   AD5  17|         |24  A11
+   AD6  18|         |23  A10
+   AD7  19|         |22  A9
+   VSS  20|_________|21  A8

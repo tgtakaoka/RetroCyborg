@@ -1,0 +1,22 @@
+                TMS999105A
+                _________
+ #WE/#IOCLK   1|*        |40  #MEM
+        #RD   2|         |39  BST1
+     #RESET   3|         |38  BST2
+       #APP   4|         |37  BST3
+      #HOLD   5|         |36  XTAL1/CLKIN
+        VSS   6|         |35  XTAL2
+      READY   7|         |34  CLKOUT
+    #INTREQ   8|         |33  VSS
+       #NMI   9|         |32  ALATCH
+        IC0  10|         |31  D15/OUT/#PSEL
+        IC1  11|         |30  D14/A14
+        IC2  12|         |29  D13/A13
+        IC3  13|         |28  D12/A12
+        R/W  14|         |27  D11/A11
+        VCC  15|         |26  D10/A10
+   IN/A0/D0  16|         |25  D9/A9
+      A1/D1  17|         |24  D8/A8
+      A2/D2  18|         |23  D7/A7
+      A3/D3  19|         |22  D6/A6
+      A4/D4  20|_________|21  D5/A5
