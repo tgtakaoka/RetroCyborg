@@ -14,7 +14,15 @@
 /* megaTinyCore + Onboard Atmel mEDBG (UNO WiFi Rev2) */
 /* using microUPDI */
 
-/* ATtinyXX2 8pin 20Mhz internal */
+/**
+ * Arduino IDE settings
+ *          Core: https://github.com/SpenceKonde/megaTinyCore
+ *         Board: ATtiny412/402/212/202
+ *          Chip: ATtiny412
+ *   Clock speed: 20MHz
+ * millis/micros: Disabled
+ *    Programmer: Atmel mEDBG (ATmega32u4)
+ */
 #if defined(__AVR_ATtiny412__) \
  || defined(__AVR_ATtiny212__)
 
@@ -39,7 +47,15 @@
 
 #endif
 
-/* ATtinyXX14 14pin 20Mhz internal */
+/**
+ * Arduino IDE settings
+ *          Core: https://github.com/SpenceKonde/megaTinyCore
+ *         Board: ATtiny1614/1604/814/804/414/404/214/204
+ *          Chip: ATtiny1614
+ *   Clock speed: 20MHz
+ * millis/micros: Disabled
+ *    Programmer: Atmel mEDBG (ATmega32u4)
+ */
 #if defined(__AVR_ATtiny1614__) \
  || defined(__AVR_ATtiny814__) \
  || defined(__AVR_ATtiny414__) \
@@ -75,7 +91,16 @@
 
 #endif
 
-/* ATtinyXX16 20pin 20MHz internal */
+/**
+ * Arduino IDE settings
+ *          Core: https://github.com/SpenceKonde/megaTinyCore
+ *         Board: ATtiny3216/1616/1606/816/806/416/406
+ *          Chip: ATtiny3216
+ *   Clock speed: 20MHz
+ * millis/micros: Disabled
+ *     Reset pin: Reset
+ *    Programmer: Atmel mEDBG (ATmega32u4)
+ */
 #if defined(__AVR_ATtiny3216__) \
  || defined(__AVR_ATtiny1616__) \
  || defined(__AVR_ATtint816__) \

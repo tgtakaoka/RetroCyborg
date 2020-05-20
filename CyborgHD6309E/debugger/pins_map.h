@@ -1,8 +1,16 @@
-#ifndef __pins_map_h__
-#define __pins_map_h__
+#ifndef __PINS_MAP_H__
+#define __PINS_MAP_H__
 
-/* ATmega4809-P 40pin 20MHz internal */
-/* Optiboot UART1 default pins       */
+/**
+ * Arduino IDE settings
+ *       Core: https://github.com/MCUdude/MegaCoreX
+ *      Board: ATmega4809
+ *      Clock: Internal 20MHz
+ *     Pinout: 40 pin standard
+ *  Reset pin: Reset
+ * Bootloader: Optiboot (UART1 default pins)
+ * Programmer: Atmel mEDBG (ATmega32u4)
+ */
 #if defined(ARDUINO_AVR_ATmega4809)
 
 #define Console      Serial1

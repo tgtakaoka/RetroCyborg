@@ -63,19 +63,6 @@ static void disableInputPin(register8_t& pinctrl) {
   pinctrl = PORT_PULLUPEN_bm | PORT_ISC_INPUT_DISABLE_gc;
 }
 
-static void setup40pin() {
-  // disable PB0~PB5
-  disableInputPin(PORTB.PIN0CTRL);
-  disableInputPin(PORTB.PIN1CTRL);
-  disableInputPin(PORTB.PIN2CTRL);
-  disableInputPin(PORTB.PIN3CTRL);
-  disableInputPin(PORTB.PIN4CTRL);
-  disableInputPin(PORTB.PIN5CTRL);
-  // disable PC6-PC7
-  disableInputPin(PORTC.PIN6CTRL);
-  disableInputPin(PORTC.PIN7CTRL);
-}
-
 static inline void assertReset() {
   digitalWrite(RESET, LOW);
 }
@@ -486,8 +473,6 @@ void Pins::step(bool show) {
 }
 
 void Pins::begin() {
-  setup40pin();
-
   assertReset();
   pinMode(RESET, OUTPUT);
   negateHalt();
