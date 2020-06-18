@@ -1,0 +1,136 @@
+| 0000~007F    |  MID | Macro instruction detection        |
+| 00 1000 wwww | LST  | Load status register               | ST=W
+| 00 1001 wwww | LWP  | Load workspace pointer             | WP=W
+| 00A0~00FF    |  MID |                                    |
+| 0100~017F    |  MID |                                    |
+| 01 10SS ssss | DIVS | Signed Divide                      | WR0:WR1=WR0*SA
+| 01 11SS ssss | MPYS | Signed Multiply                    | WR0=WR0:WR1/SA WR1=WR0:WR1%SA
+| 02 0000 wwww | LI   | Load immediate                     | W=(PC-2)
+| 0210~021F    |  MID |                                    |
+| 02 0010 wwww | AI   | Add immediate                      | W+=(PC+2)
+| 0230~023F    |  MID |                                    |
+| 02 0100 wwww | ANDI | AND immediate                      | W&=(PC+2)
+| 0250~025F    |  MID |                                    |
+| 02 0110 wwww | ORI  | OR immediate                       | W|=(PC+2)
+| 0270~027F    |  MID |                                    |
+| 02 1000 wwww | CI   | Compare immediate                  | W-(PC-2)
+| 0290~029F    |  MID |                                    |
+| 02 1010 wwww | STWP | Store workspace pointer            | W=WP
+| 02B0~02BF    |  MID |                                    |
+| 02 1100 wwww | STST | Store status register              | W=ST
+| 02D0~02DF    |  MID |                                    |
+| 02E0         | LWPI | Load workspace pointer immediate   | WP=(PC+2)
+| 02E1~02FF    |  MID |                                    |
+| 0300         | LIMI | Load interrupt mask immediate      | ST:12-15=(PC+2)
+| 0301~033F    |  MID |                                    |
+| 0340         | IDLE | Idle                               | D:0-2=2
+| 0341~035F    |  MID |                                    |
+| 0360         | RSET | Reset                              | D:0-2=3 ST:12-15=0
+| 0361~037F    |  MID |                                    |
+| 0380         | RTWP | Return workspace pointer           | WP=WR13 PC=WR14 ST=WP15
+| 0381~039F    |  MID |                                    |
+| 03A0         | CKON | User defined                       | D:0-2=5
+| 03A1~03BF    |  MID |                                    |
+| 03C0         | CKOF | User defined                       | D:0-2=6
+| 03C1~03DF    |  MID |                                    |
+| 03E0         | LREX | User defined                       | D:0-2=7
+| 03E1~03FF    |  MID |                                    |
+| 04 00SS ssss | BLWP | Branch and load workspace pointer  | WR13=WP WR14=PC WR15=ST SP=(SA) PC=(SA+2)
+| 04 01SS ssss | B    | Branch                             | PC=SA
+| 04 10SS ssss | X    | Execute                            | Execute instruction at SA
+| 04 11SS ssss | CLR  | Clear operand                      | (SA)=0
+| 05 00SS ssss | NEG  | Negate                             | (SA)=-(SA)
+| 05 01SS ssss | INV  | Invert                             | (SA)=~(SA)
+| 05 10SS ssss | INC  | Increment                          | (SA)+=1
+| 05 11SS ssss | INCT | Increment by two                   | (SA)+=2
+| 06 00SS ssss | DEC  | Decrement                          | (SA)-=1
+| 06 01SS ssss | DECT | Decrement by two                   | (SA)-=2
+| 06 10SS ssss | BL   | Branch and link                    | WR11=PC PC=SA
+| 06 11SS ssss | SWPB | Swap bytes                         | (SA)=(SA:8-15):(SA:0-7)
+| 07 00SS ssss | SETO | Set to ones                        | (SA)=0xFFFF
+| 07 01SS ssss | ABS  | Absolute value                     | (SA)=-(SA) if (SA)<0
+| 0780~07FF    |  MID |                                    |
+
+| 08 cccc wwww | SRA  | Shift right arithmetic             | W>>=c filled with MSB
+| 09 cccc wwww | SRL  | Shift right logical                | W>>=c filled with 0
+| 0A cccc wwww | SLA  | Shift left arithmetic              | W<<=c filled with 0
+| 0B cccc wwww | SRC  | Shift right circular               | W>>=c filled with shifted bits
+| 0C00~0FFF    |  MID |                                    |
+                                                           |
+| 10 nnnn nnnn | JMP  | Jump unconditional                 |
+| 11 nnnn nnnn | JLT  | Jump less than                     | !ST1&&!ST2
+| 12 nnnn nnnn | JLE  | Jump low or equal                  | !ST0||ST2
+| 13 nnnn nnnn | JEQ  | Jump equal                         | ST2
+| 14 nnnn nnnn | JHE  | Jump high or equal                 | ST0||ST2
+| 15 nnnn nnnn | JGT  | Jump greater than                  | ST1
+| 16 nnnn nnnn | JNE  | Jump not equal                     | ST2
+| 17 nnnn nnnn | JNC  | Jump no carry                      | !ST3
+| 18 nnnn nnnn | JOC  | Jump on carry                      | ST3
+| 19 nnnn nnnn | JNO  | Jump no overflow                   | !ST4
+| 1A nnnn nnnn | JL   | Jump low                           | !ST0&&!ST2
+| 1B nnnn nnnn | JH   | Jump high                          | ST0&&!ST2
+| 1C nnnn nnnn | JOP  | Jump odd parity                    | ST5
+| 1D nnnn nnnn | SBO  | Set bit to one                     | CRU[WR12+n]=1
+| 1E nnnn nnnn | SBZ  | Set bit to zero                    | CRU[WR12+n]=0
+| 1F nnnn nnnn | TB   | Test bit                           | ST2=CRU[WR12+n]
+
+| 2 00dd ddSS ssss | COC  | Compare ones corresponding     | ~D&SA
+| 2 01dd ddSS ssss | CZC  | Compare zeroes corresponding   | D&SA
+| 2 10dd ddSS ssss | XOR  | Exclusive OR                   | D^=SA
+| 2 11dd ddSS ssss | XOP  | Extended Operation             | WR13=WP WR14=PC WR15=ST WP=(0x0040+4*D) PC=(0x0042+4*D) WR11=SA
+| 3 00cc ccSS ssss | LDCR | Load communication register    | CRU[WR12:c]=SA
+| 3 01cc ccSS ssss | STCR | Store communication register   | SA=CRU[WE12:c]
+| 3 10dd ddSS ssss | MPY  | Multiply                       | D:D+1=D*S
+| 3 11dd ddSS ssss | DIV  | Divide                         | D=D:D+1/S D+1=D:D+1%S
+| 4 DDdd ddSS ssss | SZC  | Set zeroes corresponding       | DA|=SA
+| 5 DDdd ddSS ssss | SZCB | Set zeroes corresponding bytes | DA|=SA
+| 6 DDdd ddSS ssss | S    | Subtract                       | DA-=SA
+| 7 DDdd ddSS ssss | SB   | Subtract bytes                 | DA-=SA
+| 8 DDdd ddSS ssss | C    | Compare                        | DA-SA
+| 9 DDdd ddSS ssss | CB   | Compare bytes                  | DA-SA
+| A DDdd ddSS ssss | A    | Add                            | DA+=SA
+| B DDdd ddSS ssss | AB   | Add bytes                      | DA+=SA
+| C DDdd ddSS ssss | MOV  | Move                           | DA=SA
+| D DDdd ddSS ssss | MOVB | Move bytes                     | DA=SA
+| E DDdd ddSS ssss | SOC  | Set ones corresponding         | DA&=~SA
+| F DDdd ddSS ssss | SOCB | Set ones corresponding bytes   | DA&=~SA
+
+ST0  | LH  | Logical higher (unsigned comparison)
+ST1  | AGT | Arithmetical greater than (signed comparison)
+ST2  | EQ  | Equal
+ST3  | C   | Carry
+ST4  | OV  | Overflow (when using signed operations)
+ST5  | OP  | Odd parity (used with byte operations)
+ST6  | X   | XOP
+ST7  |     | reserved
+ST8  |     | reserved
+ST9  |     | reserved
+ST10 | OE  | Overflow interrupt enabled
+ST11 |     | reserved
+ST12 | IM0 | Interrupt mask (MSB)
+ST13 | IM1 | Interrupt mask
+ST14 | IM2 | Interrupt mask
+ST15 | IM3 | Interrupt mask (LSB)
+
+RESET  |                         WP=(0x0000) PC=(0x0002)
+NMI    | WR13=WP WR14=PC WR15=ST WP=(0xFFFC) PC=(0xFFFE)
+INT1   | WR13=WP WR14=PC WR15=ST WP=(0x0004) PC=(0x0006)
+MID    | WR13=WP WR14=PC WR15=ST WP=(0x0008) PC=(0x000A)
+INT3   | WR13=WP WR14=PC WR15=ST WP=(0x000C) PC=(0x000E)
+INT4   | WR13=WP WR14=PC WR15=ST WP=(0x0010) PC=(0x0012)
+XOP 0  | WR13=WP WR14=PC WR15=ST WP=(0x0040) PC=(0x0042) WR11=SA
+XOP 1  | WR13=WP WR14=PC WR15=ST WP=(0x0044) PC=(0x0046) WR11=SA
+XOP 2  | WR13=WP WR14=PC WR15=ST WP=(0x0048) PC=(0x004A) WR11=SA
+XOP 3  | WR13=WP WR14=PC WR15=ST WP=(0x004C) PC=(0x004E) WR11=SA
+XOP 4  | WR13=WP WR14=PC WR15=ST WP=(0x0050) PC=(0x0052) WR11=SA
+XOP 5  | WR13=WP WR14=PC WR15=ST WP=(0x0054) PC=(0x0056) WR11=SA
+XOP 6  | WR13=WP WR14=PC WR15=ST WP=(0x0058) PC=(0x005A) WR11=SA
+XOP 7  | WR13=WP WR14=PC WR15=ST WP=(0x005C) PC=(0x005E) WR11=SA
+XOP 8  | WR13=WP WR14=PC WR15=ST WP=(0x0060) PC=(0x0062) WR11=SA
+XOP 9  | WR13=WP WR14=PC WR15=ST WP=(0x0064) PC=(0x0066) WR11=SA
+XOP 10 | WR13=WP WR14=PC WR15=ST WP=(0x0068) PC=(0x006A) WR11=SA
+XOP 11 | WR13=WP WR14=PC WR15=ST WP=(0x006C) PC=(0x006E) WR11=SA
+XOP 12 | WR13=WP WR14=PC WR15=ST WP=(0x0070) PC=(0x0072) WR11=SA
+XOP 13 | WR13=WP WR14=PC WR15=ST WP=(0x0074) PC=(0x0076) WR11=SA
+XOP 14 | WR13=WP WR14=PC WR15=ST WP=(0x0078) PC=(0x007A) WR11=SA
+XOP 15 | WR13=WP WR14=PC WR15=ST WP=(0x007C) PC=(0x007E) WR11=SA

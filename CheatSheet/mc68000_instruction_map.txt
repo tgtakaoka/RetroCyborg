@@ -1,0 +1,261 @@
+Mnemo Siz        opecode       operand
+----- --- -------------------- -----
+ORI   BWL 0000 0000 SS MMM XXX A/I
+ORI   B   0000 0000 00 111 100 B/I CCR
+ORI    W  0000 0000 01 111 100 W/I SR
+ANDI  BWL 0000 0010 SS MMM XXX A/I
+ANDI  B   0000 0010 00 111 100 B/I CCR
+ANDI   W  0000 0010 01 111 100 W/I SR
+SUBI  BWL 0000 0100 SS MMM XXX A/I
+ADDI  BWL 0000 0110 SS MMM XXX A/I
+EORI  BWL 0000 1010 SS MMM XXX A/I
+EORI  B   0000 1010 00 111 100 B/I CCR
+EORI   W  0000 1010 01 111 100 W/I SR
+CMPI  BWL 0000 1100 SS MMM XXX A/I
+BTST  B L 0000 1000 00 MMM XXX B/N
+BTST  B L 0000 DDD1 00 MMM XXX
+BCHG  B L 0000 1000 01 MMM XXX B/N
+BCHG  B L 0000 DDD1 01 MMM XXX
+BCLR  B L 0000 1000 10 MMM XXX B/N
+BCLR  B L 0000 DDD1 10 MMM XXX
+BSET  B L 0000 1000 11 MMM XXX B/N
+BSET  B L 0000 DDD1 11 MMM XXX
+MOVEP  WL 0000 DDD1 dS 001 AAA W/D
+MOVEA  WL 00SS AAA0 01 MMM XXX
+MOVE  BWL 00SS xxxm mm MMM XXX
+MOVE   W  0100 0000 11 MMM XXX     SR->X
+MOVE  B   0100 0100 11 MMM XXX     X->CCR
+MOVE   W  0100 0110 11 MMM XXX     X->SR
+NEGX  BWL 0100 0000 SS MMM XXX
+CLR   BWL 0100 0010 SS MMM XXX
+NEG   BWL 0100 0100 SS MMM XXX
+NOT   BWL 0100 0110 SS MMM XXX
+EXT    WL 0100 1000 1S 000 DDD
+NBCD  B   0100 1000 00 MMM XXX
+SWAP   W  0100 1000 01 000 DDD
+PEA     L 0100 1000 01 MMM XXX
+TAS   B   0100 1010 11 MMM XXX
+TST   BWL 0100 1010 SS MMM XXX
+TRAP      0100 1110 01 00V VVV
+LINK   W  0100 1110 01 010 AAA W/D
+UNLK      0100 1110 01 011 AAA
+MOVE    L 0100 1110 01 10d AAA     USP<>A
+RESET     0100 1110 01 110 000
+NOP       0100 1110 01 110 001
+STOP      0100 1110 01 110 010 W/I
+RTE       0100 1110 01 110 011
+RTS       0100 1110 01 110 101
+TRAPV     0100 1110 01 110 110
+RTR       0100 1110 01 110 111
+JSR       0100 1110 10 MMM XXX
+JMP       0100 1110 11 MMM XXX
+MOVEM  WL 0100 1d00 1S MMM XXX W/M
+LEA     L 0100 AAA1 11 MMM XXX
+CHK    W  0100 DDD1 10 MMM XXX
+ADDQ  BWL 0101 ddd0 SS MMM XXX
+SUBQ  BWL 0101 ddd1 SS MMM XXX
+Scc   B   0101 CCCC 11 MMM XXX
+DBcc   W  0101 CCCC 11 001 DDD
+BRA   BW  0110 0000 dd ddd ddd (W/D)
+BSR   BW  0110 0001 dd ddd ddd (W/D)
+Bcc   BW  0110 CCCC dd ddd ddd (W/D)
+MOVEQ   L 0111 DDD0 dd ddd ddd
+DIVU   W  1000 DDD0 11 MMM XXX
+DIVS   W  1000 DDD1 11 MMM XXX
+SBCD  B   1000 XXX1 00 00M XXX
+OR    BWL 1000 DDDd SS MMM XXX
+SUB   BWL 1001 DDDd SS MMM XXX
+SUBX  BWL 1001 xxx1 SS 00M XXX
+SUBA   WL 1001 AAAS 11 MMM XXX
+EOR   BWL 1011 DDD1 SS MMM XXX
+CMPM  BWL 1011 AAA1 SS 001 AAA
+CMP   BWL 1011 DDD0 SS MMM XXX
+CMPA   WL 1011 AAAS 11 MMM XXX
+MULU   W  1100 DDD0 11 MMM XXX
+MULS   W  1100 DDD1 11 MMM XXX
+ABCD  B   1100 XXX1 00 00M YYY
+EXG     L 1100 XXX1 mm 00m XXX
+AND   BWL 1100 DDDd SS MMM XXX
+ADD   BWL 1101 DDDd SS MMM XXX
+ADDX  BWL 1101 XXX1 SS 00M YYY
+ADDA   WL 1101 AAAS 11 MMM XXX
+ASd   BWL 1110 000d 11 MMM XXX
+ASd   BWL 1110 rrrd SS M00 DDD
+LSd   BWL 1110 001d 11 MMM XXX
+LSd   BWL 1110 rrrd SS M01 DDD
+ROXd  BWL 1110 010d 11 MMM XXX
+ROXd  BWL 1110 rrrd SS M10 DDD
+ROd   BWL 1110 011d 11 MMM XXX
+ROd   BWL 1110 rrrd SS M11 DDD
+
+
+ABCD.B     Dy,Dx               Dx+=Dy+X
+ABCD.B     -(Ay),-(Ax)         <eax>+=<eay>+X
+ADD.[BWL]  <ea>,Dn             Dn+=<ea>
+ADD.[BWL]  Dn,<ea>             <ea>+=Dn
+ADDA.[WL]  <ea>,An             An+=<ea>
+ADDI.[BWL] #<data>,<ea>        <ea>+=<data>
+ADDQ.[BWL] #<data>,<ea>        <ea>+=<data>
+ADDX.[BWL] Dy,Dx               Dx+=Dy+X
+ADDX.[BWL] -(Ay),-(Ax)         <eax>+=<eay>+X
+AND.[BWL]  <ea>,Dn             Dn&=<ea>
+AND.[BWL]  Dn,<ea>             <ea>&=Dn
+ANDI.[BWL] #<data>,<ea>        <ea>&=<data>
+ANDI.B     #<data>,CCR         CCR&=<data>
+ANDI.W     #<data>,SR          SR&=<data>
+ASL.[BWL]  Dx,Dy               Dy<<=Dx
+ASL.[BWL]  #<data>,Dy          Dy<<=<data>
+ASL.W      <ea>                <ea><<=1
+ASR.[BWL]  Dx,Dy               Dy>>=Dx
+ASR.[BWL]  #<data>,Dy          Dy>>=<data>
+ASR.W      <ea>                <ea>>>=1
+BCC.[BW]   <label>             PC+=dn if carry clear
+BCS.[BW]   <label>             PC+=dn if carry set
+BEQ.[BW]   <label>             PC+=dn if equal
+BGE.[BW]   <label>             PC+=dn if greater or equal
+BGT.[BW]   <label>             PC+=dn if greater than
+BHI.[BW]   <label>             PC+=dn if high
+BLE.[BW]   <label>             PC+=dn if less or equal
+BLS.[BW]   <label>             PC+=dn if low or same
+BLT.[BW]   <label>             PC+=dn if less than
+BMI.[BW]   <label>             PC+=dn if minus
+BNE.[BW]   <label>             PC+=dn if not equal
+BPL.[BW]   <label>             PC+=dn if plus
+BVC.[BW]   <label>             PC+=dn if overflow clear
+BVS.[BW]   <label>             PC+=dn if overflow set
+BRA.[BW]   <label>             PC+=dn
+BSR.[BW]   <label>             *--SP=PC PC+=dn
+BCHG.L     Dn,Dx               Dx^=(1<<Dn)
+BCHG.B     Dn,<ea>             <ea>^=(1<<Dn)
+BCHG.L     #<data>,Dx          Dx^=(1<<<data>)
+BCHG.B     #<data>,<ea>        <ea>^=(1<<<data>)
+BCLR.L     Dn,Dx               Dx&=~(1<<Dn)
+BCLR.B     Dn,<ea>             <ea>&=~(1<<Dn)
+BCLR.L     #<data>,Dx          Dx&=~(1<<<data>)
+BCLR.B     #<data>,<ea>        <ea>&=~(1<<<data>)
+BSET.L     Dn,Dx               Dx|=(1<<Dn)
+BSET.B     Dn,<ea>             <ea>|=(1<<Dn)
+BSET.L     #<data>,Dx          Dx|=(1<<<data>)
+BSET.B     #<data>,<ea>        <ea>|=(1<<<data>)
+BTST.L     Dn,Dx               Z=(Dx&~(1<<Dn))
+BTST.B     Dn,<ea>             Z=(<ea>&~(1<<Dn))
+BTST.L     #<data>,Dx          Z=(Dx&~(1<<<data>))
+BTST.B     #<data>,<ea>        Z=(<ea>&~(1<<<data>))
+CHK.W      <ea>,Dn             if(Dn<0 || Dn><ea>) TRAP
+CLR.[BWL]  <ea>                <ea>=0
+CMP.[BWL]  <ea>,Dn             CCR=Dn-<ea>
+CMPA.[WL]  <ea>,An             CCR=An-<ea>
+CMPI.[BWL] #<data>,<ea>        CCR=<ea>-<data>
+CMPM.[BWL] (Ay)+,(Ax)+         CCR=<eax>-<eay>
+DBCC.W     Dn,<label>          if(!carry clear && --Dn!=-1) PC+=dn
+DBCS.W     Dn,<label>          if(!carry set && --Dn!=-1) PC+=dn
+DBEQ.W     Dn,<label>          if(!equal && --Dn!=-1) PC+=dn
+DBGE.W     Dn,<label>          if(!greater or equal && --Dn!=-1) PC+=dn
+DBGT.W     Dn,<label>          if(!greater than && --Dn!=-1) PC+=dn
+DBHI.W     Dn,<label>          if(!high && --Dn!=-1) PC+=dn
+DBLE.W     Dn,<label>          if(!less or equal && --Dn!=-1) PC+=dn
+DBLS.W     Dn,<label>          if(!low or same && --Dn!=-1) PC+=dn
+DBLT.W     Dn,<label>          if(!less than && --Dn!=-1) PC+=dn
+DBMI.W     Dn,<label>          if(!minus && --Dn!=-1) PC+=dn
+DBNE.W     Dn,<label>          if(!not equal && --Dn!=-1) PC+=dn
+DBPL.W     Dn,<label>          if(!plus && --Dn!=-1) PC+=dn
+DBVC.W     Dn,<label>          if(!overflow clear && --Dn!=-1) PC+=dn
+DBVS.W     Dn,<label>          if(!overflow set && --Dn!=-1) PC+=dn
+DBT.W      Dn,<label>          nop
+DBF.W      Dn,<label>          if(--Dn!=-1) PC+=dn
+DBRA.W     Dn,<label>          if(--Dn!=-1) PC+=dn
+DIVS.W     <ea>,Dn             Dn=Dn%<ea>:Dn/<ea>
+DIVU.W     <ea>,Dn             Dn=Dn%<ea>:Dn/<ea>
+EOR.[BWL]  Dn,<ea>             <ea>^=Dn
+EORI.[BWL] #<data>,<ea>        <ea>^=<data>
+EORI.B     #<data>,CCR         CCR^=<data>
+EORI.W     #<data>,SR          SR^=<data>
+EXG.L      Dx,Dy               Dx<->Dy
+EXG.L      Ax,Ay               Ax<->Ay
+EXG.L      Dx,Ay               Dx<->Ay
+EXT.W      Dn                  sign extend byte to word
+EXT.L      Dn                  sign extend word to long word
+ILLEGAL                        *--SP.W=<fmt>|<vect> *--SP.L=PC *--SP.W=SR
+JMP        <ea>                PC=<ea>
+JSR        <ea>                *--SP=PC PC=<ea>
+LEA.L      <ea>,An             An=<ea>
+LINK       An,#<d>             *--SP=An An=SP SP+=d
+LSL.[BWL]  Dx,Dy               Dy<<=Dx
+LSL.[BWL]  #<data>,Dy          Dy<<=<data>
+LSL.W      <ea>                <ea><<=1
+LSR.[BWL]  Dx,Dy               Dy>>=Dx
+LSR.[BWL]  #<data>,Dy          Dy>>=<data>
+LSR.W      <ea>                <ea>>>=1
+MOVE.[BWL] <eax>,<eay>         <eay>=<eax>
+MOVEA.[WL] <ea>,An             An=<ea>
+MOVE.W     <ea>,CCR            CCR=low(<ea>)
+MOVE.W     SR,<ea>             <ea>=SR
+MOVE.W     <ea>,SR             SR=<ea>
+MOVE.L     USP,An              An=USP
+MOVE.L     An,USP              USP=An
+MOVEM.[WL] <list>,<ea>         <ea>[]=<list>
+MOVEM.[WL] <ea>,<list>         <list>=<ea>[]
+MOVEP.[WL] Dn,(d16,An)         (d16,An)=Dn
+MOVEP.[WL] (d16,An),Dn         Dn=(d16,An)
+MOVEQ.L    #<data>,Dn          Dn=<data>
+MULS.W     <ea>,Dn             Dn*=<ea>
+MULU.W     <ea>,Dn             Dn*=<ea>
+NBCD.B     <ea>                <ea>=0-<ea>-X
+NEG.[BWL]  <ea>                <ea>=0-<ea>
+NEGX.[BWL] <ea>                <ea>=0-<ea>-X
+NOP                            nop
+NOT.[BWL]  <ea>                <ea>=~<ea>
+OR.[BWL]   <ea>,Dn             Dn|=<ea>
+OR.[BWL]   Dn,<ea>             <ea>|=Dn
+ORI.[BWL]  #<data>,<ea>        <ea>|=<data>
+ORI.B      #<data>,CCR         CCR|=<data>
+ORI.W      #<data>,SR          SR|=<data>
+PEA.L      <ea>                *--SP=<ea>
+RESET                          assert #RESET
+ROL.[BWL]  Dx,Dy               Dy<<=Dx
+ROL.[BWL]  #<data>,Dy          Dy<<=<data>
+ROL.W      <ea>                <ea><<=1
+ROR.[BWL]  Dx,Dy               Dy>>=Dx
+ROR.[BWL]  #<data>,Dy          Dy>>=<data>
+ROR.W      <ea>                <ea>>>=1
+ROXL.[BWL] Dx,Dy               Dy:X<<=Dx
+ROXL.[BWL] #<data>,Dy          Dy:X<<=<data>
+ROXL.W     <ea>                <ea>:X<<=1
+ROXR.[BWL] Dx,Dy               X:Dy>>=Dx
+ROXR.[BWL] #<data>,Dy          X:Dy>>=<data>
+ROXR.W     <ea>                X:<ea>>>=1
+RTE                            SR=*SP.W++ PC=*SP.L++ SP++
+RTR                            CCR=*SP.W++ PC=*SP.L++
+RTS                            PC=*SP.L++
+SBCD.B     Dx,Dy               Dy-=Dx+X
+SBCD.B     -(Ax),-(Ay)         <eay>-=<eax>+X
+SCC.B      <ea>                <ea>=(carry clear) ? 1 : 0
+SCS.B      <ea>                <ea>=(carry set) ? 1 : 0
+SEQ.B      <ea>                <ea>=(equal) ? 1 : 0
+SGE.B      <ea>                <ea>=(greater or equal) ? 1 : 0
+SGT.B      <ea>                <ea>=(greater) ? 1 : 0
+SHI.B      <ea>                <ea>=(high) ? 1 : 0
+SLE.B      <ea>                <ea>=(less or equal) ? 1 : 0
+SLS.B      <ea>                <ea>=(low or same) ? 1 : 0
+SLT.B      <ea>                <ea>=(less than) ? 1 : 0
+SMI.B      <ea>                <ea>=(minus) ? 1 : 0
+SNE.B      <ea>                <ea>=(not equal) ? 1 : 0
+SPL.B      <ea>                <ea>=(plus) ? 1 : 0
+SVC.B      <ea>                <ea>=(overflow clear) ? 1 : 0
+SVS.B      <ea>                <ea>=(overflow set) ? 1 : 0
+ST.B       <ea>                <ea>=1
+SF.B       <ea>                <ea>=0
+STOP       #<data>             SR=<data> STOP
+SUB.[BWL]  <ea>,Dn             Dn-=<ea>
+SUB.[BWL]  Dn,<ea>             <ea>-=Dn
+SUBA.[WL]  <ea>,An             An-=<ea>
+SUBI.[BWL] #<data>,<ea>        <ea>-=<data>
+SUBQ.[BWL] #<data>,<ea>        <ea>-=<data>
+SUBX.[BWL] Dy,Dx               Dx-=Dy+X
+SUBX.[BWL] -(Ay),-(Ax)         <eax>-=<eay>+X
+TAS.B      <ea>                CCR=<ea> <ea>|=0x80
+TRAP       #<vect>             SR:S=1 *--SP.L=PC *--SP.W=SR PC=<vect>
+TRAPV                          TRAP #7 if V
+TST.[BWL]  <ea>                CCR=<ea>
+UNLK       An                  SP=An An=*SP++
+
