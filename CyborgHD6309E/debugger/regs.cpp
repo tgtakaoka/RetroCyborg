@@ -5,6 +5,8 @@
 
 #include "src/libcli/libcli.h"
 
+extern libcli::Cli Cli;
+
 union Regs Regs;
 
 static char bit1(uint8_t v, char name) {

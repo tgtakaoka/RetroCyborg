@@ -10,6 +10,8 @@
 
 #include "src/libcli/libcli.h"
 
+extern libcli::Cli Cli;
+
 #define pinMode(name, mode) do {                \
     if ((mode) == INPUT) {                      \
       PORT(name).DIRCLR = PIN_bm(name);         \

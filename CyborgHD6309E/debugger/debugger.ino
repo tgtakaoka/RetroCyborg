@@ -14,6 +14,8 @@
 
 #include "src/libcli/libcli.h"
 
+libcli::Cli Cli;
+
 void setup() {
   Pins.begin();
   Commands.begin();
