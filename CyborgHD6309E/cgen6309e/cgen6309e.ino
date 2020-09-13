@@ -74,6 +74,10 @@
 
 #define OPTIMIZED_ASM 1
 
+#if OPTIMIZED_ASM
+#include "pins_base.h"
+#endif
+
 void setup() {
   noInterrupts();
   Pins.begin();               // QE=LL (0)
@@ -92,7 +96,7 @@ void loop() {
 #endif
 
 #if OPTIMIZED_ASM
-  uint8_t tmp;
+  uint8_t tmp = 0;
   asm volatile(
     " rjmp L%=_check_step"           "\n"
 

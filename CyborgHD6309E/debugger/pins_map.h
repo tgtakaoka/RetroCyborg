@@ -1,8 +1,12 @@
 #ifndef __PINS_MAP_H__
 #define __PINS_MAP_H__
 
+#define __concat2__(a, b)    a##b
+#define __concat3__(a, b, c) a##b##c
+
 /**
  * Arduino IDE settings
+ *       FQBN: megaCoreX:megaavr:4809:clock=internal_20MHz,pinout=40pin_standard,resetpin=reset,bootloader=uart1_default
  *       Core: https://github.com/MCUdude/MegaCoreX
  *      Board: ATmega4809
  *      Clock: Internal 20MHz
@@ -71,21 +75,76 @@
 
 #endif
 
-#define __concat2__(a, b)    a##b
-#define __concat3__(a, b, c) a##b##c
+/**
+ * Arduino IDE settings
+ *         FQBN: MightyCore:avr:1284:clock=16MHz_external,variant=modelP,pinout=standard,bootloader=uart0,LTO=Os_flto
+ *         Core: https://github.com/MCUdude/MightyCore
+ *        Board: ATmega1284
+ *        Clock: External 16MHz
+ * Compiler LTO: LTO Enabled
+ *      Variant: 1284P
+ *       Pinout: Standard pinout
+ *   Bootloader: Yes (UART0)
+ *   Programmer: Arduino as ISP (MightyCore)
+ */
+#if defined(ARDUINO_AVR_ATmega1284)
 
-#define __PIN__(name)  name##_PIN
-#define __BUS__(name)  name##_BUS
-#define __PORT__(name) name##_PORT
-#define __PSTRUCT__(port) __concat2__(PORT, port)
-#define __PINCTRL__(pin)  __concat3__(PIN, pin, CTRL)
-#define __VPOUT__(port)   __concat3__(VPORT, port, _OUT)
-#define __VPIN__(port)    __concat3__(VPORT, port, _IN)
-#define PORT(name)    __PSTRUCT__(__PORT__(name))
-#define PINCTRL(name) PORT(name).__PINCTRL__(__PIN__(name))
-#define POUT(name)    __VPOUT__(__PORT__(name))
-#define PIN(name)     __VPIN__(__PORT__(name))
-#define PIN_bm(name)  _BV(__PIN__(name))
-#define BUS_gm(name)  __BUS__(name)
+#define Console      Serial
+#define CONSOLE_BAUD 115200
+
+#define HALT_PORT  B
+#define HALT_PIN   0
+
+#define IRQ_PORT   B
+#define IRQ_PIN    1
+
+#define BS_PORT    C
+#define BS_PIN     7
+
+#define BA_PORT    C
+#define BA_PIN     5
+
+#define LIC_PORT   D
+#define LIC_PIN    5
+
+#define AVMA_PORT  C
+#define AVMA_PIN   4
+
+#define RESET_PORT B
+#define RESET_PIN  2
+
+#define STEP_PORT  D
+#define STEP_PIN   7
+
+#define ACK_PORT   D
+#define ACK_PIN    6
+
+#define INT_PORT   D
+#define INT_PIN    3
+#define INT_INTERRUPT digitalPinToInterrupt(11)
+
+#define USR_SW_PORT D
+#define USR_SW_PIN  2
+#define USR_SW_INTERRUPT digitalPinToInterrupt(10)
+
+#define USR_LED_PORT D
+#define USR_LED_PIN  4
+
+#define RD_WR_PORT B
+#define RD_WR_PIN  3
+
+#define RAM_E_PORT C
+#define RAM_E_PIN  6
+
+#define ADR0_PORT  C
+#define ADR0_PIN   3
+
+#define ADR1_PORT  C
+#define ADR1_PIN   2
+
+#define DB_PORT    A
+#define DB_BUS     0xFF
+
+#endif
 
 #endif

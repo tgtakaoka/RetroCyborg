@@ -2,57 +2,10 @@
 #include <Arduino.h>
 
 #include "pins.h"
+#include "pins_base.h"
 #include "pins_map.h"
 
 class Pins Pins;
-
-#define pinMode(name, mode) do {                \
-    if ((mode) == INPUT) {                      \
-      PORT(name).DIRCLR = PIN_m(name);          \
-      PINCTRL(name) &= ~PORT_PULLUPEN_bm;       \
-    } else if ((mode) == INPUT_PULLUP) {        \
-      PORT(name).DIRCLR = PIN_m(name);          \
-      PINCTRL(name) |= PORT_PULLUPEN_bm;        \
-    } else if ((mode) == OUTPUT) {              \
-      PORT(name).DIRSET = PIN_m(name);          \
-    }                                           \
-  } while (0)
-#define pinModeInvert(name) PINCTRL(name) |= PORT_INVEN_bm
-#define digitalRead(name) (PIN(name) & PIN_m(name))
-#define digitalWrite(name, val) do {            \
-    if ((val) == LOW) {                         \
-      POUT(name) &= ~PIN_m(name);               \
-    } else {                                    \
-      POUT(name) |= PIN_m(name);                \
-    }                                           \
-  } while (0)
-
-static void enablePullup(register8_t *pinctrl, uint8_t mask) {
-  while (mask) {
-    if (mask & 1) *pinctrl |= PORT_PULLUPEN_bm;
-    pinctrl++;
-    mask >>= 1;
-  }
-}
-#define busMode(name, mode) do {                        \
-    if ((mode) == INPUT) {                              \
-      PORT(name).DIRCLR = BUS_gm(name);                 \
-    } else if ((mode) == INPUT_PULLUP) {                \
-      PORT(name).DIRCLR = BUS_gm(name);                 \
-      enablePullup(&PORT(name).PIN0CTRL, BUS_gm(name)); \
-    } else if ((mode) == OUTPUT) {                      \
-      PORT(name).DIRSET = BUS_gm(name);                 \
-    }                                                   \
-  } while (0)
-#define busRead(name) (PIN(name) & BUS_gm(name))
-#define busWrite(name, val) do {                  \
-    if (BUS_gm(name) == 0xFF) {                   \
-      PORT(name).OUT = (val);                     \
-    } else {                                      \
-      PORT(name).OUTSET =  (val) & BUS_gm(name);  \
-      PORT(name).OUTCLR = ~(val) & BUS_gm(name);  \
-    }                                             \
-  } while (0);
 
 void Pins::begin() {
   pinMode(CLK_E, OUTPUT);

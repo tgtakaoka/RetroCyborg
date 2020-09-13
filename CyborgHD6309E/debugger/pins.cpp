@@ -5,65 +5,13 @@
 #include "commands.h"
 #include "mc6850.h"
 #include "pins.h"
+#include "pins_base.h"
 #include "pins_map.h"
 #include "string_util.h"
 
 #include "src/libcli/libcli.h"
 
 extern libcli::Cli Cli;
-
-#define pinMode(name, mode) do {                \
-    if ((mode) == INPUT) {                      \
-      PORT(name).DIRCLR = PIN_bm(name);         \
-      PINCTRL(name) &= ~PORT_PULLUPEN_bm;       \
-    }                                           \
-    if ((mode) == INPUT_PULLUP) {               \
-      PORT(name).DIRCLR = PIN_bm(name);         \
-      PINCTRL(name) |= PORT_PULLUPEN_bm;        \
-    }                                           \
-    if ((mode) == OUTPUT)                       \
-      PORT(name).DIRSET = PIN_bm(name);         \
-  } while (0)
-#define pinModeInvert(name) PINCTRL(name) |= PORT_INVEN_bm
-#define digitalRead(name) (PIN(name) & PIN_bm(name))
-#define digitalWrite(name, val) do {            \
-    if ((val) == LOW) {                         \
-      PORT(name).OUTCLR = PIN_bm(name);         \
-    } else {                                    \
-      PORT(name).OUTSET = PIN_bm(name);         \
-    }                                           \
-  } while (0)
-
-static void enablePullup(register8_t *pinctrl, uint8_t mask) {
-  while (mask) {
-    if (mask & 1) *pinctrl |= PORT_PULLUPEN_bm;
-    pinctrl++;
-    mask >>= 1;
-  }
-}
-#define busMode(name, mode) do {                        \
-    if ((mode) == INPUT) {                              \
-      PORT(name).DIRCLR = BUS_gm(name);                 \
-    } else if ((mode) == INPUT_PULLUP) {                \
-      PORT(name).DIRCLR = BUS_gm(name);                 \
-      enablePullup(&PORT(name).PIN0CTRL, BUS_gm(name)); \
-    } else if ((mode) == OUTPUT) {                      \
-      PORT(name).DIRSET = BUS_gm(name);                 \
-    }                                                   \
-  } while (0)
-#define busRead(name) (PORT(name).IN & BUS_gm(name))
-#define busWrite(name, val) do {                  \
-    if (BUS_gm(name) == 0xFF) {                   \
-      PORT(name).OUT = (val);                     \
-    } else {                                      \
-      PORT(name).OUTSET =  (val) & BUS_gm(name);  \
-      PORT(name).OUTCLR = ~(val) & BUS_gm(name);  \
-    }                                             \
-  } while (0);
-
-static void disableInputPin(register8_t& pinctrl) {
-  pinctrl = PORT_PULLUPEN_bm | PORT_ISC_INPUT_DISABLE_gc;
-}
 
 static inline void assertReset() {
   digitalWrite(RESET, LOW);
