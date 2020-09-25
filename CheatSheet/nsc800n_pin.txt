@@ -1,0 +1,22 @@
+        NSC800N (Z80)
+          _________
+   A8   1|*        |40  VCC
+   A9   2|         |39  #PS
+  A10   3|         |38  #WAIT
+  A11   4|         |37  RESET OUT
+  A12   5|         |36  #BREQ
+  A13   6|         |35  #BACK
+  A14   7|         |34  IO/#M
+  A15   8|         |33  #RESET IN
+  CLK   9|         |32  #RD
+ XOUT  10|         |31  #WR
+  XIN  11|         |30  ALE
+  AD0  12|         |29  S0
+  AD1  13|         |28  #RFSH
+  AD2  14|         |27  S1
+  AD3  15|         |26  #INTA
+  AD4  16|         |25  #INTR
+  AD5  17|         |24  #RSTC
+  AD6  18|         |23  #RSTB
+  AD7  19|         |22  #RSTA
+  GND  20|_________|21  #NMI
