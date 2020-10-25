@@ -87,7 +87,8 @@
  *   Bootloader: Yes (UART0)
  *   Programmer: Arduino as ISP (MightyCore)
  */
-#if defined(ARDUINO_AVR_ATmega1284)
+#if defined(ARDUINO_AVR_ATmega1284) \
+    || defined(ARDUINO_AVR_ATmega644)
 
 #define Console      Serial
 #define CONSOLE_BAUD 115200

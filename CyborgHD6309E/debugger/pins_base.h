@@ -4,7 +4,7 @@
 #define __concat2__(a, b)    a##b
 #define __concat3__(a, b, c) a##b##c
 
-#if defined(ARDUINO_AVR_ATmega4809)
+#if defined(VPORTA)
 
 #define __PIN__(name)  name##_PIN
 #define __BUS__(name)  name##_BUS
@@ -69,9 +69,7 @@ static void enablePullup(register8_t *pinctrl, uint8_t mask) {
     }                                             \
   } while (0);
 
-#endif
-
-#if defined(ARDUINO_AVR_ATmega1284)
+#else
 
 #define __PIN__(name)  name##_PIN
 #define __BUS__(name)  name##_BUS

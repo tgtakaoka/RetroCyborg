@@ -136,12 +136,12 @@ public:
     return true;
   }
   void setAddress(uint16_t addr) {
-    _address = addr;
+    resetAddress(addr);
   }
 protected:
   uint8_t nextByte() {
     Regs.save();
-    execInst3(0xB6, _address); // LDA $_address
+    execInst3(0xB6, address()); // LDA $_address
     uint8_t data = Pins.dbus();
     Regs.restore();
     return data;
