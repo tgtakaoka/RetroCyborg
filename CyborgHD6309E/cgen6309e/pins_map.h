@@ -16,7 +16,7 @@
 
 /**
  * Arduino IDE settings
- *          FQBN: megaTinyCore:megaavr:atxy2:chip=412,clock=20,millis=disabled
+ *          FQBN: megaTinyCore:megaavr:atxy2:chip=412,clock=20internal,millis=disabled
  *          Core: https://github.com/SpenceKonde/megaTinyCore
  *         Board: ATtiny412/402/212/202
  *          Chip: ATtiny412
@@ -50,7 +50,7 @@
 
 /**
  * Arduino IDE settings
- *          FQBN: megaTinyCore:megaavr:atxy4:chip=1614,clock=20,millis=disabled
+ *          FQBN: megaTinyCore:megaavr:atxy4:chip=1614,clock=20internal,millis=disabled
  *          Core: https://github.com/SpenceKonde/megaTinyCore
  *         Board: ATtiny1614/1604/814/804/414/404/214/204
  *          Chip: ATtiny1614
@@ -95,7 +95,7 @@
 
 /**
  * Arduino IDE settings
- *          FQBN: megaTinyCore:megaavr:atxy6:chip=3216,clock=20,millis=disabled
+ *          FQBN: megaTinyCore:megaavr:atxy6:chip=3216,clock=20internal,millis=disabled
  *          Core: https://github.com/SpenceKonde/megaTinyCore
  *         Board: ATtiny3216/1616/1606/816/806/416/406
  *          Chip: ATtiny3216
