@@ -50,6 +50,7 @@
     }                                           \
   } while (0)
 
+static void enablePullup(register8_t *pinctrl, uint8_t mask) __attribute__((unused));
 static void enablePullup(register8_t *pinctrl, uint8_t mask) {
   while (mask) {
     if (mask & 1) *pinctrl |= PORT_PULLUPEN_bm;
