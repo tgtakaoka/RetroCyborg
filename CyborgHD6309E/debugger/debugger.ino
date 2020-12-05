@@ -1,4 +1,4 @@
-/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
+/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
 /**
    CyborgHD6309E controller
 
@@ -10,23 +10,22 @@
 */
 
 #include "commands.h"
+#include "libcli.h"
 #include "pins.h"
-
-#include "src/libcli/libcli.h"
 
 libcli::Cli Cli;
 
 void setup() {
-  Pins.begin();
-  Commands.begin();
-  interrupts();
+    Pins.begin();
+    Commands.begin();
+    interrupts();
 }
 
 void loop() {
-  if (Pins.isRunning()) {
-    Pins.loop();
-  } else {
-    Cli.loop();
-    Commands.loop();
-  }
+    if (Pins.isRunning()) {
+        Pins.loop();
+    } else {
+        Cli.loop();
+        Commands.loop();
+    }
 }
