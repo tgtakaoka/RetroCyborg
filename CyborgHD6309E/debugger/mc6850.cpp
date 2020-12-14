@@ -2,7 +2,7 @@
 
 #include "mc6850.h"
 
-#include "libcli.h"
+#include <libcli.h>
 #include "pins.h"
 
 //#define DEBUG_IRQ

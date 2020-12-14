@@ -10,7 +10,7 @@
 */
 
 #include "commands.h"
-#include "libcli.h"
+#include <libcli.h>
 #include "pins.h"
 
 libcli::Cli Cli;

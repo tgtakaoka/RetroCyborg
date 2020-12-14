@@ -27,10 +27,10 @@
 #include <SD.h>
 #include <string.h>
 
-#include "asm_mc6809.h"
-#include "dis_mc6809.h"
-#include "dis_memory.h"
-#include "libcli.h"
+#include <asm_mc6809.h>
+#include <dis_mc6809.h>
+#include <dis_memory.h>
+#include <libcli.h>
 #include "pins.h"
 #include "regs.h"
 
