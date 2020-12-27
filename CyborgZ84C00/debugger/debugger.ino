@@ -1,4 +1,4 @@
-/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
+/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
 /**
    CyborgZ84C00 controller
 
@@ -12,19 +12,21 @@
 #include "commands.h"
 #include "pins.h"
 
-#include "src/libcli/libcli.h"
+#include <libcli.h>
+
+libcli::Cli Cli;
 
 void setup() {
-  Pins.begin();
-  Commands.begin();
-  interrupts();
+    Pins.begin();
+    Commands.begin();
+    interrupts();
 }
 
 void loop() {
-  if (Pins.isRunning()) {
-    Pins.loop();
-  } else {
-    Cli.loop();
-    Commands.loop();
-  }
+    if (Pins.isRunning()) {
+        Pins.loop();
+    } else {
+        Cli.loop();
+        Commands.loop();
+    }
 }

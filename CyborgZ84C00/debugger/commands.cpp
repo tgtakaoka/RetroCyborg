@@ -1,4 +1,4 @@
-/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
+/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
 /*
   The Controller can accept commands represented by one letter.
 
@@ -23,36 +23,39 @@
   ? - print version.
 */
 
-#include <Arduino.h>
-#include <string.h>
-#include <SD.h>
-
 #include "commands.h"
+
 #include "pins.h"
 #include "regs.h"
 
-#include "src/libasm/asm_z80.h"
-#include "src/libasm/dis_z80.h"
-#include "src/libasm/dis_memory.h"
-#include "src/libcli/libcli.h"
+#include <Arduino.h>
+#include <SD.h>
+#include <asm_z80.h>
+#include <dis_memory.h>
+#include <dis_z80.h>
+#include <libcli.h>
+#include <string.h>
 
 using namespace libasm;
 using namespace libasm::z80;
 
-#define VERSION "* CyborgZ84C00 Prototype1 0.1"
+#define VERSION "* CyborgZ84C00 Prototype1 0.0.1"
 #define USAGE "R:eset p:ins"
+
+using libcli::Cli;
+extern Cli Cli;
 
 class Commands Commands;
 
 #if 0
 static uint16_t last_addr;
-#define DUMP_ADDR   0
+#define DUMP_ADDR 0
 #define DUMP_LENGTH 1
-#define ASM_ADDR    0
-#define DIS_ADDR    0
-#define DIS_LENGTH  1
+#define ASM_ADDR 0
+#define DIS_ADDR 0
+#define DIS_LENGTH 1
 #define INST_DATA(i) ((uintptr_t)(i))
-#define REG_NAME    0
+#define REG_NAME 0
 
 static uint8_t buffer[16];
 #define MEMORY_ADDR static_cast<uintptr_t>(sizeof(buffer) + 10)
@@ -384,21 +387,21 @@ static bool handleSetRegister(Cli::State state, uint16_t value, uintptr_t extra)
 #endif
 
 bool Commands::exec(char c) {
-  switch (c) {
-  case 'p':
-    Cli.print("pins:");
-    Pins.cycle();  // TODO: !!!!! THIS SHOULD BE REMOVED !!!!!
-    Pins.print();
-    return true;
-  case 'R':
-    Cli.println("RESET");
-    _target = HALT;
-    Pins.reset(true);
+    switch (c) {
+    case 'p':
+        Cli.print("pins:");
+        Pins.cycle();  // TODO: !!!!! THIS SHOULD BE REMOVED !!!!!
+        Pins.print();
+        return true;
+    case 'R':
+        Cli.println("RESET");
+        _target = HALT;
+        Pins.reset(true);
 #if 0
     Regs.get(true);
     disassemble(Regs.pc, 1);
 #endif
-    return true;
+        return true;
 #if 0
   case 'i':
     Cli.print("inst? ");
@@ -462,34 +465,35 @@ bool Commands::exec(char c) {
     Cli.print("Load? ");
     return Cli.readLine(handleLoadFile, 0);
 #endif
-  case '?':
-    Cli.println(VERSION);
-    Cli.println(USAGE);
-    return true;
-  default:
-    return false;
-  }
+    case '?':
+        Cli.println(VERSION);
+        Cli.println(USAGE);
+        return true;
+    default:
+        return false;
+    }
 }
 
 static bool commandHandler(char c) {
-  return Commands.exec(c);
+    return Commands.exec(c);
 }
 
-static void printPrompt(Stream &console) {
-  console.print("> ");
+static void printPrompt(libcli::Cli &cli, uintptr_t extra) {
+    (void)extra;
+    cli.print(F("> "));
 }
 
 void Commands::begin() {
-  Cli.setPrompt(printPrompt);
-  Cli.readCommand(commandHandler);
-  _target = HALT;
+    Cli.setPrompter(printPrompt, 0);
+    Cli.readCommand(commandHandler, 0);
+    _target = HALT;
 }
 
 void Commands::loop() {
-  if (_target == STEP) {
+    if (_target == STEP) {
 #if 0
     Pins.step();
     Regs.get(true);
 #endif
-  }
+    }
 }

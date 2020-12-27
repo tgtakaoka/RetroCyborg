@@ -23,21 +23,21 @@
 
 #include "commands.h"
 
+#include "pins.h"
+#include "regs.h"
+
 #include <Arduino.h>
 #include <SD.h>
 #include <string.h>
-
 #include <asm_mc6809.h>
 #include <dis_mc6809.h>
 #include <dis_memory.h>
 #include <libcli.h>
-#include "pins.h"
-#include "regs.h"
 
 using namespace libasm;
 using namespace libasm::mc6809;
 
-#define VERSION "* CyborgHD6309E Prototype3 2.0.0"
+#define VERSION "* CyborgHD6309E Prototype4 2.0.0"
 #define USAGE                                                                  \
     "R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:sm s/S:tep c:ont G:o " \
     "h/H:alt p:ins F:iles L:oad"
@@ -516,7 +516,7 @@ static bool commandHandler(char c, uintptr_t extra) {
 }
 
 static void printPrompt(libcli::Cli &cli, uintptr_t extra) {
-    (void)extra;
+    (void) extra;
     cli.print(F("> "));
 }
 

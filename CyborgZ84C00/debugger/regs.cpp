@@ -1,9 +1,10 @@
-/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
-#include "pins.h"
-#include "regs.h"
-#include "string_util.h"
+/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
 
-#include "src/libcli/libcli.h"
+#include "regs.h"
+
+#include <libcli.h>
+#include "pins.h"
+#include "string_util.h"
 
 union Regs Regs;
 

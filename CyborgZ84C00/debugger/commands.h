@@ -1,19 +1,16 @@
-/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
-#ifndef __commands_h__
-#define __commands_h__
+/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
+#ifndef __COMMANDS_H__
+#define __COMMANDS_H__
 
 class Commands {
-
 public:
-  void begin();
-  void loop();
-  bool exec(char c);
-  bool isRunning() const { return _target == RUN; }
+    void begin();
+    void loop();
+    bool exec(char c);
+    bool isRunning() const { return _target == RUN; }
 
 private:
-  enum {
-    HALT, STEP, RUN
-  } _target = HALT;
+    enum { HALT, STEP, RUN } _target = HALT;
 };
 
 extern Commands Commands;

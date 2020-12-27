@@ -1,5 +1,4 @@
 EESchema Schematic File Version 4
-LIBS:Prototype1-cache
 EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
@@ -503,17 +502,6 @@ $EndComp
 Wire Wire Line
 	3750 1550 3650 1550
 $Comp
-L 0-LocalLibrary:Conn_USB_Serial J4
-U 1 1 5DD41B19
-P 3200 5950
-F 0 "J4" H 3150 6300 50  0000 L CNN
-F 1 "Conn_USB_Serial" H 3050 5550 50  0000 L CNN
-F 2 "" H 3200 5950 50  0001 C CNN
-F 3 "~" H 3200 5950 50  0001 C CNN
-	1    3200 5950
-	1    0    0    -1  
-$EndComp
-$Comp
 L Device:C_Small C1
 U 1 1 5DD45267
 P 3750 5550
@@ -743,10 +731,10 @@ Wire Wire Line
 Wire Wire Line
 	1750 3950 1750 4150
 $Comp
-L power:GND #PWR?
+L power:GND #PWR013
 U 1 1 5DD8E08D
 P 9350 3350
-F 0 "#PWR?" H 9350 3100 50  0001 C CNN
+F 0 "#PWR013" H 9350 3100 50  0001 C CNN
 F 1 "GND" H 9355 3177 50  0000 C CNN
 F 2 "" H 9350 3350 50  0001 C CNN
 F 3 "" H 9350 3350 50  0001 C CNN
@@ -827,13 +815,6 @@ Text Label 3000 5850 2    50   ~ 0
 DBG_TX
 Text Label 3000 5950 2    50   ~ 0
 DBG_RX
-NoConn ~ 3000 6150
-Wire Wire Line
-	4250 3350 4350 3350
-Text Label 4350 3350 0    50   ~ 0
-~INT~
-Wire Wire Line
-	4250 3450 4350 3450
 Text Label 4300 2600 0    50   ~ 0
 RAMEN
 Wire Wire Line
@@ -891,8 +872,6 @@ Wire Wire Line
 	5450 2000 5450 3750
 Wire Wire Line
 	5450 3750 6150 3750
-Text Label 4350 3450 0    50   ~ 0
-~NMI~
 Text Label 6150 2750 2    50   ~ 0
 ~NMI~
 Wire Wire Line
@@ -945,6 +924,96 @@ Wire Wire Line
 	5850 2600 5850 2850
 Wire Wire Line
 	5850 2850 6150 2850
+Wire Wire Line
+	4250 3350 4950 3350
+Wire Wire Line
+	4950 3350 4950 2850
+Wire Wire Line
+	4950 2850 5850 2850
+Connection ~ 5850 2850
+Wire Wire Line
+	4250 3450 4850 3450
+Wire Wire Line
+	4850 3450 4850 2750
+Wire Wire Line
+	4850 2750 5950 2750
+Connection ~ 5950 2750
+Text Label 4350 3450 0    50   ~ 0
+~NMI~
+Text Label 4350 3350 0    50   ~ 0
+~INT~
+Text Label 3000 6150 2    50   ~ 0
+~DBG_CTS~
+Text Label 4350 3850 0    50   ~ 0
+~DBG_CTS~
+Wire Wire Line
+	4250 3650 4950 3650
+Wire Wire Line
+	4250 3850 4350 3850
+Wire Wire Line
+	4250 3750 4850 3750
+$Comp
+L 0-LocalLibrary:SW_Push_LED SW1
+U 1 1 5FF4210E
+P 5400 5150
+F 0 "SW1" H 5400 5535 50  0000 C CNN
+F 1 "USER SW" H 5400 5444 50  0000 C CNN
+F 2 "0-LocalLibrary:SW_PUSH-LED-12mm" H 5400 5450 50  0001 C CNN
+F 3 "~" H 5400 5450 50  0001 C CNN
+	1    5400 5150
+	1    0    0    -1  
+$EndComp
+$Comp
+L 0-LocalLibrary:USB_Serial B1
+U 1 1 5FF433B7
+P 3200 5950
+F 0 "B1" H 3200 6250 50  0000 L CNN
+F 1 "USB_Serial" H 3150 5550 50  0000 L CNN
+F 2 "0-LocalLibrary:GY232V2" H 3200 5950 50  0001 C CNN
+F 3 "~" H 3200 5950 50  0001 C CNN
+	1    3200 5950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4950 5050 5200 5050
+Wire Wire Line
+	4950 3650 4950 5050
+Wire Wire Line
+	4850 5150 5200 5150
+Wire Wire Line
+	4850 3750 4850 5150
+Wire Wire Line
+	5600 5050 5750 5050
+Wire Wire Line
+	5750 5050 5750 5250
+Wire Wire Line
+	5600 5150 5850 5150
+$Comp
+L Device:R_Small R6
+U 1 1 5FF76123
+P 5850 4950
+F 0 "R6" H 5791 4904 50  0000 R CNN
+F 1 "560" H 5791 4995 50  0000 R CNN
+F 2 "" H 5850 4950 50  0001 C CNN
+F 3 "~" H 5850 4950 50  0001 C CNN
+	1    5850 4950
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	5850 5050 5850 5150
+$Comp
+L power:VCC #PWR015
+U 1 1 5FF911BA
+P 5850 4750
+F 0 "#PWR015" H 5850 4600 50  0001 C CNN
+F 1 "VCC" H 5865 4923 50  0000 C CNN
+F 2 "" H 5850 4750 50  0001 C CNN
+F 3 "" H 5850 4750 50  0001 C CNN
+	1    5850 4750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5850 4750 5850 4850
 Wire Bus Line
 	7750 950  7750 2400
 Wire Bus Line
@@ -955,4 +1024,15 @@ Wire Bus Line
 	9100 1850 9100 4750
 Wire Bus Line
 	7750 2800 7750 4750
+$Comp
+L power:GND #PWR014
+U 1 1 5FF9D78C
+P 5750 5250
+F 0 "#PWR014" H 5750 5000 50  0001 C CNN
+F 1 "GND" H 5755 5077 50  0000 C CNN
+F 2 "" H 5750 5250 50  0001 C CNN
+F 3 "" H 5750 5250 50  0001 C CNN
+	1    5750 5250
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC

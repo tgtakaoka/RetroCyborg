@@ -42,4 +42,16 @@ K Z80 CPU uP
 F www.zilog.com/manage_directlink.php?filepath=docs/z80/um0080
 $ENDCMP
 #
+$CMP SW_Push_LED
+D Push button switch with LED, generic
+K switch normally-open pushbutton push-button LED
+F ~
+$ENDCMP
+#
+$CMP USB_Serial
+D USB Serial Breakout
+K connector
+F ~
+$ENDCMP
+#
 #End Doc Library

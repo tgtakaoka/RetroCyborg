@@ -4,9 +4,9 @@
 
 #include <Arduino.h>
 #include <avr/pgmspace.h>
+#include <libcli.h>
 
 #include "commands.h"
-#include <libcli.h>
 #include "mc6850.h"
 #include "pins_base.h"
 #include "pins_map.h"

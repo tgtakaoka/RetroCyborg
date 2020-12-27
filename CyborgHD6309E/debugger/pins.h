@@ -105,4 +105,4 @@ private:
 
 extern Pins Pins;
 
-#endif /* __pins_h__ */
+#endif /* __PINS_H__ */
