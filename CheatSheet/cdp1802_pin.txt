@@ -1,4 +1,4 @@
-             CDP1802
+         CDP1802/CDP1806
             _________
   CLOCK   1|*        |40  VDD
   #WAIT   2|         |39  #XTAL
