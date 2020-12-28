@@ -119,9 +119,9 @@
 #define USR_LED_PORT F
 #define USR_LED_PIN 4
 
-// PF5: Debugger Serial CTS, output
-#define DBG_CTS_PORT F
-#define DBG_CTS_PIN 5
+// PF5: Debugger Serial RTS, output
+#define DBG_RTS_PORT F
+#define DBG_RTS_PIN 5
 
 #endif  // ARDUINO_AVR_ATmega4809
 

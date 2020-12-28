@@ -1,5 +1,10 @@
 EESchema-DOCLIB  Version 2.0
 #
+$CMP 628128
+D RAM 128 Ko
+K RAM 128KO
+$ENDCMP
+#
 $CMP ATmega4809-P
 D 20MHz, 48kB Flash, 4kB SRAM, 256B EEPROM, DIP-40
 K AVR 8bit Microcontroller MegaAVR
@@ -30,16 +35,10 @@ K connector
 F ~
 $ENDCMP
 #
-$CMP HM628128
-D 128K x 8 High-Speed CMOS Static RAM, 55/70ns, DIP-32/SSOP-32
-K RAM SRAM CMOS MEMORY
-F http://www.futurlec.com/Datasheet/Memory/628128.pdf
-$ENDCMP
-#
-$CMP Z84C00
-D 8-bit General Purpose Microprocessor, DIP-40
-K Z80 CPU uP
-F www.zilog.com/manage_directlink.php?filepath=docs/z80/um0080
+$CMP Micro_SD
+D Micro SD Breakout
+K connector
+F ~
 $ENDCMP
 #
 $CMP SW_Push_LED
@@ -52,6 +51,12 @@ $CMP USB_Serial
 D USB Serial Breakout
 K connector
 F ~
+$ENDCMP
+#
+$CMP Z84C00
+D 8-bit General Purpose Microprocessor, DIP-40
+K Z80 CPU uP
+F www.zilog.com/manage_directlink.php?filepath=docs/z80/um0080
 $ENDCMP
 #
 #End Doc Library
