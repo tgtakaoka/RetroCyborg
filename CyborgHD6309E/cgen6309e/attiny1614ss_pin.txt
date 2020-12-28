@@ -1,0 +1,9 @@
+       ATtiny1614/cgen6309e
+              _____
+      VDD   1|*    |14  GND
+ ADR4/PA4   2|     |13  PA3/ADR3
+ ADR5/PA5   3|     |12  PA2/#ADRHI
+ ADR6/PA6   4|     |11  PA1/#INT
+ ADR7/PA7   5|     |10  PA0/#RESET/UPDI
+CLK_Q/PB3   6|     |9   PB0/#ACK
+CLK_E/PB2   7|_____|8   PB1/#STEP

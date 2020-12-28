@@ -38,6 +38,8 @@ public:
         return 1 << (addr - ioBaseAddress());
     }
 
+    int sdCardChipSelectPin() const;
+
 private:
     class Status {
     public:

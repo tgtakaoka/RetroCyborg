@@ -209,6 +209,22 @@ K MCU
 F http://pdf.datasheetcatalog.com/datasheet/motorola/HD63B09S.pdf
 $ENDCMP
 #
+$CMP MC6809
+F http://pdf.datasheetcatalog.com/datasheet/motorola/MC68B09S.pdf
+$ENDCMP
+#
+$CMP MC68A09
+D 8-Bit Microprocessing unit 2.0MHz, DIP-40
+K MCU
+F http://pdf.datasheetcatalog.com/datasheet/motorola/MC68B09S.pdf
+$ENDCMP
+#
+$CMP MC68B09
+D 8-Bit Microprocessing unit 3.0MHz, DIP-40
+K MCU
+F http://pdf.datasheetcatalog.com/datasheet/motorola/MC68B09S.pdf
+$ENDCMP
+#
 $CMP Micro_SD
 D Micro SD Breakout
 K connector

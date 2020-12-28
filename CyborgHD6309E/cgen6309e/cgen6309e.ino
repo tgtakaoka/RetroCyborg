@@ -96,154 +96,95 @@ void loop() {
 #endif
 
 #if OPTIMIZED_ASM
+    // clang-format off
     uint8_t tmp = 0;
     asm volatile(
-            " rjmp L%=_check_step"
-            "\n"
+            " rjmp L%=_check_step"            "\n"
 
 #ifdef IOR_PIN
-            "L%=_check_step:"
-            "\n"
-            " sbi  %[qclk_port],%[qclk_pin]"
-            "\n"  // [1] QE=1[1](HL)
-            " nop"
-            "\n"  // [1] QE=1[2]
-            " nop"
-            "\n"  // [1] QE=1[3]
+            "L%=_check_step:"                 "\n"
+            " sbi  %[qclk_port],%[qclk_pin]"  "\n"  // [1] QE=1[1](HL)
+            " nop"                            "\n"  // [1] QE=1[2]
+            " nop"                            "\n"  // [1] QE=1[3]
 
-            " sbi  %[eclk_port],%[eclk_pin]"
-            "\n"  // [1] QE=2[1](HH)
-            " sbis %[step_port],%[step_pin]"
-            "\n"  // [2] QE=2[3] STEP=H?
-            " rjmp L%=_step_loop"
-            "\n"  // [1+2] STEP=L, go step
+            " sbi  %[eclk_port],%[eclk_pin]"  "\n"  // [1] QE=2[1](HH)
+            " sbis %[step_port],%[step_pin]"  "\n"  // [2] QE=2[3] STEP=H?
+            " rjmp L%=_step_loop"             "\n"  // [1+2] STEP=L, go step
 
-            " cbi  %[qclk_port],%[qclk_pin]"
-            "\n"  // [1] QE=3[1](LH)
-            " sbis %[ior_port],%[ior_pin]"
-            "\n"  // [2] QE=3[3] IOR=H?
-            " rjmp L%=_io_access"
-            "\n"  // [1+2] QE=3[4], IO access
+            " cbi  %[qclk_port],%[qclk_pin]"  "\n"  // [1] QE=3[1](LH)
+            " sbis %[ior_port],%[ior_pin]"    "\n"  // [2] QE=3[3] IOR=H?
+            " rjmp L%=_io_access"             "\n"  // [1+2] QE=3[4], IO access
 
-            "L%=_main_loop:"
-            "\n"
-            " cbi  %[eclk_port],%[eclk_pin]"
-            "\n"  // [1] QE=0[1](LL)
-            " rjmp L%=_check_step"
-            "\n"  // [2] QE=0[3]
+            "L%=_main_loop:"                  "\n"
+            " cbi  %[eclk_port],%[eclk_pin]"  "\n"  // [1] QE=0[1](LL)
+            " rjmp L%=_check_step"            "\n"  // [2] QE=0[3]
 
 #elif defined(IO_ADRH)
 
 #if BUS_gm(ADRH) == 0xFF
-            "L%=_main_loop:"
-            "\n"
-            " cbi  %[eclk_port],%[eclk_pin]"
-            "\n"  // [1] QE=0[1](LL)
-            " nop"
-            "\n"  // [1] QE=0[2]
-            " nop"
-            "\n"  // [1] QE=0[3]
-            " nop"
-            "\n"  // [1] QE=0[4]
+            "L%=_main_loop:"                  "\n"
+            " cbi  %[eclk_port],%[eclk_pin]"  "\n"  // [1] QE=0[1](LL)
+            " nop"                            "\n"  // [1] QE=0[2]
+            " nop"                            "\n"  // [1] QE=0[3]
+            " nop"                            "\n"  // [1] QE=0[4]
 
-            "L%=_check_step:"
-            "\n"
-            " sbi  %[qclk_port],%[qclk_pin]"
-            "\n"  // [1] QE=1[1](HL)
-            " nop"
-            "\n"  // [1] QE=1[2]
-            " nop"
-            "\n"  // [1] QE=1[3]
-            " nop"
-            "\n"  // [1] QE=1[4]
+            "L%=_check_step:"                 "\n"
+            " sbi  %[qclk_port],%[qclk_pin]"  "\n"  // [1] QE=1[1](HL)
+            " nop"                            "\n"  // [1] QE=1[2]
+            " nop"                            "\n"  // [1] QE=1[3]
+            " nop"                            "\n"  // [1] QE=1[4]
 
-            " sbi  %[eclk_port],%[eclk_pin]"
-            "\n"  // [1] QE=2[1](HH)
-            " sbis %[step_port],%[step_pin]"
-            "\n"  // [2] QE=2[3] STEP=H?
-            " rjmp L%=_step_loop"
-            "\n"  // [1+2] QE=2[4] STEP=L, go step
-            " in   %[tmp],%[adrh]"
-            "\n"  // [1] QE=2[4]
+            " sbi  %[eclk_port],%[eclk_pin]"  "\n"  // [1] QE=2[1](HH)
+            " sbis %[step_port],%[step_pin]"  "\n"  // [2] QE=2[3] STEP=H?
+            " rjmp L%=_step_loop"             "\n"  // [1+2] QE=2[4] STEP=L, go step
+            " in   %[tmp],%[adrh]"            "\n"  // [1] QE=2[4]
 
-            " cbi  %[qclk_port],%[qclk_pin]"
-            "\n"  // [1] QE=3[1](LH)
-            " cpse %[tmp],%[io_adrh]"
-            "\n"  // [2] QE=3[3] IO_ADRH?
-            " rjmp L%=_main_loop"
-            "\n"  // [1+2] QE=3[4], not IO access
+            " cbi  %[qclk_port],%[qclk_pin]"  "\n"  // [1] QE=3[1](LH)
+            " cpse %[tmp],%[io_adrh]"         "\n"  // [2] QE=3[3] IO_ADRH?
+            " rjmp L%=_main_loop"             "\n"  // [1+2] QE=3[4], not IO access
 
 #else   // BUS_gm(ADRH) != 0xFF
-            "L%=_main_loop:"
-            "\n"
-            " cbi  %[eclk_port],%[eclk_pin]"
-            "\n"  // [1] QE=0[1](LL)
-            " nop"
-            "\n"  // [1] QE=0[2]
-            " nop"
-            "\n"  // [1] QE=0[3]
-            " nop"
-            "\n"  // [1] QE=0[4]
-            " nop"
-            "\n"  // [1] QE=0[4]
+            "L%=_main_loop:"                  "\n"
+            " cbi  %[eclk_port],%[eclk_pin]"  "\n"  // [1] QE=0[1](LL)
+            " nop"                            "\n"  // [1] QE=0[2]
+            " nop"                            "\n"  // [1] QE=0[3]
+            " nop"                            "\n"  // [1] QE=0[4]
+            " nop"                            "\n"  // [1] QE=0[4]
 
-            "L%=_check_step:"
-            "\n"
-            " sbi  %[qclk_port],%[qclk_pin]"
-            "\n"  // [1] QE=1[1](HL)
-            " nop"
-            "\n"  // [1] QE=1[2]
-            " nop"
-            "\n"  // [1] QE=1[3]
-            " nop"
-            "\n"  // [1] QE=1[4]
-            " nop"
-            "\n"  // [1] QE=1[5]
+            "L%=_check_step:"                 "\n"
+            " sbi  %[qclk_port],%[qclk_pin]"  "\n"  // [1] QE=1[1](HL)
+            " nop"                            "\n"  // [1] QE=1[2]
+            " nop"                            "\n"  // [1] QE=1[3]
+            " nop"                            "\n"  // [1] QE=1[4]
+            " nop"                            "\n"  // [1] QE=1[5]
 
-            " sbi  %[eclk_port],%[eclk_pin]"
-            "\n"  // [1] QE=2[1](HH)
-            " sbis %[step_port],%[step_pin]"
-            "\n"  // [2] QE=2[3] STEP=H?
-            " rjmp L%=_step_loop"
-            "\n"  // [1+2] QE=2[4] STEP=L, go step
-            " nop"
-            "\n"  // [1] QE=2[4]
-            " in   %[tmp],%[adrh]"
-            "\n"  // [1] QE=2[5]
+            " sbi  %[eclk_port],%[eclk_pin]"  "\n"  // [1] QE=2[1](HH)
+            " sbis %[step_port],%[step_pin]"  "\n"  // [2] QE=2[3] STEP=H?
+            " rjmp L%=_step_loop"             "\n"  // [1+2] QE=2[4] STEP=L, go step
+            " nop"                            "\n"  // [1] QE=2[4]
+            " in   %[tmp],%[adrh]"            "\n"  // [1] QE=2[5]
 
-            " cbi  %[qclk_port],%[qclk_pin]"
-            "\n"  // [1] QE=3[1](LH)
-            " andi %[tmp],%[adrh_gm]"
-            "\n"  // [1] QE=3[2]
-            " cpse %[tmp],%[io_adrh]"
-            "\n"  // [2] QE=3[4] IO_ADRH?
-            " rjmp L%=_main_loop"
-            "\n"  // [1+2] QE=3[5], not IO access
+            " cbi  %[qclk_port],%[qclk_pin]"  "\n"  // [1] QE=3[1](LH)
+            " andi %[tmp],%[adrh_gm]"         "\n"  // [1] QE=3[2]
+            " cpse %[tmp],%[io_adrh]"         "\n"  // [2] QE=3[4] IO_ADRH?
+            " rjmp L%=_main_loop"             "\n"  // [1+2] QE=3[5], not IO access
 #endif  // BUS_gm(ADRH) == 0xFF
 
 #ifdef IO_ADRM
-            " in   %[tmp],%[adrm]"
-            "\n"  // [1] QE=3[5]
+            " in   %[tmp],%[adrm]"            "\n"  // [1] QE=3[5]
 #if BUS_gm(ADRM) != 0xFF
-            " andi %[tmp],%[adrm_gm]"
-            "\n"  // [1] QE=3[6]
+            " andi %[tmp],%[adrm_gm]"         "\n"  // [1] QE=3[6]
 #endif
-            " cpse %[tmp],%[io_adrm]"
-            "\n"  // [2] QE=3[7/8] IO_ADRM?
-            " rjmp L%=_main_loop"
-            "\n"  // [1+2] QE=3[7/8], not IO access
+            " cpse %[tmp],%[io_adrm]"         "\n"  // [2] QE=3[7/8] IO_ADRM?
+            " rjmp L%=_main_loop"             "\n"  // [1+2] QE=3[7/8], not IO access
 #endif
 #ifdef IO_ADRL
-            " in   %[tmp],%[adrl]"
-            "\n"  // [1] QE=3[9/10]
+            " in   %[tmp],%[adrl]"            "\n"  // [1] QE=3[9/10]
 #if BUS_gm(ADRL) != 0xFF
-            " andi %[tmp],%[adrl_gm]"
-            "\n"  // [1] QE=3[10/11]
+            " andi %[tmp],%[adrl_gm]"         "\n"  // [1] QE=3[10/11]
 #endif
-            " cpse %[tmp],%[io_adrl]"
-            "\n"  // [2] QE=3[12/13] IO_ADRL?
-            " rjmp L%=_main_loop"
-            "\n"  // [2] QE=3[13]
+            " cpse %[tmp],%[io_adrl]"         "\n"  // [2] QE=3[12/13] IO_ADRL?
+            " rjmp L%=_main_loop"             "\n"  // [2] QE=3[13]
 #endif
                   // Fall through to io_access
 
@@ -252,54 +193,34 @@ void loop() {
 #endif
 
             // IO Address detected.
-            "L%=_io_access:"
-            " cbi  %[int_port],%[int_pin]"
-            "\n"  // [1] INT=L
-            "L%=_wait_ack_low:"
-            " sbic %[ack_port],%[ack_pin]"
-            "\n"  // [2] ACK=L?
-            " rjmp L%=_wait_ack_low"
-            "\n"  // [1+2] ACK=H, wait ACK=L
-            " cbi  %[eclk_port],%[eclk_pin]"
-            "\n"  // [1] QE=LL(0)
-            " sbi  %[int_port],%[int_pin]"
-            "\n"  // [1] INT=H
-            "L%=_wait_ack_high:"
-            " sbis %[ack_port],%[ack_pin]"
-            "\n"  // [2] ACK=H?
-            " rjmp L%=_wait_ack_high"
-            "\n"  // [1+2] ACK=L, wait ACK=H
-            " rjmp L%=_check_step"
-            "\n"  // [2]
+            "L%=_io_access:"                  "\n"
+            " cbi  %[int_port],%[int_pin]"    "\n"  // [1] INT=L
+            "L%=_wait_ack_low:"               "\n"
+            " sbic %[ack_port],%[ack_pin]"    "\n"  // [2] ACK=L?
+            " rjmp L%=_wait_ack_low"          "\n"  // [1+2] ACK=H, wait ACK=L
+            " cbi  %[eclk_port],%[eclk_pin]"  "\n"  // [1] QE=LL(0)
+            " sbi  %[int_port],%[int_pin]"    "\n"  // [1] INT=H
+            "L%=_wait_ack_high:"              "\n"
+            " sbis %[ack_port],%[ack_pin]"    "\n"  // [2] ACK=H?
+            " rjmp L%=_wait_ack_high"         "\n"  // [1+2] ACK=L, wait ACK=H
+            " rjmp L%=_check_step"            "\n"  // [2]
 
             // STEP requested.
-            "L%=_step_loop:"
-            "\n"
-            " cbi  %[int_port],%[int_pin]"
-            "\n"  // [1] INT=L
-            "L%=_wait_step_high:"
-            " sbis %[step_port],%[step_pin]"
-            "\n"  // [2] STEP=H?
-            " rjmp L%=_wait_step_high"
-            "\n"  // [1+2] STEP=L, wait STEP=H
-            " cbi  %[qclk_port],%[qclk_pin]"
-            "\n"  // [1] QE=LH(3)
-            " sbi  %[int_port],%[int_pin]"
-            "\n"  // [1] INT=H
-            "L%=_wait_ack_low2:"
-            " sbic %[ack_port],%[ack_pin]"
-            "\n"  // [2] ACK=L?
-            " rjmp L%=_wait_ack_low2"
-            "\n"  // [1+2] ACK=H, wait ACK=L
-            " cbi  %[eclk_port],%[eclk_pin]"
-            "\n"  // [1] QE=LL(0)
-            "L%=_wait_ack_high2:"
-            " sbis %[ack_port],%[ack_pin]"
-            "\n"  // [2] ACK=H?
-            " rjmp L%=_wait_ack_high2"
-            "\n"  // [1+2] ACK=L, wait ACK=H
-            " rjmp L%=_check_step"
-            "\n"  // [2]
+            "L%=_step_loop:"                  "\n"
+            " cbi  %[int_port],%[int_pin]"    "\n"  // [1] INT=L
+            "L%=_wait_step_high:"             "\n"
+            " sbis %[step_port],%[step_pin]"  "\n"  // [2] STEP=H?
+            " rjmp L%=_wait_step_high"        "\n"  // [1+2] STEP=L, wait STEP=H
+            " cbi  %[qclk_port],%[qclk_pin]"  "\n"  // [1] QE=LH(3)
+            " sbi  %[int_port],%[int_pin]"    "\n"  // [1] INT=H
+            "L%=_wait_ack_low2:"              "\n"
+            " sbic %[ack_port],%[ack_pin]"    "\n"  // [2] ACK=L?
+            " rjmp L%=_wait_ack_low2"         "\n"  // [1+2] ACK=H, wait ACK=L
+            " cbi  %[eclk_port],%[eclk_pin]"  "\n"  // [1] QE=LL(0)
+            "L%=_wait_ack_high2:"             "\n"
+            " sbis %[ack_port],%[ack_pin]"    "\n"  // [2] ACK=H?
+            " rjmp L%=_wait_ack_high2"        "\n"  // [1+2] ACK=L, wait ACK=H
+            " rjmp L%=_check_step"            "\n"  // [2]
             :
             : [ tmp ] "d"(tmp),
 #ifdef IOR_PIN
@@ -307,15 +228,18 @@ void loop() {
             [ ior_pin ] "I"(__PIN__(IOR)),
 #endif
 #ifdef IO_ADRH
-            [ io_adrh ] "r"(io_adrh), [ adrh ] "I"(_SFR_IO_ADDR(PIN(ADRH))),
+            [ io_adrh ] "r"(io_adrh),
+            [ adrh ] "I"(_SFR_IO_ADDR(PIN(ADRH))),
             [ adrh_gm ] "M"(BUS_gm(ADRH)),
 #endif
 #ifdef IO_ADRM
-            [ io_adrm ] "r"(io_adrm), [ adrm ] "I"(_SFR_IO_ADDR(PIN(ADRM))),
+            [ io_adrm ] "r"(io_adrm),
+            [ adrm ] "I"(_SFR_IO_ADDR(PIN(ADRM))),
             [ adrm_gm ] "M"(BUS_gm(ADRM)),
 #endif
 #ifdef IO_ADRL
-            [ io_adrl ] "r"(io_adrl), [ adrl ] "I"(_SFR_IO_ADDR(PIN(ADRL))),
+            [ io_adrl ] "r"(io_adrl),
+            [ adrl ] "I"(_SFR_IO_ADDR(PIN(ADRL))),
             [ adrl_gm ] "M"(BUS_gm(ADRL)),
 #endif
             [ qclk_port ] "I"(_SFR_IO_ADDR(POUT(CLK_Q))),
@@ -328,6 +252,7 @@ void loop() {
             [ step_pin ] "I"(__PIN__(STEP)),
             [ ack_port ] "I"(_SFR_IO_ADDR(PIN(ACK))),
             [ ack_pin ] "I"(__PIN__(ACK)));
+// clang-format on
 #else
     goto check_step;
     for (;;) {

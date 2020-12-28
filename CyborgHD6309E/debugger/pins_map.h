@@ -21,58 +21,110 @@
 #define Console Serial1
 #define CONSOLE_BAUD 115200
 
-#define HALT_PORT A
-#define HALT_PIN 7
+#define SPI_MAPPING 2
 
-#define IRQ_PORT A
-#define IRQ_PIN 6
+// PA: HD6309E data bus, bidirectional
+#define DB_PORT A
+#define DB_BUS 0xff
 
-#define BS_PORT A
-#define BS_PIN 0
+// PC0: Debugger serial TXD, output
+#define TXD_PORT C
+#define TXD_PIN 0
 
-#define BA_PORT A
-#define BA_PIN 1
+// PC1: Debugger serial RXD, input
+#define RXD_PORT C
+#define RXD_PIN 1
 
-#define LIC_PORT A
-#define LIC_PIN 4
+// PC2: HD6309E A0, input
+#define ADR0_PORT C
+#define ADR0_PIN 2
 
-#define AVMA_PORT A
+// PC3: HD6309E A1, input
+#define ADR1_PORT C
+#define ADR1_PIN 3
+
+// PC4: HD6309E #RESET, output
+#define RESET_PORT C
+#define RESET_PIN 4
+
+// PC5: HD6309E LIC, input
+#define LIC_PORT C
+#define LIC_PIN 5
+
+// PD0: #ACK, output
+#define ACK_PORT D
+#define ACK_PIN 0
+
+// PD1: #STEP, output
+#define STEP_PORT D
+#define STEP_PIN 1
+
+// PD2: #INT, input
+#define INT_PORT D
+#define INT_PIN 2
+#define INT_INTERRUPT digitalPinToInterrupt(16)
+
+// PD3: HD6309E AVMA, input
+#define AVMA_PORT D
 #define AVMA_PIN 3
 
-#define RESET_PORT A
-#define RESET_PIN 5
+// PD4: HD6309E BS, input
+#define BS_PORT D
+#define BS_PIN 4
 
-#define STEP_PORT F
-#define STEP_PIN 2
+// PD5: HD6309E BA, input
+#define BA_PORT D
+#define BA_PIN 5
 
-#define ACK_PORT F
-#define ACK_PIN 1
+// PD6: HD6309E #HALT, output
+#define HALT_PORT D
+#define HALT_PIN 6
 
-#define INT_PORT F
-#define INT_PIN 0
-#define INT_INTERRUPT digitalPinToInterrupt(26)
+// PD7: RAM enable, output
+#define RAM_E_PORT D
+#define RAM_E_PIN 7
 
+// PE0: SPI MOSI
+#define MOSI_PORT E
+#define MOSI_PIN 0
+
+// PE1: SPI MISO
+#define MISO_PORT E
+#define MISO_PIN 1
+
+// PE2: SPI SCK
+#define SCK_PORT E
+#define SCK_PIN 2
+
+// PE3: SPI Chip Select
+#define SS_PORT E
+#define SS_PIN 3
+#define SD_CS_PIN 25            // PE3
+
+// PF0: HD6309E #IRQ, output
+#define IRQ_PORT F
+#define IRQ_PIN 0
+
+// PF1: HD6309E #NMI, output
+#define NMI_PORT F
+#define NMI_PIN 1
+
+// PF2: HD6309E R/W, input
+#define RD_WR_PORT F
+#define RD_WR_PIN 2
+
+// PF3: User Switch, input
 #define USR_SW_PORT F
-#define USR_SW_PIN 5
-#define USR_SW_INTERRUPT digitalPinToInterrupt(31)
+#define USR_SW_PIN 3
+#define USR_SW_INTERRUPT digitalPinToInterrupt(29)
 
+// PF4: User LED, output
 #define USR_LED_PORT F
 #define USR_LED_PIN 4
 
-#define RD_WR_PORT A
-#define RD_WR_PIN 2
-
-#define RAM_E_PORT F
-#define RAM_E_PIN 3
-
-#define ADR0_PORT C
-#define ADR0_PIN 4
-
-#define ADR1_PORT C
-#define ADR1_PIN 5
-
-#define DB_PORT D
-#define DB_BUS 0xff
+// PF5: Debugger Serial RTS, output
+#define DBG_RTS_PORT F
+#define DBG_RTS_PIN 5
 
 #endif
 

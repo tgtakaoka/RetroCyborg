@@ -1,0 +1,12 @@
+       ATtiny3216/cgen6309e
+              _____
+      VCC   1|*    |20  GND
+ ADR5/PA4   2|     |19  PA3/ADR15
+ADR10/PA5   3|     |18  PA2/ADR14
+ADR11/PA6   4|     |17  PA1/ADR13
+ADR12/PA7   5|     |16  PA0/#RESET/UPDI
+ ADR4/PB5   6|     |15  PC3/CLK_Q
+ ADR6/PB4   7|     |14  PC2/CLK_2
+ ADR7/PB3   8|     |13  PC1/#INT
+ ADR8/PB2   9|     |12  PC0/#ACK
+ ADR9/PB1  10|_____|11  PB0/#STEP

@@ -1,0 +1,6 @@
+        ATtiny412/cgen6309e
+             _____
+      VDD  1|*    |8   GND
+ #IOR/PA6  2|     |7   PA3/#INT
+CLK_E/PA7  3|     |6   PA0/UPDI/#ACK
+CLK_Q/PA1  4|_____|5   PA2/#STEP

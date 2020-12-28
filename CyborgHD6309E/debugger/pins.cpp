@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 #include <libcli.h>
+#include <SPI.h>
 
 #include "commands.h"
 #include "mc6850.h"
@@ -26,6 +27,14 @@ static inline void assertHalt() {
 }
 static inline void negateHalt() {
     digitalWrite(HALT, HIGH);
+}
+
+static inline void assertNmi() {
+    digitalWrite(NMI, LOW);
+}
+
+static inline void negateNmi() {
+    digitalWrite(NMI, HIGH);
 }
 
 static inline bool isWriteDirection() {
@@ -57,14 +66,22 @@ static inline void disableRam() {
     digitalWrite(RAM_E, HIGH);
 }
 
+static inline assertConsoleRts() {
+    digitalWrite(DBG_RTS, LOW);
+}
+
+static inline negateConsoleRts() {
+    digitalWrite(DBG_RTS, HIGH);
+}
+
 static inline bool userSwitchAsserted() {
     return digitalRead(USR_SW) == LOW;
 }
 static inline void turnOnUserLed() {
-    digitalWrite(USR_LED, LOW);
+    digitalWrite(USR_LED, HIGH);
 }
 static inline void turnOffUserLed() {
-    digitalWrite(USR_LED, HIGH);
+    digitalWrite(USR_LED, LOW);
 }
 
 class Pins Pins;
@@ -439,18 +456,23 @@ void Pins::step(bool show) {
 }
 
 void Pins::begin() {
-    assertReset();
     pinMode(RESET, OUTPUT);
-    negateHalt();
+    assertReset();
     pinMode(HALT, OUTPUT);
-    negateIrq();
+    negateHalt();
+    pinMode(NMI, OUTPUT);
+    negateNmi();
     pinMode(IRQ, OUTPUT);
+    negateIrq();
 
-    disableStep();
-    negateAck();
     pinMode(STEP, OUTPUT);
     pinMode(ACK, OUTPUT);
     pinMode(INT, INPUT_PULLUP);
+    while (isIntAsserted()) {
+        disableStep();
+        assertAck();
+    }
+    negateAck();
 
     pinMode(BS, INPUT);
     pinMode(BA, INPUT);
@@ -463,8 +485,10 @@ void Pins::begin() {
     pinMode(ADR0, INPUT_PULLUP);
     pinMode(ADR1, INPUT_PULLUP);
 
+    pinMode(DBG_RTS, OUTPUT);
     pinMode(USR_SW, INPUT_PULLUP);
     pinMode(USR_LED, OUTPUT);
+    assertConsoleRts();
     turnOffUserLed();
 
     _dbus.begin();
@@ -473,6 +497,8 @@ void Pins::begin() {
 
     Console.begin(CONSOLE_BAUD);
     Cli.begin(Console);
+
+    SPI.swap(SPI_MAPPING);
 
     reset();
 }
@@ -521,4 +547,8 @@ void Pins::acknowledgeIoRequest() {
 void Pins::leaveIoRequest() {
     _dbus.input();
     negateAck();
+}
+
+int Pins::sdCardChipSelectPin() const {
+    return SD_CS_PIN;
 }

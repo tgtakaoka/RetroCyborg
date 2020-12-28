@@ -5,6 +5,7 @@
   R - reset MPU.
   p - print MPU hardware signal status.
   i - inject instruction.
+  I - inject instruction with printing signal status.
   d - dump memory. addr [length]
   m - write memory. addr byte...
   s - step one instruction.
@@ -39,11 +40,11 @@ using namespace libasm::mc6809;
 
 #define VERSION "* CyborgHD6309E Prototype4 2.0.0"
 #define USAGE                                                                  \
-    "R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:sm s/S:tep c:ont G:o " \
+    "R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont G:o " \
     "h/H:alt p:ins F:iles L:oad"
 
 using libcli::Cli;
-extern Cli Cli;
+extern class Cli Cli;
 
 class Commands Commands;
 
@@ -53,7 +54,15 @@ static uint16_t last_addr;
 #define ASM_ADDR 0
 #define DIS_ADDR 0
 #define DIS_LENGTH 1
-#define INST_DATA(i) ((uintptr_t)(i))
+#define INST_DATA(c, i) ((uintptr_t)((c << 8) | i))
+
+static bool commandHandler(char c, uintptr_t extra) {
+    (void)extra;
+    const bool showPrompt = Commands.exec(c);
+    if (showPrompt)
+        Cli.readLetter(commandHandler, 0);
+    return showPrompt;
+}
 
 static uint8_t buffer[16];
 #define MEMORY_ADDR static_cast<uintptr_t>(sizeof(buffer) + 10)
@@ -71,12 +80,13 @@ static void execInst3(uint8_t inst, uint16_t opr, bool show = false) {
 
 static bool handleInstruction(
         uint32_t value, uintptr_t extra, Cli::State state) {
-    uint16_t index = extra;
+    const char c = extra >> 8;
+    uint16_t index = extra & 0xFF;
     if (state == Cli::State::CLI_DELETE) {
         if (index > 0) {
             index--;
             Cli.backspace();
-            Cli.readHex8(handleInstruction, INST_DATA(index), buffer[index]);
+            Cli.readHex8(handleInstruction, INST_DATA(c, index), buffer[index]);
         }
         return false;
     }
@@ -84,12 +94,13 @@ static bool handleInstruction(
     buffer[index++] = value;
     if (state == Cli::State::CLI_SPACE) {
         if (index < sizeof(buffer)) {
-            Cli.readHex8(handleInstruction, INST_DATA(index));
+            Cli.readHex8(handleInstruction, INST_DATA(c, index));
             return false;
         }
         Cli.println();
     }
-    Pins.execInst(buffer, index, true /* show */);
+    Pins.execInst(buffer, index, c == 'I');
+    Cli.readLetter(commandHandler, 0);
     return true;
 }
 
@@ -128,6 +139,7 @@ static bool handleDump(uint32_t value, uintptr_t extra, Cli::State state) {
     }
     memoryDump(last_addr, value);
     last_addr += value;
+    Cli.readLetter(commandHandler, 0);
     return true;
 }
 
@@ -210,6 +222,7 @@ static bool handleDisassemble(
         value = 16;
     }
     last_addr = disassemble(last_addr, value);
+    Cli.readLetter(commandHandler, 0);
     return true;
 }
 
@@ -251,6 +264,7 @@ static bool handleMemory(uint32_t value, uintptr_t extra, Cli::State state) {
     memoryWrite(last_addr, buffer, index);
     memoryDump(last_addr, index);
     last_addr += index;
+    Cli.readLetter(commandHandler, 0);
     return true;
 }
 
@@ -259,6 +273,7 @@ static bool handleAssembleLine(char *line, uintptr_t extra, Cli::State state) {
     (void)extra;
     if (*line == 0) {
         Cli.println("end");
+        Cli.readLetter(commandHandler, 0);
         return true;
     }
     AsmMc6809 as6809;
@@ -293,7 +308,7 @@ static bool handleAssembler(uint32_t value, uintptr_t extra, Cli::State state) {
 }
 
 static bool handleFileListing() {
-    SD.begin();
+    SD.begin(Pins.sdCardChipSelectPin());
     File root = SD.open("/");
     while (true) {
         File entry = root.openNextFile();
@@ -345,7 +360,7 @@ static bool handleLoadFile(char *line, uintptr_t extra, Cli::State state) {
     if (state != Cli::State::CLI_NEWLINE)
         return false;
     uint16_t size = 0;
-    SD.begin();
+    SD.begin(Pins.sdCardChipSelectPin());
     File file = SD.open(line);
     if (file) {
         char s19[80];
@@ -365,6 +380,7 @@ static bool handleLoadFile(char *line, uintptr_t extra, Cli::State state) {
     Cli.println();
     Cli.print(size);
     Cli.println(" bytes loaded");
+    Cli.readLetter(commandHandler, 0);
     return true;
 }
 
@@ -384,7 +400,8 @@ static bool handleSetRegister(char value, uintptr_t extra) {
         Cli.readHex8(handleRegisterValue, (uintptr_t)c);
         return false;
     }
-    Cli.println();
+    Cli.println("?Reg: P(C) S U X Y D(P) A B C(C)");
+    Cli.readLetter(commandHandler, 0);
     return true;
 }
 
@@ -418,6 +435,7 @@ static bool handleRegisterValue(
         Regs.cc = value;
     Regs.restore();
     Regs.print();
+    Cli.readLetter(commandHandler, 0);
     return true;
 }
 
@@ -435,8 +453,9 @@ bool Commands::exec(char c) {
         disassemble(Regs.pc, 1);
         return true;
     case 'i':
+    case 'I':
         Cli.print("inst? ");
-        Cli.readHex8(handleInstruction, INST_DATA(0));
+        Cli.readHex8(handleInstruction, INST_DATA(c, 0));
         return false;
     case 'd':
         Cli.print("dump? ");
@@ -508,14 +527,13 @@ bool Commands::exec(char c) {
         Cli.println(VERSION);
         Cli.println(USAGE);
         return true;
+    case '\r':
+        Cli.println();
+    case '\n':
+        return true;
     default:
         return false;
     }
-}
-
-static bool commandHandler(char c, uintptr_t extra) {
-    (void)extra;
-    return Commands.exec(c);
 }
 
 static void printPrompt(libcli::Cli &cli, uintptr_t extra) {
