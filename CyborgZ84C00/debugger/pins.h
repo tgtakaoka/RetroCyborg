@@ -13,9 +13,15 @@ public:
 
     void print() const;
     void reset(bool show = false);
+    void halt(bool show = false);
+    void step(bool show = false);
     void cycle();
     void run();
     void stopRunning();
+    uint8_t dbus() { return _signals.dbus(); }
+    void execInst(const uint8_t *inst, uint8_t len, bool show = false);
+    void captureWrites(
+            const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
 
 private:
     class Status {

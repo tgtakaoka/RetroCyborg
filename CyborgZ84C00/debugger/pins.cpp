@@ -259,6 +259,23 @@ void Pins::run() {
     _freeRunning = true;
 }
 
+void Pins::halt(bool show) {
+    // TODO
+}
+
+void Pins::step(bool show) {
+    // TODO
+}
+
+void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
+    // TODO
+}
+
+void Pins::captureWrites(
+        const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max) {
+    // TODO
+}
+
 void Pins::begin() {
     setupZ80Pins();
 
