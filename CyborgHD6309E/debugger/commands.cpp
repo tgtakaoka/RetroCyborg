@@ -28,11 +28,11 @@
 
 #include <Arduino.h>
 #include <SD.h>
-#include <string.h>
 #include <asm_mc6809.h>
 #include <dis_mc6809.h>
 #include <dis_memory.h>
 #include <libcli.h>
+#include <string.h>
 
 using namespace libasm;
 using namespace libasm::mc6809;
@@ -54,7 +54,6 @@ static uint16_t last_addr;
 #define DIS_ADDR 0
 #define DIS_LENGTH 1
 #define INST_DATA(i) ((uintptr_t)(i))
-#define REG_NAME 0
 
 static uint8_t buffer[16];
 #define MEMORY_ADDR static_cast<uintptr_t>(sizeof(buffer) + 10)
@@ -71,13 +70,13 @@ static void execInst3(uint8_t inst, uint16_t opr, bool show = false) {
 }
 
 static bool handleInstruction(
-        Cli::State state, uint16_t value, uintptr_t extra) {
+        uint32_t value, uintptr_t extra, Cli::State state) {
     uint16_t index = extra;
     if (state == Cli::State::CLI_DELETE) {
         if (index > 0) {
             index--;
             Cli.backspace();
-            Cli.readUint8(handleInstruction, INST_DATA(index), buffer[index]);
+            Cli.readHex8(handleInstruction, INST_DATA(index), buffer[index]);
         }
         return false;
     }
@@ -85,7 +84,7 @@ static bool handleInstruction(
     buffer[index++] = value;
     if (state == Cli::State::CLI_SPACE) {
         if (index < sizeof(buffer)) {
-            Cli.readUint8(handleInstruction, INST_DATA(index));
+            Cli.readHex8(handleInstruction, INST_DATA(index));
             return false;
         }
         Cli.println();
@@ -101,28 +100,28 @@ static void memoryDump(uint16_t addr, uint16_t len) {
         if (i % 16 == 0) {
             if (i)
                 Cli.println();
-            Cli.printUint16(addr);
+            Cli.printHex16(addr);
             Cli.print(':');
         }
-        Cli.printUint8(Pins.dbus());
+        Cli.printHex8(Pins.dbus());
         Cli.print(' ');
     }
     Cli.println();
     Regs.restore();
 }
 
-static bool handleDump(Cli::State state, uint16_t value, uintptr_t extra) {
+static bool handleDump(uint32_t value, uintptr_t extra, Cli::State state) {
     if (state == Cli::State::CLI_DELETE) {
         if (extra == DUMP_LENGTH) {
             Cli.backspace();
-            Cli.readUint16(handleDump, DUMP_ADDR, last_addr);
+            Cli.readHex16(handleDump, DUMP_ADDR, last_addr);
         }
         return false;
     }
     if (extra == DUMP_ADDR) {
         last_addr = value;
         if (state == Cli::State::CLI_SPACE) {
-            Cli.readUint16(handleDump, DUMP_LENGTH);
+            Cli.readHex16(handleDump, DUMP_LENGTH);
             return false;
         }
         value = 16;
@@ -156,10 +155,10 @@ static void print(const char *text, int width) {
 }
 
 static void print(const Insn &insn) {
-    Cli.printUint16(insn.address());
+    Cli.printHex16(insn.address());
     Cli.print(':');
     for (int i = 0; i < insn.length(); i++) {
-        Cli.printUint8(insn.bytes()[i]);
+        Cli.printHex8(insn.bytes()[i]);
         Cli.print(' ');
     }
     for (int i = insn.length(); i < 5; i++) {
@@ -194,18 +193,18 @@ static uint16_t disassemble(uint16_t addr, uint16_t max) {
 }
 
 static bool handleDisassemble(
-        Cli::State state, uint16_t value, uintptr_t extra) {
+        uint32_t value, uintptr_t extra, Cli::State state) {
     if (state == Cli::State::CLI_DELETE) {
         if (extra == DIS_LENGTH) {
             Cli.backspace();
-            Cli.readUint16(handleDisassemble, DIS_ADDR, last_addr);
+            Cli.readHex16(handleDisassemble, DIS_ADDR, last_addr);
         }
         return false;
     }
     if (extra == DIS_ADDR) {
         last_addr = value;
         if (state == Cli::State::CLI_SPACE) {
-            Cli.readUint16(handleDisassemble, DIS_LENGTH);
+            Cli.readHex16(handleDisassemble, DIS_LENGTH);
             return false;
         }
         value = 16;
@@ -224,27 +223,27 @@ static void memoryWrite(
     Regs.restore();
 }
 
-static bool handleMemory(Cli::State state, uint16_t value, uintptr_t extra) {
+static bool handleMemory(uint32_t value, uintptr_t extra, Cli::State state) {
     if (extra == MEMORY_ADDR) {
         last_addr = value;
-        Cli.readUint8(handleMemory, MEMORY_DATA(0));
+        Cli.readHex8(handleMemory, MEMORY_DATA(0));
         return false;
     }
     uint16_t index = extra;
     if (state == Cli::State::CLI_DELETE) {
         Cli.backspace();
         if (index == 0) {
-            Cli.readUint16(handleMemory, MEMORY_ADDR, last_addr);
+            Cli.readHex16(handleMemory, MEMORY_ADDR, last_addr);
         } else {
             index--;
-            Cli.readUint8(handleMemory, MEMORY_DATA(index), buffer[index]);
+            Cli.readHex8(handleMemory, MEMORY_DATA(index), buffer[index]);
         }
         return false;
     }
     buffer[index++] = value;
     if (state == Cli::State::CLI_SPACE) {
         if (index < sizeof(buffer)) {
-            Cli.readUint8(handleMemory, MEMORY_DATA(index));
+            Cli.readHex8(handleMemory, MEMORY_DATA(index));
             return false;
         }
         Cli.println();
@@ -255,7 +254,7 @@ static bool handleMemory(Cli::State state, uint16_t value, uintptr_t extra) {
     return true;
 }
 
-static bool handleAssembleLine(Cli::State state, char *line, uintptr_t extra) {
+static bool handleAssembleLine(char *line, uintptr_t extra, Cli::State state) {
     (void)state;
     (void)extra;
     if (*line == 0) {
@@ -275,19 +274,19 @@ static bool handleAssembleLine(Cli::State state, char *line, uintptr_t extra) {
         memoryWrite(insn.address(), insn.bytes(), insn.length());
         last_addr += insn.length();
     }
-    Cli.printUint16(last_addr);
+    Cli.printHex16(last_addr);
     Cli.print('?');
-    Cli.readLine(handleAssembleLine, 0);
+    Cli.readString(handleAssembleLine, 0);
     return false;
 }
 
-static bool handleAssembler(Cli::State state, uint16_t value, uintptr_t extra) {
+static bool handleAssembler(uint32_t value, uintptr_t extra, Cli::State state) {
     if (extra == ASM_ADDR) {
         last_addr = value;
         if (state == Cli::State::CLI_NEWLINE) {
-            Cli.printUint16(last_addr);
+            Cli.printHex16(last_addr);
             Cli.print('?');
-            Cli.readLine(handleAssembleLine, 0);
+            Cli.readString(handleAssembleLine, 0);
         }
     }
     return false;
@@ -334,14 +333,14 @@ static int loadS19Record(const char *line) {
         buffer[i] = toInt8Hex(line + i * 2 + 8);
     }
     memoryWrite(addr, buffer, num);
-    Cli.printUint16(addr);
+    Cli.printHex16(addr);
     Cli.print(':');
-    Cli.printUint8(num);
+    Cli.printHex8(num);
     Cli.print(' ');
     return num;
 }
 
-static bool handleLoadFile(Cli::State state, char *line, uintptr_t extra) {
+static bool handleLoadFile(char *line, uintptr_t extra, Cli::State state) {
     (void)extra;
     if (state != Cli::State::CLI_NEWLINE)
         return false;
@@ -369,49 +368,53 @@ static bool handleLoadFile(Cli::State state, char *line, uintptr_t extra) {
     return true;
 }
 
-static bool handleSetRegister(
-        Cli::State state, uint16_t value, uintptr_t extra) {
-    if (extra == REG_NAME) {
-        const char c = value & ~0x20;
-        if (c == 'P' || c == 'S' || c == 'U' || c == 'Y' || c == 'X') {
-            Cli.print(c);
-            Cli.print('?');
-            Cli.readUint16(handleSetRegister, (uintptr_t)c);
-            return false;
-        }
-        if (c == 'D' || c == 'A' || c == 'B' || c == 'C') {
-            Cli.print(c);
-            Cli.print('?');
-            Cli.readUint8(handleSetRegister, (uintptr_t)c);
-            return false;
-        }
-        Cli.println();
-        return true;
+static bool handleRegisterValue(uint32_t, uintptr_t, Cli::State);
+
+static bool handleSetRegister(char value, uintptr_t extra) {
+    const char c = value & ~0x20;
+    if (c == 'P' || c == 'S' || c == 'U' || c == 'Y' || c == 'X') {
+        Cli.print(c);
+        Cli.print('?');
+        Cli.readHex16(handleRegisterValue, (uintptr_t)c);
+        return false;
     }
+    if (c == 'D' || c == 'A' || c == 'B' || c == 'C') {
+        Cli.print(c);
+        Cli.print('?');
+        Cli.readHex8(handleRegisterValue, (uintptr_t)c);
+        return false;
+    }
+    Cli.println();
+    return true;
+}
+
+static bool handleRegisterValue(
+        uint32_t value, uintptr_t extra, Cli::State state) {
     if (state == Cli::State::CLI_DELETE) {
         Cli.backspace(2);
-        Cli.readLetter(handleSetRegister, REG_NAME);
+        Cli.readLetter(handleSetRegister, 0);
         return false;
     }
     if (state == Cli::State::CLI_SPACE)
         Cli.println();
-    if (extra == 'P')
+    const char reg = extra;
+    if (reg == 'P')
         Regs.pc = value;
-    else if (extra == 'S')
+    else if (reg == 'S')
         Regs.s = value;
-    else if (extra == 'U')
+    else if (reg == 'U')
         Regs.u = value;
-    else if (extra == 'Y')
+    else if (reg == 'Y')
         Regs.y = value;
-    else if (extra == 'X')
+    else if (reg == 'X')
         Regs.x = value;
-    else if (extra == 'D')
+    else if (reg == 'D')
         Regs.dp = value;
-    else if (extra == 'B')
+    else if (reg == 'B')
         Regs.b = value;
-    else if (extra == 'A')
+    else if (reg == 'A')
         Regs.a = value;
-    else if (extra == 'C')
+    else if (reg == 'C')
         Regs.cc = value;
     Regs.restore();
     Regs.print();
@@ -433,23 +436,23 @@ bool Commands::exec(char c) {
         return true;
     case 'i':
         Cli.print("inst? ");
-        Cli.readUint8(handleInstruction, INST_DATA(0));
+        Cli.readHex8(handleInstruction, INST_DATA(0));
         return false;
     case 'd':
         Cli.print("dump? ");
-        Cli.readUint16(handleDump, DUMP_ADDR);
+        Cli.readHex16(handleDump, DUMP_ADDR);
         return false;
     case 'D':
         Cli.print("Dis? ");
-        Cli.readUint16(handleDisassemble, DIS_ADDR);
+        Cli.readHex16(handleDisassemble, DIS_ADDR);
         return false;
     case 'A':
         Cli.print("Asm? ");
-        Cli.readUint16(handleAssembler, ASM_ADDR);
+        Cli.readHex16(handleAssembler, ASM_ADDR);
         return false;
     case 'm':
         Cli.print("mem? ");
-        Cli.readUint16(handleMemory, MEMORY_ADDR);
+        Cli.readHex16(handleMemory, MEMORY_ADDR);
         return false;
     case 's':
     case 'S':
@@ -472,7 +475,7 @@ bool Commands::exec(char c) {
         return true;
     case '=':
         Cli.print("set reg? ");
-        Cli.readLetter(handleSetRegister, REG_NAME);
+        Cli.readLetter(handleSetRegister, 0);
         return false;
     case 'c':
         _target = STEP;
@@ -499,7 +502,7 @@ bool Commands::exec(char c) {
         return handleFileListing();
     case 'L':
         Cli.print("Load? ");
-        Cli.readLine(handleLoadFile, 0);
+        Cli.readString(handleLoadFile, 0);
         return false;
     case '?':
         Cli.println(VERSION);
@@ -516,13 +519,13 @@ static bool commandHandler(char c, uintptr_t extra) {
 }
 
 static void printPrompt(libcli::Cli &cli, uintptr_t extra) {
-    (void) extra;
+    (void)extra;
     cli.print(F("> "));
 }
 
 void Commands::begin() {
     Cli.setPrompter(printPrompt, 0);
-    Cli.readCommand(commandHandler, 0);
+    Cli.readLetter(commandHandler, 0);
     _target = HALT;
 }
 
