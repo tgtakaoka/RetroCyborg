@@ -6,7 +6,7 @@ class Commands {
 public:
     void begin();
     void loop();
-    bool exec(char c);
+    void exec(char c);
     bool isRunning() const { return _target == RUN; }
 
 private:
