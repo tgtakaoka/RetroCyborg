@@ -2,7 +2,7 @@
 20 REM * ASCII art Mandelbrot set *
 30 REM ****************************
 40 FOR Y=-12 TO 12
-50 FOR X=-39 TO 39
+50 FOR X=-49 TO 29
 60 CA=X*0.0458
 70 CB=Y*0.08333
 80 A=CA

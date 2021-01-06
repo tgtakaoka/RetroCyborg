@@ -3,7 +3,7 @@ OBJCOPY=p2hex -l 32 -F Moto +5 -r '$$-$$' >/dev/null
 
 .PHONY: clean
 
-all: echo.s19 echoir.s19 echoitr.s19
+all: echo.s19 echoir.s19 echoitr.s19 hd6309.s19
 
 %.p:	%.asm
 	$(AS) $^
