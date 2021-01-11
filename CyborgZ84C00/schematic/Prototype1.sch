@@ -285,10 +285,6 @@ Text Label 5750 4150 2    50   ~ 0
 ~WR~
 Text Label 3150 4100 0    50   ~ 0
 ~SD_CS~
-Text Label 1850 3300 2    50   ~ 0
-SCL
-Text Label 1850 3200 2    50   ~ 0
-SDA
 $Comp
 L power:GND #PWR019
 U 1 1 5D16FBAC
@@ -480,21 +476,21 @@ F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/40002016A.pdf" H 2500 3200 
 	1    0    0    -1  
 $EndComp
 Entry Wire Line
-	1600 2000 1700 2100
+	3400 2000 3300 2100
 Entry Wire Line
-	1600 2100 1700 2200
+	3400 2100 3300 2200
 Entry Wire Line
-	1600 2200 1700 2300
+	3400 2200 3300 2300
 Entry Wire Line
-	1600 2300 1700 2400
+	3400 2300 3300 2400
 Entry Wire Line
-	1600 2400 1700 2500
+	3400 2400 3300 2500
 Entry Wire Line
-	1600 2500 1700 2600
+	3400 2500 3300 2600
 Entry Wire Line
-	1600 2600 1700 2700
+	3400 2600 3300 2700
 Entry Wire Line
-	1600 2700 1700 2800
+	3400 2700 3300 2800
 Text Label 3450 6150 2    50   ~ 0
 ~DBG_RTS~
 Wire Wire Line
@@ -523,9 +519,7 @@ F 3 "" H 1950 4400 50  0001 C CNN
 $EndComp
 Text Label 3150 3600 0    50   ~ 0
 ~DBG_RESET~
-Text Label 1850 3400 2    50   ~ 0
-~RESET~
-Text Label 1850 3500 2    50   ~ 0
+Text Label 3150 3500 0    50   ~ 0
 CLK
 $Comp
 L 0-LocalLibrary:SW_Push_LED SW1
@@ -597,9 +591,9 @@ Wire Wire Line
 Wire Wire Line
 	2950 3300 3150 3300
 Wire Wire Line
-	2950 3400 3150 3400
+	2050 3400 1850 3400
 Wire Wire Line
-	2950 3500 3150 3500
+	2050 3500 1850 3500
 Wire Wire Line
 	2950 3600 3150 3600
 Wire Wire Line
@@ -766,7 +760,7 @@ Wire Wire Line
 Wire Wire Line
 	7050 4300 7050 4250
 Connection ~ 7050 4250
-Text Label 3150 3300 0    50   ~ 0
+Text Label 1850 3300 2    50   ~ 0
 ~USR_SW~
 Text Label 3150 3000 0    50   ~ 0
 ~INT~
@@ -849,21 +843,21 @@ Wire Wire Line
 	3900 2750 4050 2750
 Wire Wire Line
 	3900 2850 4050 2850
-Text Label 1800 2800 2    50   ~ 0
+Text Label 3200 2800 0    50   ~ 0
 D7
-Text Label 1800 2700 2    50   ~ 0
+Text Label 3200 2700 0    50   ~ 0
 D6
-Text Label 1800 2600 2    50   ~ 0
+Text Label 3200 2600 0    50   ~ 0
 D5
-Text Label 1800 2500 2    50   ~ 0
+Text Label 3200 2500 0    50   ~ 0
 D4
-Text Label 1800 2400 2    50   ~ 0
+Text Label 3200 2400 0    50   ~ 0
 D3
-Text Label 1800 2300 2    50   ~ 0
+Text Label 3200 2300 0    50   ~ 0
 D2
-Text Label 1800 2200 2    50   ~ 0
+Text Label 3200 2200 0    50   ~ 0
 D1
-Text Label 1800 2100 2    50   ~ 0
+Text Label 3200 2100 0    50   ~ 0
 D0
 Wire Bus Line
 	3800 1250 5800 1250
@@ -918,60 +912,58 @@ Wire Wire Line
 Wire Wire Line
 	5900 2050 6050 2050
 Wire Wire Line
-	1700 2800 2050 2800
+	3300 2800 2950 2800
 Wire Wire Line
-	1700 2700 2050 2700
+	3300 2700 2950 2700
 Wire Wire Line
-	1700 2600 2050 2600
+	3300 2600 2950 2600
 Wire Wire Line
-	1700 2500 2050 2500
+	3300 2500 2950 2500
 Wire Wire Line
-	1700 2400 2050 2400
+	3300 2400 2950 2400
 Wire Wire Line
-	1700 2300 2050 2300
+	3300 2300 2950 2300
 Wire Wire Line
-	1700 2200 2050 2200
+	3300 2200 2950 2200
 Wire Wire Line
-	1700 2100 2050 2100
-Wire Bus Line
-	1600 1150 5200 1150
+	3300 2100 2950 2100
 Wire Wire Line
-	1850 3400 2050 3400
+	3150 3400 2950 3400
 Wire Wire Line
-	1850 3500 2050 3500
+	3150 3500 2950 3500
 Text Label 7200 3850 0    50   ~ 0
 CLK
 Wire Wire Line
-	2950 2100 3150 2100
-Text Label 3150 2100 0    50   ~ 0
+	2050 2100 1850 2100
+Text Label 1850 2100 2    50   ~ 0
 ~IORQ~
 Wire Wire Line
-	2950 2200 3150 2200
-Text Label 3150 2200 0    50   ~ 0
+	2050 2200 1850 2200
+Text Label 1850 2200 2    50   ~ 0
 ~MREQ~
 Wire Wire Line
-	2950 2300 3150 2300
-Text Label 3150 2300 0    50   ~ 0
+	2050 2300 1850 2300
+Text Label 1850 2300 2    50   ~ 0
 ~M1~
 Wire Wire Line
-	2950 2400 3150 2400
-Text Label 3150 2400 0    50   ~ 0
+	2050 2400 1850 2400
+Text Label 1850 2400 2    50   ~ 0
 ~WAIT~
 Wire Wire Line
-	2950 2500 3150 2500
-Text Label 3150 2500 0    50   ~ 0
+	2050 2500 1850 2500
+Text Label 1850 2500 2    50   ~ 0
 ~RD~
 Wire Wire Line
-	2950 2600 3150 2600
-Text Label 3150 2600 0    50   ~ 0
+	2050 2600 1850 2600
+Text Label 1850 2600 2    50   ~ 0
 ~WR~
 Wire Wire Line
-	2950 2700 3150 2700
-Text Label 3150 2700 0    50   ~ 0
+	2050 2700 1850 2700
+Text Label 1850 2700 2    50   ~ 0
 ~BUSREQ~
 Wire Wire Line
-	2950 2800 3150 2800
-Text Label 3150 2800 0    50   ~ 0
+	2050 2800 1850 2800
+Text Label 1850 3200 2    50   ~ 0
 ~RAM_E~
 Wire Wire Line
 	4950 3050 5150 3050
@@ -981,9 +973,9 @@ Text Label 3150 3100 0    50   ~ 0
 ~NMI~
 Text Label 3150 3200 0    50   ~ 0
 A0
-Text Label 3150 3400 0    50   ~ 0
+Text Label 1850 3400 2    50   ~ 0
 ~USR_LED~
-Text Label 3150 3500 0    50   ~ 0
+Text Label 1850 3500 2    50   ~ 0
 ~DBG_RTS~
 $Comp
 L 0-LocalLibrary:Z84C00 U3
@@ -996,7 +988,6 @@ F 3 "www.zilog.com/manage_directlink.php?filepath=docs/z80/um0080" H 6500 3150 5
 	1    6500 3150
 	-1   0    0    -1  
 $EndComp
-NoConn ~ 6950 3450
 NoConn ~ 6950 3550
 NoConn ~ 6950 3650
 Wire Wire Line
@@ -1037,13 +1028,25 @@ F 3 "" H 5350 3100 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Bus Line
+	3400 1150 5200 1150
+Text Label 3150 3400 0    50   ~ 0
+~RESET~
+Text Label 1850 2800 2    50   ~ 0
+~BUSACK~
+Wire Wire Line
+	6950 3450 7200 3450
+Wire Bus Line
 	5200 1150 5200 2650
 Wire Bus Line
-	1600 1150 1600 2700
+	3400 1150 3400 2700
 Wire Bus Line
 	7150 1150 7150 2650
 Wire Bus Line
 	3800 1250 3800 3450
 Wire Bus Line
 	5800 1250 5800 3450
+Text Label 7200 3450 0    50   ~ 0
+~BUSACK~
+Text Label 3150 3300 0    50   ~ 0
+A1
 $EndSCHEMATC

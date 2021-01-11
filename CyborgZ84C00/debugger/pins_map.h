@@ -22,8 +22,8 @@
 #define Console Serial1
 #define CONSOLE_BAUD 115200
 
-// PA: Z80 data bus, bidirectional
-#define DB_PORT A
+// PD: Z80 data bus, bidirectional
+#define DB_PORT D
 #define DB_BUS 0xff
 
 // PC0: Debugger serial TXD, output
@@ -34,53 +34,54 @@
 #define RXD_PORT C
 #define RXD_PIN 1
 
-// PC2: I2C SDA, bidirectional, pullup
-#define SDA_PORT C
-#define SDA_PIN 2
+// PC2: RAM enable, output
+#define RAMEN_PORT C
+#define RAMEN_PIN 2
 
-// PC3: I2C SCL, bidirectional, pullup
-#define SCL_PORT C
-#define SCL_PIN 3
+// PC3: User Switch, input
+#define USR_SW_PORT C
+#define USR_SW_PIN 3
+#define USR_SW_INTERRUPT digitalPinToInterrupt(11)
 
-// PC4: Z80 #RESET, output
-#define RESET_PORT C
-#define RESET_PIN 4
+// PC4: User LED, output
+#define USR_LED_PORT C
+#define USR_LED_PIN 4
 
-// PC5: Z80 #CLK, output
-#define CLK_PORT C
-#define CLK_PIN 5
+// PC5: Debugger Serial RTS, output
+#define DBG_RTS_PORT C
+#define DBG_RTS_PIN 5
 
-// PD0: Z80 #IORQ, input pullup (CCL:LUT2.IN0)
-#define IORQ_PORT D
+// PA0: Z80 #IORQ, input pullup (CCL:LUT0.IN0)
+#define IORQ_PORT A
 #define IORQ_PIN 0
 
-// PD1: Z80 #MREQ, input pullup
-#define MREQ_PORT D
+// PA1: Z80 #MREQ, input pullup (CCL:LUT0.IN1)
+#define MREQ_PORT A
 #define MREQ_PIN 1
 
-// PD2: Z80 #M1, input pullup
-#define M1_PORT D
+// PA2: Z80 #M1, input pullup
+#define M1_PORT A
 #define M1_PIN 2
 
-// PD3: Z80 #WAIT, output (CCL:LUT2.OUT)
-#define WAIT_PORT D
+// PA3: Z80 #WAIT, output (CCL:LUT0.OUT)
+#define WAIT_PORT A
 #define WAIT_PIN 3
 
-// PD4: Z80 #RD, input pullup
-#define RD_PORT D
+// PA4: Z80 #RD, input pullup
+#define RD_PORT A
 #define RD_PIN 4
 
-// PD5: Z80 #WR, input pullup
-#define WR_PORT D
+// PA5: Z80 #WR, input pullup
+#define WR_PORT A
 #define WR_PIN 5
 
-// PD6: Z80 #BUSREQ, output
-#define BUSREQ_PORT D
+// PA6: Z80 #BUSREQ, output
+#define BUSREQ_PORT A
 #define BUSREQ_PIN 6
 
-// PD7: RAM enable, output
-#define RAMEN_PORT D
-#define RAMEN_PIN 7
+// PA7: Z80 #BUSACK, input pullup
+#define BUSACK_PORT A
+#define BUSACK_PIN 7
 
 // PE0: SPI MOSI
 #define MOSI_PORT E
@@ -106,22 +107,21 @@
 #define NMI_PORT F
 #define NMI_PIN 1
 
-// PF2: Z80 LSB of address, input pullup
+// PF2: Z80 A0, input pullup
 #define AD0_PORT F
 #define AD0_PIN 2
 
-// PF3: User Switch, input
-#define USR_SW_PORT F
-#define USR_SW_PIN 3
-#define USR_SW_INTERRUPT digitalPinToInterrupt(10)
+// PF3: Z80 A1, input pullup
+#define AD1_PORT F
+#define AD1_PIN 3
 
-// PF4: User LED, output
-#define USR_LED_PORT F
-#define USR_LED_PIN 4
+// PF2: Z80 #RESET, output
+#define RESET_PORT F
+#define RESET_PIN 4
 
-// PF5: Debugger Serial RTS, output
-#define DBG_RTS_PORT F
-#define DBG_RTS_PIN 5
+// PF2: Z80 CLK, output
+#define CLK_PORT F
+#define CLK_PIN 6
 
 #endif  // ARDUINO_AVR_ATmega4809
 
