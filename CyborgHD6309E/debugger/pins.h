@@ -5,6 +5,40 @@
 #include <Arduino.h>
 #include <stdint.h>
 
+class Status {
+public:
+    void get();
+    void print() const;
+    uint8_t dbus() const { return _dbus; }
+    bool running() const { return (_pins & babs) == 0; }
+    bool fetchingVector() const { return (_pins & babs) == bs; }
+    bool halting() const { return (_pins & babs) == babs; }
+    bool lastInstructionCycle() const { return _pins & lic; }
+    bool unchanged(const Status &prev) const {
+        return _pins == prev._pins && _dbus == prev._dbus;
+    }
+    bool readCycle(const Status &prev) const {
+        return (prev._pins & avma) && (_pins & rw);
+    }
+    bool writeCycle(const Status &prev) const {
+        return (prev._pins & avma) && (_pins & rw) == 0;
+    }
+
+private:
+    enum : uint8_t {
+        bs = _BV(0),
+        ba = _BV(1),
+        babs = _BV(1) | _BV(0),
+        reset = _BV(2),
+        halt = _BV(3),
+        lic = _BV(4),
+        avma = _BV(5),
+        rw = _BV(6),
+    };
+    uint8_t _pins;
+    uint8_t _dbus;
+};
+
 class Pins {
 public:
     void begin();
@@ -41,39 +75,9 @@ public:
     int sdCardChipSelectPin() const;
 
 private:
-    class Status {
-    public:
-        void get();
-        void print() const;
-        uint8_t dbus() const { return _dbus; }
-        bool running() const { return (_pins & babs) == 0; }
-        bool fetchingVector() const { return (_pins & babs) == bs; }
-        bool halting() const { return (_pins & babs) == babs; }
-        bool lastInstructionCycle() const { return _pins & lic; }
-        bool unchanged(const Status &prev) const {
-            return _pins == prev._pins && _dbus == prev._dbus;
-        }
-        bool readCycle(const Status &prev) const {
-            return (prev._pins & avma) && (_pins & rw);
-        }
-        bool writeCycle(const Status &prev) const {
-            return (prev._pins & avma) && (_pins & rw) == 0;
-        }
-
-    private:
-        enum {
-            bs = _BV(0),
-            ba = _BV(1),
-            babs = _BV(1) | _BV(0),
-            reset = _BV(2),
-            halt = _BV(3),
-            lic = _BV(4),
-            avma = _BV(5),
-            rw = _BV(6),
-        };
-        uint8_t _pins;
-        uint8_t _dbus;
-    };
+    void cycle();
+    void setData(uint8_t data);
+    void unhalt();
 
     class Dbus {
     public:
@@ -83,7 +87,6 @@ private:
         void input();
         bool valid() const { return _valid; }
         void capture(bool enable);
-        static uint8_t getDbus();
 
     private:
         void setDbus(uint8_t dir, uint8_t data);
@@ -92,10 +95,6 @@ private:
         bool _valid;
         bool _capture;
     };
-
-    void cycle();
-    void setData(uint8_t data);
-    void unhalt();
 
     bool _freeRunning;
     bool _stopRunning;

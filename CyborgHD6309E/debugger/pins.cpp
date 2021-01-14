@@ -66,11 +66,11 @@ static inline void disableRam() {
     digitalWrite(RAM_E, HIGH);
 }
 
-static inline assertConsoleRts() {
+static inline void assertConsoleRts() {
     digitalWrite(DBG_RTS, LOW);
 }
 
-static inline negateConsoleRts() {
+static inline void negateConsoleRts() {
     digitalWrite(DBG_RTS, HIGH);
 }
 
@@ -115,10 +115,6 @@ static void ioRequest() {
 
     Pins.acknowledgeIoRequest();
     Pins.leaveIoRequest();
-}
-
-uint8_t Pins::Dbus::getDbus() {
-    return busRead(DB);
 }
 
 void Pins::Dbus::begin() {
@@ -166,24 +162,24 @@ void Pins::Dbus::capture(bool enabled) {
     _capture = enabled;
 }
 
-void Pins::Status::get() {
+void Status::get() {
     uint8_t p = 0;
     if (digitalRead(BA) == HIGH)
-        p |= Status::ba;
+        p |= ba;
     if (digitalRead(BS) == HIGH)
-        p |= Status::bs;
+        p |= bs;
     if (digitalRead(RESET) == HIGH)
-        p |= Status::reset;
+        p |= reset;
     if (digitalRead(HALT) == HIGH)
-        p |= Status::halt;
+        p |= halt;
     if (digitalRead(LIC) == HIGH)
-        p |= Status::lic;
+        p |= lic;
     if (digitalRead(AVMA) == HIGH)
-        p |= Status::avma;
+        p |= avma;
     if (digitalRead(RD_WR) == HIGH)
-        p |= Status::rw;
+        p |= rw;
     _pins = p;
-    _dbus = Dbus::getDbus();
+    _dbus = busRead(DB);
 }
 
 static char *outPin(char *p, uint8_t value, const char *name) {
@@ -195,7 +191,7 @@ static char *outPin(char *p, uint8_t value, const char *name) {
     return p;
 }
 
-void Pins::Status::print() const {
+void Status::print() const {
     char buffer[32];
     char *p = buffer;
     p = outPin(p, _pins & halt, " HALT");
@@ -530,7 +526,7 @@ bool Pins::ioRequestWrite() const {
 
 uint8_t Pins::ioGetData() {
     _dbus.input();
-    return Dbus::getDbus();
+    return busRead(DB);
 }
 
 void Pins::ioSetData(uint8_t data) {
