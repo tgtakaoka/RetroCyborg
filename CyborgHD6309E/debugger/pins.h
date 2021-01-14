@@ -53,7 +53,7 @@ public:
     void loop();
     bool isRunning() const { return _freeRunning; }
 
-    void print() const;
+    void print();
     void reset(bool show = false);
     void halt(bool show = false);
     void step(bool show = false);
@@ -84,9 +84,10 @@ public:
     int sdCardChipSelectPin() const;
 
 private:
-    void cycle();
+    Signals &cycle();
+    Signals &unhalt();
     void setData(uint8_t data);
-    void unhalt();
+    void printCycles() const;
     uint8_t execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
             uint8_t max, bool capWrite, bool capRead, bool show);
 
@@ -109,10 +110,11 @@ private:
 
     bool _freeRunning;
     bool _stopRunning;
-    Signals _signals;
-    Signals _previous;
     Dbus _dbus;
     uint8_t _irq;
+    static const uint8_t MAX_CYCLES = 40;
+    uint8_t _cycles;
+    Signals _signals[MAX_CYCLES + 1];
 };
 
 extern Pins Pins;

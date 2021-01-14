@@ -41,6 +41,11 @@ static inline bool isWriteDirection() {
     return digitalRead(RD_WR) == LOW;
 }
 
+static inline bool validBusCycle(const Signals *prev) {
+    return digitalRead(BA) == LOW && digitalRead(BS) == LOW && prev &&
+           prev->advancedValidMemoryAddress();
+}
+
 static inline void enableStep() {
     digitalWrite(STEP, LOW);
 }
@@ -168,9 +173,9 @@ void Signals::get() {
         p |= ba;
     if (digitalRead(BS) == HIGH)
         p |= bs;
-    if (digitalRead(RESET) == HIGH)
+    if (digitalRead(RESET) == LOW)
         p |= reset;
-    if (digitalRead(HALT) == HIGH)
+    if (digitalRead(HALT) == LOW)
         p |= halt;
     if (digitalRead(LIC) == HIGH)
         p |= lic;
@@ -182,6 +187,7 @@ void Signals::get() {
     _dbus = busRead(DB);
 #ifdef DEBUG_SIGNALS
     _debug = 0;
+    digitalToggle(USR_LED);
 #endif
 }
 
@@ -230,17 +236,28 @@ void Signals::print(const Signals *prev) const {
     Cli.println(buffer);
 }
 
-void Pins::print() const {
-    _previous = _signals;
-    _signals.get();
-    _signals.print(&_previous);
+void Pins::print() {
+    Signals &signals = _signals[0];
+    signals.get();
+    signals.print();
+}
+
+void Pins::printCycles() const {
+    const Signals *prev = nullptr;
+    for (uint8_t i = 0; i < _cycles; i++) {
+        _signals[i].print(prev);
+        prev = &_signals[i];
+    }
 }
 
 void Pins::reset(bool show) {
+    _cycles = 0;
+
     // Assert RESET and feed several clocks.
     assertReset();
     negateHalt();
     if (isIntAsserted()) {
+        // restart clock generator.
         disableStep();
         while (!isIntAsserted())
             ;
@@ -258,10 +275,8 @@ void Pins::reset(bool show) {
     negateReset();
     assertHalt();
     for (;;) {
-        cycle();
-        if (show)
-            print();
-        if (_signals.halting())
+        Signals &signals = cycle();
+        if (signals.halting())
             break;
         enableStep();
         negateAck();
@@ -272,31 +287,34 @@ void Pins::reset(bool show) {
 
     _freeRunning = false;
     _stopRunning = false;
+    if (show)
+        printCycles();
 }
 
-void Pins::cycle() {
-    _previous = _signals;
+Signals &Pins::cycle() {
+    const Signals *prev = (_cycles == 0) ? nullptr : &_signals[_cycles - 1];
+    Signals &signals = _signals[_cycles];
+
     // Advance clock to Q=L E=H
     disableStep();
     while (isIntAsserted())
         ;
-    // Get signal status while Q=L E=H
-    _signals.get();
     // Setup data bus
-    if (_signals.running()) {
-        if (_signals.writeCycle(&_previous)) {
-            _dbus.input();
-        } else if (_signals.readCycle(&_previous)) {
-            _dbus.output();
-        }
+    if (validBusCycle(prev) && !isWriteDirection()) {
+        _dbus.output();
     } else {
         _dbus.input();
     }
-    _signals.get();
+    // Get signal status while Q=L E=H
+    signals.get();
     // Assert ACK to advance clock to Q=L E=L.
     assertAck();
     // Cleanup data bus.
     _dbus.input();
+
+    if (_cycles < MAX_CYCLES)
+        _cycles++;
+    return signals;
 }
 
 void Pins::stopRunning() {
@@ -329,15 +347,15 @@ void Pins::run() {
 }
 
 void Pins::halt(bool show) {
+    _cycles = 0;
+
     enableStep();
     while (!isIntAsserted())
         ;
     assertHalt();
     for (;;) {
-        cycle();
-        if (show)
-            print();
-        if (_signals.halting())
+        Signals &signals = cycle();
+        if (signals.halting())
             break;
         enableStep();
         negateAck();
@@ -346,13 +364,16 @@ void Pins::halt(bool show) {
     }
     negateAck();
     turnOffUserLed();
+
+    if (show)
+        printCycles();
 }
 
 void Pins::setData(uint8_t data) {
     _dbus.set(data);
 }
 
-void Pins::unhalt() {
+Signals &Pins::unhalt() {
     enableStep();
     while (!isIntAsserted())
         ;
@@ -363,9 +384,9 @@ void Pins::unhalt() {
         ;
     assertHalt();
     for (;;) {
-        cycle();
-        if (_signals.running() && _signals.lastInstructionCycle())
-            break;
+        Signals &signals = cycle();
+        if (signals.running() && signals.lastInstructionCycle())
+            return signals;
         enableStep();
         negateAck();
         while (!isIntAsserted())
@@ -389,6 +410,9 @@ uint8_t Pins::captureWrites(
 
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
         uint8_t max, bool capWrite, bool capRead, bool show) {
+    _cycles = 0;
+    const Signals *prev = nullptr;
+
     unhalt();
     enableStep();
     negateAck();
@@ -396,52 +420,52 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
         ;
     for (uint8_t i = 0; i < len; i++) {
         setData(inst[i]);
-        cycle();
-        if (show)
-            print();
+        Signals &signals = cycle();
         enableStep();
         negateAck();
         while (!isIntAsserted())
             ;
+        prev = &signals;
     }
+
     uint8_t cap = 0;
-    if (!_signals.lastInstructionCycle()) {
-        if (capWrite)
-            _dbus.capture(true);
-        for (;;) {
-            cycle();
-            if (show)
-                print();
-            if ((capWrite && _signals.writeCycle(_previous)) ||
-                    (capRead && _signals.readCycle(_previous))) {
-                if (cap < max)
-                    capBuf[cap++] = _signals.dbus();
-            }
-            if (_signals.lastInstructionCycle())
-                break;
-            enableStep();
-            negateAck();
-            while (!isIntAsserted())
-                ;
+    if (capWrite)
+        _dbus.capture(true);
+    for (;;) {
+        Signals &signals = cycle();
+        if ((capWrite && signals.writeCycle(prev)) ||
+                (capRead && signals.readCycle(prev))) {
+            if (cap < max)
+                capBuf[cap++] = signals.dbus();
         }
-        if (capWrite)
-            _dbus.capture(false);
+        if (signals.halting())
+            break;
+        enableStep();
+        negateAck();
+        while (!isIntAsserted())
+            ;
+        prev = &signals;
     }
+    if (capWrite)
+        _dbus.capture(false);
     negateAck();
+
+    if (show)
+        printCycles();
     return cap;
 }
 
 void Pins::step(bool show) {
+    _cycles = 0;
+
     unhalt();
     enableStep();
     negateAck();
     while (!isIntAsserted())
         ;
     for (;;) {
-        cycle();
-        if (show)
-            print();
-        if (_signals.lastInstructionCycle())
+        Signals &signals = cycle();
+        if (signals.halting())
             break;
         enableStep();
         negateAck();
@@ -449,6 +473,9 @@ void Pins::step(bool show) {
             ;
     }
     negateAck();
+
+    if (show)
+        printCycles();
 }
 
 void Pins::begin() {
@@ -488,8 +515,6 @@ void Pins::begin() {
     turnOffUserLed();
 
     _dbus.begin();
-
-    _previous.get();
 
     Console.begin(CONSOLE_BAUD);
     Cli.begin(Console);
