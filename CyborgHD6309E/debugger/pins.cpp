@@ -3,9 +3,9 @@
 #include "pins.h"
 
 #include <Arduino.h>
+#include <SPI.h>
 #include <avr/pgmspace.h>
 #include <libcli.h>
-#include <SPI.h>
 
 #include "commands.h"
 #include "mc6850.h"
@@ -396,8 +396,8 @@ void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
     negateAck();
 }
 
-void Pins::captureWrites(
-        const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max) {
+uint8_t Pins::captureReads(
+        const uint8_t *inst, uint8_t len, uint8_t *capBuf, uint8_t max) {
     unhalt();
     enableStep();
     negateAck();
@@ -411,13 +411,47 @@ void Pins::captureWrites(
         while (!isIntAsserted())
             ;
     }
+    uint8_t cap = 0;
     if (!_signals.lastInstructionCycle()) {
-        _dbus.capture(true);
-        uint8_t i = 0;
         for (;;) {
             cycle();
-            if (_signals.writeCycle(_previous) && i < max) {
-                buf[i++] = _signals.dbus();
+            if (_signals.readCycle(_previous) && cap < max) {
+                capBuf[cap++] = _signals.dbus();
+            }
+            if (_signals.lastInstructionCycle())
+                break;
+            enableStep();
+            negateAck();
+            while (!isIntAsserted())
+                ;
+        }
+    }
+    negateAck();
+    return cap;
+}
+
+uint8_t Pins::captureWrites(
+        const uint8_t *inst, uint8_t len, uint8_t *capBuf, uint8_t max) {
+    unhalt();
+    enableStep();
+    negateAck();
+    while (!isIntAsserted())
+        ;
+    for (uint8_t i = 0; i < len; i++) {
+        setData(inst[i]);
+        cycle();
+        enableStep();
+        negateAck();
+        while (!isIntAsserted())
+            ;
+    }
+    uint8_t cap = 0;
+    if (!_signals.lastInstructionCycle()) {
+        _dbus.capture(true);
+        for (;;) {
+            cycle();
+            if (_signals.writeCycle(_previous) && cap < max) {
+                capBuf[cap++] = _signals.dbus();
             }
             if (_signals.lastInstructionCycle())
                 break;
@@ -429,6 +463,7 @@ void Pins::captureWrites(
         _dbus.capture(false);
     }
     negateAck();
+    return cap;
 }
 
 void Pins::step(bool show) {

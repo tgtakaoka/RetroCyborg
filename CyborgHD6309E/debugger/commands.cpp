@@ -70,14 +70,18 @@ static uint8_t buffer[16];
 #define MEMORY_ADDR static_cast<uintptr_t>(sizeof(buffer) + 10)
 #define MEMORY_DATA(i) ((uintptr_t)(i))
 
-static void execInst2(uint8_t inst, uint8_t opr, bool show = false) {
-    const uint8_t insn[] = {inst, opr};
-    Pins.execInst(insn, sizeof(insn), show);
+static void writeMemory(uint16_t addr, uint8_t data) {
+    const uint8_t lda[] = {0x86, data};
+    const uint8_t sta[] = {0xB7, (uint8_t)(addr >> 8), (uint8_t)addr};
+    Pins.execInst(lda, sizeof(lda));
+    Pins.execInst(sta, sizeof(sta));
 }
 
-static void execInst3(uint8_t inst, uint16_t opr, bool show = false) {
-    const uint8_t insn[] = {inst, (uint8_t)(opr >> 8), (uint8_t)opr};
-    Pins.execInst(insn, sizeof(insn), show);
+static uint8_t readMemory(uint16_t addr) {
+    const uint8_t sta[] = {0xB6, (uint8_t)(addr >> 8), (uint8_t)addr};
+    uint8_t data;
+    Pins.captureReads(sta, sizeof(sta), &data, 1);
+    return data;
 }
 
 static void handleInstruction(
@@ -108,14 +112,14 @@ static void handleInstruction(
 static void memoryDump(uint16_t addr, uint16_t len) {
     Regs.save();
     for (uint16_t i = 0; i < len; i++, addr++) {
-        execInst3(0xB6, addr);  // LDA $addr
+        const uint8_t data = readMemory(addr);
         if (i % 16 == 0) {
             if (i)
                 Cli.println();
             Cli.printHex16(addr);
             Cli.print(':');
         }
-        Cli.printHex8(Pins.dbus());
+        Cli.printHex8(data);
         Cli.print(' ');
     }
     Cli.println();
@@ -152,8 +156,7 @@ public:
 protected:
     uint8_t nextByte() {
         Regs.save();
-        execInst3(0xB6, address());  // LDA $_address
-        uint8_t data = Pins.dbus();
+        const uint8_t data = readMemory(address());
         Regs.restore();
         return data;
     }
@@ -229,8 +232,7 @@ static void memoryWrite(
         uint16_t addr, const uint8_t values[], const uint8_t len) {
     Regs.save();
     for (uint8_t i = 0; i < len; i++, addr++) {
-        execInst2(0x86, values[i]);  // LDA #values[i]
-        execInst3(0xB7, addr);       // STA $addr
+        writeMemory(addr, values[i]);
     }
     Regs.restore();
 }

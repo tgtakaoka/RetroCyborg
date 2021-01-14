@@ -51,10 +51,11 @@ public:
     void step(bool show = false);
     void run();
     void stopRunning();
-    uint8_t dbus() { return _signals.dbus(); }
     void execInst(const uint8_t *inst, uint8_t len, bool show = false);
-    void captureWrites(
-            const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
+    uint8_t captureReads(
+            const uint8_t *inst, uint8_t len, uint8_t *capBuf, uint8_t max);
+    uint8_t captureWrites(
+            const uint8_t *inst, uint8_t len, uint8_t *capBuf, uint8_t max);
 
     void acknowledgeIoRequest();
     void leaveIoRequest();
