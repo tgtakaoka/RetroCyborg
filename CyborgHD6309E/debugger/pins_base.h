@@ -34,8 +34,8 @@
         if ((mode) == OUTPUT)                   \
             PORT(name).DIRSET = PIN_bm(name);   \
     } while (0)
-#define pinModeInvert(name) PINCTRL(name) |= PORT_INVEN_bm
-#define digitalRead(name) (PIN(name) & PIN_bm(name))
+#define pinModeInvert(name) (PINCTRL(name) |= PORT_INVEN_bm)
+#define digitalRead(name) ((PIN(name) & PIN_bm(name)) ? HIGH : LOW)
 #define digitalWrite(name, val)               \
     do {                                      \
         if ((val) == LOW) {                   \
@@ -44,7 +44,7 @@
             PORT(name).OUTSET = PIN_bm(name); \
         }                                     \
     } while (0)
-
+#define digitalToggle(name) (PORT(name).OUTTGL = PIN_bm(name))
 static void enablePullup(register8_t *pinctrl, uint8_t mask)
         __attribute__((unused));
 static void enablePullup(register8_t *pinctrl, uint8_t mask) {
@@ -88,28 +88,29 @@ static void enablePullup(register8_t *pinctrl, uint8_t mask) {
 #define PDIR(name) __PORT_DDR__(__PORT__(name))
 #define POUT(name) __PORT_OUT__(__PORT__(name))
 #define PIN(name) __PORT_IN__(__PORT__(name))
-#define PIN_m(name) _BV(__PIN__(name))
+#define PIN_bm(name) _BV(__PIN__(name))
 #define BUS_gm(name) __BUS__(name)
 
-#define pinMode(name, mode)             \
-    do {                                \
-        if (mode == INPUT)              \
-            PDIR(name) &= ~PIN_m(name); \
-        if (mode == INPUT_PULLUP)       \
-            PDIR(name) &= ~PIN_m(name); \
-        if (mode == INPUT_PULLUP)       \
-            POUT(name) |= PIN_m(name);  \
-        if (mode == OUTPUT)             \
-            PDIR(name) |= PIN_m(name);  \
+#define pinMode(name, mode)              \
+    do {                                 \
+        if (mode == INPUT)               \
+            PDIR(name) &= ~PIN_bm(name); \
+        if (mode == INPUT_PULLUP)        \
+            PDIR(name) &= ~PIN_bm(name); \
+        if (mode == INPUT_PULLUP)        \
+            POUT(name) |= PIN_bm(name);  \
+        if (mode == OUTPUT)              \
+            PDIR(name) |= PIN_bm(name);  \
     } while (0)
-#define digitalRead(name) (PIN(name) & PIN_m(name))
-#define digitalWrite(name, val)         \
-    do {                                \
-        if (val == LOW)                 \
-            POUT(name) &= ~PIN_m(name); \
-        if (val == HIGH)                \
-            POUT(name) |= PIN_m(name);  \
+#define digitalRead(name) ((PIN(name) & PIN_bm(name)) ? HIGH : LOW)
+#define digitalWrite(name, val)          \
+    do {                                 \
+        if (val == LOW)                  \
+            POUT(name) &= ~PIN_bm(name); \
+        if (val == HIGH)                 \
+            POUT(name) |= PIN_bm(name);  \
     } while (0)
+#define digitalToggle(name) (POUT(name) ^= PIN_bm(name))
 #define busMode(name, mode)               \
     do {                                  \
         if (mode == INPUT)                \

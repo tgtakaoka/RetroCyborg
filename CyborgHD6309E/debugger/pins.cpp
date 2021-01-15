@@ -168,19 +168,19 @@ void Pins::Dbus::capture(bool enabled) {
 
 void Pins::Status::get() {
     uint8_t p = 0;
-    if (digitalRead(BA))
+    if (digitalRead(BA) == HIGH)
         p |= Status::ba;
-    if (digitalRead(BS))
+    if (digitalRead(BS) == HIGH)
         p |= Status::bs;
-    if (digitalRead(RESET))
+    if (digitalRead(RESET) == HIGH)
         p |= Status::reset;
-    if (digitalRead(HALT))
+    if (digitalRead(HALT) == HIGH)
         p |= Status::halt;
-    if (digitalRead(LIC))
+    if (digitalRead(LIC) == HIGH)
         p |= Status::lic;
-    if (digitalRead(AVMA))
+    if (digitalRead(AVMA) == HIGH)
         p |= Status::avma;
-    if (digitalRead(RD_WR))
+    if (digitalRead(RD_WR) == HIGH)
         p |= Status::rw;
     _pins = p;
     _dbus = Dbus::getDbus();
@@ -517,9 +517,9 @@ void Pins::negateIrq(uint8_t mask) {
 
 uint16_t Pins::ioRequestAddress() const {
     uint16_t addr = ioBaseAddress();
-    if (digitalRead(ADR0))
+    if (digitalRead(ADR0) == HIGH)
         addr |= 0x01;
-    if (digitalRead(ADR1))
+    if (digitalRead(ADR1) == HIGH)
         addr |= 0x02;
     return addr;
 }
