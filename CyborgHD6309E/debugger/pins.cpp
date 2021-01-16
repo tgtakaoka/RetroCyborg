@@ -365,6 +365,21 @@ void Pins::unhalt() {
 }
 
 void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
+    execute(inst, len, nullptr, 0, false, false, show);
+}
+
+uint8_t Pins::captureReads(
+        const uint8_t *inst, uint8_t len, uint8_t *capBuf, uint8_t max) {
+    return execute(inst, len, capBuf, max, false, capBuf != nullptr, false);
+}
+
+uint8_t Pins::captureWrites(
+        const uint8_t *inst, uint8_t len, uint8_t *capBuf, uint8_t max) {
+    return execute(inst, len, capBuf, max, capBuf != nullptr, false, false);
+}
+
+uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
+        uint8_t max, bool capWrite, bool capRead, bool show) {
     unhalt();
     enableStep();
     negateAck();
@@ -380,43 +395,18 @@ void Pins::execInst(const uint8_t *inst, uint8_t len, bool show) {
         while (!isIntAsserted())
             ;
     }
+    uint8_t cap = 0;
     if (!_signals.lastInstructionCycle()) {
+        if (capWrite)
+            _dbus.capture(true);
         for (;;) {
             cycle();
             if (show)
                 print();
-            if (_signals.lastInstructionCycle())
-                break;
-            enableStep();
-            negateAck();
-            while (!isIntAsserted())
-                ;
-        }
-    }
-    negateAck();
-}
-
-uint8_t Pins::captureReads(
-        const uint8_t *inst, uint8_t len, uint8_t *capBuf, uint8_t max) {
-    unhalt();
-    enableStep();
-    negateAck();
-    while (!isIntAsserted())
-        ;
-    for (uint8_t i = 0; i < len; i++) {
-        setData(inst[i]);
-        cycle();
-        enableStep();
-        negateAck();
-        while (!isIntAsserted())
-            ;
-    }
-    uint8_t cap = 0;
-    if (!_signals.lastInstructionCycle()) {
-        for (;;) {
-            cycle();
-            if (_signals.readCycle(_previous) && cap < max) {
-                capBuf[cap++] = _signals.dbus();
+            if ((capWrite && _signals.writeCycle(_previous)) ||
+                    (capRead && _signals.readCycle(_previous))) {
+                if (cap < max)
+                    capBuf[cap++] = _signals.dbus();
             }
             if (_signals.lastInstructionCycle())
                 break;
@@ -425,42 +415,8 @@ uint8_t Pins::captureReads(
             while (!isIntAsserted())
                 ;
         }
-    }
-    negateAck();
-    return cap;
-}
-
-uint8_t Pins::captureWrites(
-        const uint8_t *inst, uint8_t len, uint8_t *capBuf, uint8_t max) {
-    unhalt();
-    enableStep();
-    negateAck();
-    while (!isIntAsserted())
-        ;
-    for (uint8_t i = 0; i < len; i++) {
-        setData(inst[i]);
-        cycle();
-        enableStep();
-        negateAck();
-        while (!isIntAsserted())
-            ;
-    }
-    uint8_t cap = 0;
-    if (!_signals.lastInstructionCycle()) {
-        _dbus.capture(true);
-        for (;;) {
-            cycle();
-            if (_signals.writeCycle(_previous) && cap < max) {
-                capBuf[cap++] = _signals.dbus();
-            }
-            if (_signals.lastInstructionCycle())
-                break;
-            enableStep();
-            negateAck();
-            while (!isIntAsserted())
-                ;
-        }
-        _dbus.capture(false);
+        if (capWrite)
+            _dbus.capture(false);
     }
     negateAck();
     return cap;

@@ -79,6 +79,8 @@ private:
     void cycle();
     void setData(uint8_t data);
     void unhalt();
+    uint8_t execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
+            uint8_t max, bool capWrite, bool capRead, bool show);
 
     class Dbus {
     public:
