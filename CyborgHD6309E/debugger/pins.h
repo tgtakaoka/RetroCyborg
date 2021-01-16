@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-class Status {
+class Signals {
 public:
     void get();
     void print() const;
@@ -14,13 +14,13 @@ public:
     bool fetchingVector() const { return (_pins & babs) == bs; }
     bool halting() const { return (_pins & babs) == babs; }
     bool lastInstructionCycle() const { return _pins & lic; }
-    bool unchanged(const Status &prev) const {
+    bool unchanged(const Signals &prev) const {
         return _pins == prev._pins && _dbus == prev._dbus;
     }
-    bool readCycle(const Status &prev) const {
+    bool readCycle(const Signals &prev) const {
         return (prev._pins & avma) && (_pins & rw);
     }
-    bool writeCycle(const Status &prev) const {
+    bool writeCycle(const Signals &prev) const {
         return (prev._pins & avma) && (_pins & rw) == 0;
     }
 
@@ -67,7 +67,7 @@ public:
 
     void assertIrq(const uint8_t mask);
     void negateIrq(const uint8_t mask = 0xff);
-    uint8_t irqStatus(const uint8_t mask = 0xff) const { return _irq & mask; }
+    uint8_t irqSignals(const uint8_t mask = 0xff) const { return _irq & mask; }
     static uint8_t getIrqMask(uint16_t addr) {
         return 1 << (addr - ioBaseAddress());
     }
@@ -98,8 +98,8 @@ private:
 
     bool _freeRunning;
     bool _stopRunning;
-    Status _signals;
-    Status _previous;
+    Signals _signals;
+    Signals _previous;
     Dbus _dbus;
     uint8_t _irq;
 };

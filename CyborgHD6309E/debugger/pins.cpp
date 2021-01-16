@@ -162,7 +162,7 @@ void Pins::Dbus::capture(bool enabled) {
     _capture = enabled;
 }
 
-void Status::get() {
+void Signals::get() {
     uint8_t p = 0;
     if (digitalRead(BA) == HIGH)
         p |= ba;
@@ -191,7 +191,7 @@ static char *outPin(char *p, uint8_t value, const char *name) {
     return p;
 }
 
-void Status::print() const {
+void Signals::print() const {
     char buffer[32];
     char *p = buffer;
     p = outPin(p, _pins & halt, " HALT");
