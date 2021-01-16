@@ -276,6 +276,7 @@ void Pins::reset(bool show) {
     assertHalt();
     for (;;) {
         Signals &signals = cycle();
+        signals.debug('R');
         if (signals.halting())
             break;
         enableStep();
@@ -355,6 +356,7 @@ void Pins::halt(bool show) {
     assertHalt();
     for (;;) {
         Signals &signals = cycle();
+        signals.debug('H');
         if (signals.halting())
             break;
         enableStep();
@@ -378,13 +380,15 @@ Signals &Pins::unhalt() {
     while (!isIntAsserted())
         ;
     negateHalt();
-    cycle();
+    cycle().debug('U');
     enableStep();
     while (isIntAsserted())
         ;
     assertHalt();
+    char c = '1';
     for (;;) {
         Signals &signals = cycle();
+        signals.debug(c++);
         if (signals.running() && signals.lastInstructionCycle())
             return signals;
         enableStep();
@@ -421,6 +425,7 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
     for (uint8_t i = 0; i < len; i++) {
         setData(inst[i]);
         Signals &signals = cycle();
+        signals.debug('A' + i);
         enableStep();
         negateAck();
         while (!isIntAsserted())
@@ -433,6 +438,7 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
         _dbus.capture(true);
     for (;;) {
         Signals &signals = cycle();
+        signals.debug('a' + cap);
         if ((capWrite && signals.writeCycle(prev)) ||
                 (capRead && signals.readCycle(prev))) {
             if (cap < max)
@@ -465,6 +471,7 @@ void Pins::step(bool show) {
         ;
     for (;;) {
         Signals &signals = cycle();
+        signals.debug('S');
         if (signals.halting())
             break;
         enableStep();
