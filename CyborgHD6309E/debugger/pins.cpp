@@ -180,6 +180,9 @@ void Signals::get() {
         p |= rw;
     _pins = p;
     _dbus = busRead(DB);
+#ifdef DEBUG_SIGNALS
+    _debug = 0;
+#endif
 }
 
 static char *outPin(char *p, uint8_t value, const char *name) {
@@ -192,8 +195,11 @@ static char *outPin(char *p, uint8_t value, const char *name) {
 }
 
 void Signals::print() const {
-    char buffer[32];
+    char buffer[34];
     char *p = buffer;
+#ifdef DEBUG_SIGNALS
+    *p++ = _debug ? _debug : ' ';
+#endif
     p = outPin(p, _pins & halt, " HALT");
     p = outPin(p, _pins & ba, " BA");
     p = outPin(p, _pins & bs, " BS");

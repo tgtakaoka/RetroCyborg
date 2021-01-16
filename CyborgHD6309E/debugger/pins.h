@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 
+#define DEBUG_SIGNALS
+
 class Signals {
 public:
     void get();
@@ -23,6 +25,11 @@ public:
     bool writeCycle(const Signals &prev) const {
         return (prev._pins & avma) && (_pins & rw) == 0;
     }
+    void debug(char c) {
+#ifdef DEBUG_SIGNALS
+        _debug = c;
+#endif
+    }
 
 private:
     enum : uint8_t {
@@ -37,6 +44,9 @@ private:
     };
     uint8_t _pins;
     uint8_t _dbus;
+#ifdef DEBUG_SIGNALS
+    char _debug;
+#endif
 };
 
 class Pins {
