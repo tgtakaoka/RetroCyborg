@@ -39,8 +39,9 @@ using namespace libasm;
 using namespace libasm::mc6809;
 
 #define VERSION "* CyborgHD6309E Prototype4 2.0.0"
-#define USAGE                                                                  \
-    "R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont G:o " \
+#define USAGE                                                                \
+    "R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont " \
+    "G:o "                                                                   \
     "h/H:alt p:ins F:iles L:oad"
 
 using libcli::Cli;
@@ -184,7 +185,7 @@ static void print(const Insn &insn) {
 static uint16_t disassemble(uint16_t addr, uint16_t max) {
     DisMc6809 dis6809;
     Disassembler &disassembler(dis6809);
-    disassembler.setCpu("6309");
+    disassembler.setCpu(Regs.cpu());
     disassembler.setUppercase(true);
     class Mc6809Memory memory;
     memory.setAddress(addr);
@@ -278,7 +279,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, Cli::State state) {
     }
     AsmMc6809 as6809;
     Assembler &assembler(as6809);
-    assembler.setCpu("6309");
+    assembler.setCpu(Regs.cpu());
     Insn insn;
     if (assembler.encode(line, insn, last_addr, nullptr)) {
         Cli.print("Error: ");
@@ -383,20 +384,25 @@ static void handleLoadFile(char *line, uintptr_t extra, Cli::State state) {
 static void handleRegisterValue(uint32_t, uintptr_t, Cli::State);
 
 static void handleSetRegister(char value, uintptr_t extra) {
-    const char c = value & ~0x20;
-    if (c == 'P' || c == 'S' || c == 'U' || c == 'Y' || c == 'X') {
+    const char c = value;
+    if (c == 'p' || c == 's' || c == 'u' || c == 'y' || c == 'x' || c == 'd' ||
+            (Regs.is6309() && (c == 'w' || c == 'v'))) {
         Cli.print(c);
         Cli.print('?');
         Cli.readHex16(handleRegisterValue, (uintptr_t)c);
         return;
     }
-    if (c == 'D' || c == 'A' || c == 'B' || c == 'C') {
+    if (c == 'D' || c == 'a' || c == 'b' || c == 'c' ||
+            (Regs.is6309() && (c == 'e' || c == 'f'))) {
         Cli.print(c);
         Cli.print('?');
         Cli.readHex8(handleRegisterValue, (uintptr_t)c);
         return;
     }
-    Cli.println("?Reg: P(C) S U X Y D(P) A B C(C)");
+    Cli.print("?Reg: pc s u x y a b d");
+    if (Regs.is6309())
+        Cli.print(" w e f v");
+    Cli.println(" Dp cc");
     printPrompt();
 }
 
@@ -410,24 +416,50 @@ static void handleRegisterValue(
     if (state == Cli::State::CLI_SPACE)
         Cli.println();
     const char reg = extra;
-    if (reg == 'P')
+    switch (reg) {
+    case 'p':
         Regs.pc = value;
-    else if (reg == 'S')
+        break;
+    case 's':
         Regs.s = value;
-    else if (reg == 'U')
+        break;
+    case 'u':
         Regs.u = value;
-    else if (reg == 'Y')
+        break;
+    case 'y':
         Regs.y = value;
-    else if (reg == 'X')
+        break;
+    case 'x':
         Regs.x = value;
-    else if (reg == 'D')
-        Regs.dp = value;
-    else if (reg == 'B')
-        Regs.b = value;
-    else if (reg == 'A')
+        break;
+    case 'd':
+        Regs.d = value;
+        break;
+    case 'w':
+        Regs.w = value;
+        break;
+    case 'v':
+        Regs.v = value;
+        break;
+    case 'a':
         Regs.a = value;
-    else if (reg == 'C')
+        break;
+    case 'b':
+        Regs.b = value;
+        break;
+    case 'e':
+        Regs.e = value;
+        break;
+    case 'f':
+        Regs.f = value;
+        break;
+    case 'D':
+        Regs.dp = value;
+        break;
+    case 'c':
         Regs.cc = value;
+        break;
+    }
     Regs.restore();
     Regs.print();
     printPrompt();
