@@ -16,9 +16,6 @@ public:
     bool fetchingVector() const { return (_pins & babs) == bs; }
     bool halting() const { return (_pins & babs) == babs; }
     bool lastInstructionCycle() const { return _pins & lic; }
-    bool unchanged(const Signals &prev) const {
-        return _pins == prev._pins && _dbus == prev._dbus;
-    }
     bool readCycle(const Signals &prev) const {
         return (prev._pins & avma) && (_pins & rw);
     }
