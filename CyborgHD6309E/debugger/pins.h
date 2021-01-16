@@ -10,17 +10,18 @@
 class Signals {
 public:
     void get();
-    void print() const;
+    void print(const Signals *prev = nullptr) const;
     uint8_t dbus() const { return _dbus; }
     bool running() const { return (_pins & babs) == 0; }
     bool fetchingVector() const { return (_pins & babs) == bs; }
     bool halting() const { return (_pins & babs) == babs; }
     bool lastInstructionCycle() const { return _pins & lic; }
-    bool readCycle(const Signals &prev) const {
-        return (prev._pins & avma) && (_pins & rw);
+    bool advancedValidMemoryAddress() const { return _pins & avma; }
+    bool readCycle(const Signals *prev) const {
+        return prev && prev->advancedValidMemoryAddress() && (_pins & rw);
     }
-    bool writeCycle(const Signals &prev) const {
-        return (prev._pins & avma) && (_pins & rw) == 0;
+    bool writeCycle(const Signals *prev) const {
+        return prev && prev->advancedValidMemoryAddress() && (_pins & rw) == 0;
     }
     void debug(char c) {
 #ifdef DEBUG_SIGNALS

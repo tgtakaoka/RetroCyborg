@@ -194,8 +194,8 @@ static char *outPin(char *p, uint8_t value, const char *name) {
     return p;
 }
 
-void Signals::print() const {
-    char buffer[34];
+void Signals::print(const Signals *prev) const {
+    char buffer[40];
     char *p = buffer;
 #ifdef DEBUG_SIGNALS
     *p++ = _debug ? _debug : ' ';
@@ -208,29 +208,32 @@ void Signals::print() const {
     p = outText(p, (_pins & rw) ? " RD" : " WR");
     p = outText(p, " DB=0x");
     p = outHex8(p, _dbus);
-    Cli.print(buffer);
-}
-
-void Pins::print() const {
-    _signals.print();
-    char buffer[4];
-    char *p = buffer;
-    *p++ = ' ';
-    if (_signals.fetchingVector()) {
-        *p++ = 'V';
-    } else if (_signals.running()) {
-        if (_signals.writeCycle(_previous)) {
-            *p++ = 'W';
-        } else if (_signals.readCycle(_previous)) {
-            *p++ = 'R';
+    if (prev) {
+        *p++ = ' ';
+        if (fetchingVector()) {
+            *p++ = 'V';
+        } else if (running()) {
+            if (writeCycle(prev)) {
+                *p++ = 'W';
+            } else if (readCycle(prev)) {
+                *p++ = 'R';
+            } else {
+                *p++ = '-';
+            }
+        } else if (halting()) {
+            *p++ = 'H';
         } else {
-            *p++ = '-';
+            *p++ = 'S';
         }
-    } else {
-        *p++ = 'H';
     }
     *p = 0;
     Cli.println(buffer);
+}
+
+void Pins::print() const {
+    _previous = _signals;
+    _signals.get();
+    _signals.print(&_previous);
 }
 
 void Pins::reset(bool show) {
@@ -281,9 +284,9 @@ void Pins::cycle() {
     _signals.get();
     // Setup data bus
     if (_signals.running()) {
-        if (_signals.writeCycle(_previous)) {
+        if (_signals.writeCycle(&_previous)) {
             _dbus.input();
-        } else if (_signals.readCycle(_previous)) {
+        } else if (_signals.readCycle(&_previous)) {
             _dbus.output();
         }
     } else {
