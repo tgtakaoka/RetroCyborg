@@ -14,11 +14,6 @@ static char bit1(uint8_t v, char name) {
     return v ? name : '_';
 }
 
-static void capture2(uint8_t inst, uint8_t opr, uint8_t *buf, uint8_t max) {
-    const uint8_t insn[] = {inst, opr};
-    Pins.captureWrites(insn, sizeof(insn), buf, max);
-}
-
 void Regs::print() const {
     // text=29, hex=(sizeof(bytes)-1)*2, cc=8, eos=1
     char buffer[29 + (sizeof(bytes) - 1) * 2 + 8 + 1];
@@ -51,20 +46,22 @@ void Regs::get(bool show) {
         print();
 }
 
+static const uint8_t pshs_all[] = {0x34, 0xFF};  // PSHS PC,U,Y,X,DP,B,A,CC
+static const uint8_t pshu_s[] = {0x36, 0x40};    // PSHU S
 void Regs::save() {
-    capture2(0x34, 0xFF, bytes, 12);      // PSHS PC,U,Y,X,DP,B,A,CC
-    pc -= 2;                              // offset PSHS instruction.
-    capture2(0x36, 0x40, bytes + 12, 2);  // PSHU S
-    s += 12;                              // offset PSHS stack frame.
+    Pins.captureWrites(pshs_all, sizeof(pshs_all), bytes, 12);
+    pc -= 2;  // offset PSHS instruction.
+    Pins.captureWrites(pshu_s, sizeof(pshu_s), bytes + 12, 2);
+    s += 12;  // offset PSHS stack frame.
 }
 
 void Regs::restore() {
     const uint16_t sp = s - 12;
-    const uint8_t lds[] = {// LDS #(s-12)
-            0x10, 0xCE, (uint8_t)(sp >> 8), (uint8_t)sp};
+    const uint8_t lds[] = {
+            0x10, 0xCE, (uint8_t)(sp >> 8), (uint8_t)sp};  // LDS #(s-12)
     Pins.execInst(lds, sizeof(lds));
-    const uint8_t puls[] = {0x35, 0xFF, 0, 0, cc, a, b, dp, (uint8_t)(x >> 8),
+    const uint8_t puls_all[] = {0x35, 0xFF, cc, a, b, dp, (uint8_t)(x >> 8),
             (uint8_t)x, (uint8_t)(y >> 8), (uint8_t)y, (uint8_t)(u >> 8),
             (uint8_t)u, (uint8_t)(pc >> 8), (uint8_t)pc};
-    Pins.execInst(puls, sizeof(puls));
+    Pins.execInst(puls_all, sizeof(puls_all));
 }

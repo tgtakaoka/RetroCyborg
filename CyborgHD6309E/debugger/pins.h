@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define DEBUG_SIGNALS
+//#define DEBUG_SIGNALS
 
 class Signals {
 public:
@@ -84,13 +84,6 @@ public:
     int sdCardChipSelectPin() const;
 
 private:
-    Signals &cycle();
-    Signals &unhalt();
-    void setData(uint8_t data);
-    void printCycles() const;
-    uint8_t execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
-            uint8_t max, bool capWrite, bool capRead, bool show);
-
     class Dbus {
     public:
         void begin();
@@ -108,12 +101,25 @@ private:
         bool _capture;
     };
 
-    bool _freeRunning;
-    bool _stopRunning;
-    Dbus _dbus;
-    uint8_t _irq;
+    Signals &cycle(const Signals *prev);
+    const Signals *unhalt();
+    void setData(uint8_t data);
+    void printCycles() const;
+    uint8_t execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
+            uint8_t max, bool capWrite, bool capRead, bool show);
+    Signals &currCycle() { return _signals[_cycles]; }
+    void resetCycles() { _cycles = 0; }
+    void nextCycle() {
+        if (_cycles < MAX_CYCLES)
+            _cycles++;
+    }
+
     static const uint8_t MAX_CYCLES = 40;
     uint8_t _cycles;
+    Dbus _dbus;
+    bool _freeRunning;
+    bool _stopRunning;
+    uint8_t _irq;
     Signals _signals[MAX_CYCLES + 1];
 };
 
