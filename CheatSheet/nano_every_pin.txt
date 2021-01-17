@@ -1,0 +1,18 @@
+         Arduino Nano Every/MegaCoreX
+                 _+-----+_
+    PE2  D13   1| |     | |30  D12  PE1
+        3.3V   2| +-----+ |29  D11  PE0
+    PD7  D39   3|         |28  D10  PB1
+    PD3  D14   4|         |27  D9   PB0
+    PD2  D15   5|         |26  D8   PE3
+    PD1  D16   6|         |26  D7   PA1
+    PD0  D17   7|         |25  D6   PF4
+PF2/PA2  D18   8|         |24  D5   PB2
+PF3/PA3  D19   9|         |22  D4   PC6
+    PD4  D20  10|    +    |21  D3   PF5
+    PD5  D21  11|  /   \  |20  D2   PA0
+          5V  12| +     + |19  GND
+        #RST  13|  \   /  |18  #RST
+         GND  14|    +    |17  D0   PC5
+         VIN  15|_________|16  D1   PC4
+ 

@@ -1,0 +1,26 @@
+              Teensy 3.5/MK64FX512VND12
+                      _________
+               GND  1| |     | |48 VIN
+    RXD1  D0 PTB16  2| |_____| |47 AGND
+    TXD1  D1 PTB17  3|         |46 3.3V
+FTM3_CH0  D2  PTD0  4|         |45 PTC2  D23 FTM0_CH1
+FTM1_CH0  D3 PTA12  5|         |44 PTC1  D22 FTM0_CH0
+FTM1_CH1  D4 PTA13  6|         |43 PTD6  D21 FTM0_CH6
+FTM0_CH7  D5  PTD7  7|         |42 PTD5  D20 FTM0_CH5
+FTM0_CH4  D6  PTD4  8|         |41 PTB2  D19 A5
+FTM3_CH2  D7  PTD2  9|         |40 PTB3  D18 A4
+FTM3_CH3  D8  PTD3 10| _______ |39 PTB1  D17 A3
+FTM0_CH2  D9  PTC3 11||       ||38 PTB0  D16 A2
+FTM0_CH3 D10  PTC4 12||       ||37 PTC0  D15 A1
+         D11  PTC6 13||       ||36 PTD1  D14 FTM3_CH1
+         D12  PTC7 14||       ||35 PTC5  D13 LED
+              3.3V 15||_______||34 GND
+         D24 PTE26 16|         |33           A22
+         D25  PTA5 17|   ___   |32           A21
+         D26 PTA14 18|  |___|  |31 PTA17 D39 A20
+         D27 PTA15 19| _______ |30 PTC11 D38 FTM3_CH7
+         D28 PTA16 20||       ||29 PTC10 D37 FTM3_CH6
+FTM2_CH0 D29 PTB18 21||       ||28 PTC9  D36 FTM3_CH5
+FTM2_CH1 D30 PTB19 22||       ||27 PTC8  D35 FTM3_CH4
+    RXD4 D31 PTB10 23||       ||26 PTE25 D34 TXD5
+    TXD4 D32 PTB11 24|+_______+|25 PTE24 D33 RXD5
