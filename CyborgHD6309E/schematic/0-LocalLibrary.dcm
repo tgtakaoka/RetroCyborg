@@ -197,20 +197,32 @@ K connector
 F ~
 $ENDCMP
 #
+$CMP HD63B09
+F https://pdf1.alldatasheet.com/datasheet-pdf/view/87219/HITACHI/HD63C09.html
+$ENDCMP
+#
 $CMP HD63B09E
 D 8-Bit Microprocessing unit 2.0MHz, DIP-40
 K MCU
-F http://pdf.datasheetcatalog.com/datasheet/motorola/HD63B09S.pdf
+F https://html.datasheetq.com/pdf-html/886901/Hitachi/1page/HD63C09E.html
+$ENDCMP
+#
+$CMP HD63C09
+F https://pdf1.alldatasheet.com/datasheet-pdf/view/87219/HITACHI/HD63C09.html
 $ENDCMP
 #
 $CMP HD63C09E
 D 8-Bit Microprocessing unit 3.0MHz, DIP-40
 K MCU
-F http://pdf.datasheetcatalog.com/datasheet/motorola/HD63B09S.pdf
+F https://html.datasheetq.com/pdf-html/886901/Hitachi/1page/HD63C09E.html
 $ENDCMP
 #
 $CMP MC6809
 F http://pdf.datasheetcatalog.com/datasheet/motorola/MC68B09S.pdf
+$ENDCMP
+#
+$CMP MC6809E
+F https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%208%20Bit%20Microprocessor%20(Motorola).pdf
 $ENDCMP
 #
 $CMP MC68A09
@@ -219,10 +231,18 @@ K MCU
 F http://pdf.datasheetcatalog.com/datasheet/motorola/MC68B09S.pdf
 $ENDCMP
 #
+$CMP MC68A09E
+F https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%208%20Bit%20Microprocessor%20(Motorola).pdf
+$ENDCMP
+#
 $CMP MC68B09
 D 8-Bit Microprocessing unit 3.0MHz, DIP-40
 K MCU
 F http://pdf.datasheetcatalog.com/datasheet/motorola/MC68B09S.pdf
+$ENDCMP
+#
+$CMP MC68B09E
+F https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%208%20Bit%20Microprocessor%20(Motorola).pdf
 $ENDCMP
 #
 $CMP Micro_SD

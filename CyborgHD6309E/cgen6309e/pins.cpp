@@ -9,13 +9,16 @@
 class Pins Pins;
 
 void Pins::begin() {
+    digitalWrite(CLK_E, LOW);
+    digitalWrite(CLK_Q, LOW);
     pinMode(CLK_E, OUTPUT);
     pinMode(CLK_Q, OUTPUT);
+    digitalWrite(INT, HIGH);
     pinMode(INT, OUTPUT);
     pinMode(ACK, INPUT_PULLUP);
     pinMode(STEP, INPUT_PULLUP);
 #if defined(IOR_PIN)
-    pinMode(IOR, INPUT);
+    pinMode(IOR, INPUT_PULLUP);
 #endif
 #if defined(IO_ADRH)
     busMode(ADRH, INPUT_PULLUP);

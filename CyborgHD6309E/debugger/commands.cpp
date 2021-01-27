@@ -38,7 +38,7 @@
 using namespace libasm;
 using namespace libasm::mc6809;
 
-#define VERSION "* CyborgHD6309E Prototype4 2.0.0"
+#define VERSION "* CyborgHD6309E Prototype4 2.1.0"
 #define USAGE                                                                \
     "R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont " \
     "G:o "                                                                   \

@@ -31,6 +31,17 @@ public:
 
 private:
     enum : uint8_t {
+#ifdef SIGNALS_BUS
+        bs = _BV(BS_PIN),
+        ba = _BV(BA_PIN),
+        babs = _BV(BA_PIN) | _BV(BS_BIN),
+        reset = _BV(RESET_PIN),
+        halt = _BV(HALT_PIN),
+        lic = _BV(LIC_PIN),
+        avma = _BV(AVMA_PIN),
+        rw = _BV(RD_WR_PIN),
+        busy = _BV(BUSY_PIN),
+#else
         bs = _BV(0),
         ba = _BV(1),
         babs = _BV(1) | _BV(0),
@@ -39,6 +50,8 @@ private:
         lic = _BV(4),
         avma = _BV(5),
         rw = _BV(6),
+        busy = _BV(7),
+#endif
     };
     uint8_t _pins;
     uint8_t _dbus;

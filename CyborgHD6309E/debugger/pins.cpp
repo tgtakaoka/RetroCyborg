@@ -44,13 +44,24 @@ static inline bool isWriteDirection() {
 }
 
 static inline bool isUnhalt() {
+#ifdef SIGNALS_BUS
+    const uint8_t pins = busRead(SIGNALS);
+    return (pins & (_BV(BA_PIN) | _BV(BS_PIN) | _BV(LIC_PIN))) == 0;
+#else
     return digitalRead(BA) == LOW && digitalRead(BS) == LOW &&
            digitalRead(LIC) == LOW;
+#endif
 }
 
 static inline bool validBusCycle(const Signals *prev) {
+#ifdef SIGNALS_BUS
+    const uint8_t pins = busRead(SIGNALS);
+    return (pins & (_BV(BA_PIN) | _BV(BS_PIN))) == 0 && prev &&
+           prev->advancedValidMemoryAddress();
+#else
     return digitalRead(BA) == LOW && digitalRead(BS) == LOW && prev &&
            prev->advancedValidMemoryAddress();
+#endif
 }
 
 static inline void enableStep() {
@@ -59,6 +70,10 @@ static inline void enableStep() {
 
 static inline void disableStep() {
     digitalWrite(STEP, HIGH);
+}
+
+static inline bool isStepEnabled() {
+    return digitalRead(STEP) == LOW;
 }
 
 static inline bool isIntAsserted() {
@@ -81,14 +96,6 @@ static inline void disableRam() {
     digitalWrite(RAM_E, HIGH);
 }
 
-static inline void assertConsoleRts() {
-    digitalWrite(DBG_RTS, LOW);
-}
-
-static inline void negateConsoleRts() {
-    digitalWrite(DBG_RTS, HIGH);
-}
-
 static inline bool userSwitchAsserted() {
     return digitalRead(USR_SW) == LOW;
 }
@@ -99,6 +106,15 @@ static inline void turnOnUserLed() {
 
 static inline void turnOffUserLed() {
     digitalWrite(USR_LED, LOW);
+}
+
+static void toggleUserLed() __attribute__((unused));
+static inline void toggleUserLed() {
+    if (digitalRead(USR_LED)) {
+        digitalWrite(USR_LED, LOW);
+    } else {
+        digitalWrite(USR_LED, HIGH);
+    }
 }
 
 class Pins Pins;
@@ -180,14 +196,17 @@ void Pins::Dbus::capture(bool enabled) {
 }
 
 void Signals::get() {
+#if defined(SIGNALS_BUS)
+    _pins = busRead(SIGNALS);
+#else
     uint8_t p = 0;
     if (digitalRead(BA) == HIGH)
         p |= ba;
     if (digitalRead(BS) == HIGH)
         p |= bs;
-    if (digitalRead(RESET) == LOW)
+    if (digitalRead(RESET) == HIGH)
         p |= reset;
-    if (digitalRead(HALT) == LOW)
+    if (digitalRead(HALT) == HIGH)
         p |= halt;
     if (digitalRead(LIC) == HIGH)
         p |= lic;
@@ -195,7 +214,10 @@ void Signals::get() {
         p |= avma;
     if (digitalRead(RD_WR) == HIGH)
         p |= rw;
+    if (digitalRead(BUSY) == HIGH)
+        p |= busy;
     _pins = p;
+#endif
     _dbus = busRead(DB);
 #ifdef DEBUG_SIGNALS
     _debug = 0;
@@ -203,7 +225,7 @@ void Signals::get() {
 #endif
 }
 
-static char *outPin(char *p, uint8_t value, const char *name) {
+static char *outPin(char *p, bool value, const char *name) {
     if (value)
         return outText(p, name);
     for (const char *s = name; *s; s++)
@@ -213,14 +235,15 @@ static char *outPin(char *p, uint8_t value, const char *name) {
 }
 
 void Signals::print(const Signals *prev) const {
-    char buffer[40];
+    char buffer[45];
     char *p = buffer;
 #ifdef DEBUG_SIGNALS
     *p++ = _debug ? _debug : ' ';
 #endif
-    p = outPin(p, _pins & halt, " HALT");
+    p = outPin(p, (_pins & halt) == 0, " HALT");
     p = outPin(p, _pins & ba, " BA");
     p = outPin(p, _pins & bs, " BS");
+    p = outPin(p, _pins & busy, " BUSY");
     p = outPin(p, _pins & lic, " LIC");
     p = outPin(p, _pins & avma, " AVMA");
     p = outText(p, (_pins & rw) ? " RD" : " WR");
@@ -307,11 +330,15 @@ static void restartEQ() {
  * Restart clock generator itself.
  */
 static void restartClockGenerator() {
-    while (isIntAsserted()) {
+    if (isIntAsserted()) {
         disableStep();
-        assertAck();
+        delayMicroseconds(2);
     }
-    negateAck();
+    if (isIntAsserted()) {
+        assertAck();
+        delayMicroseconds(2);
+        negateAck();
+    }
 }
 
 void Pins::reset(bool show) {
@@ -458,7 +485,7 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
         uint8_t max, bool capWrite, bool capRead, bool show) {
     uint8_t cap = 0;
     const Signals *prev = unhalt();
-    for (uint8_t i = 0; i < len; ) {
+    for (uint8_t i = 0; i < len;) {
         setData(inst[i]);
         Signals &signals = cycle(prev);
         if (signals.readCycle(prev)) {
@@ -524,10 +551,10 @@ void Pins::begin() {
     pinMode(IRQ, OUTPUT);
     negateIrq();
 
-    pinMode(STEP, OUTPUT);
     disableStep();
-    pinMode(ACK, OUTPUT);
+    pinMode(STEP, OUTPUT);
     negateAck();
+    pinMode(ACK, OUTPUT);
     pinMode(INT, INPUT_PULLUP);
     restartClockGenerator();
 
@@ -535,6 +562,7 @@ void Pins::begin() {
     pinMode(BA, INPUT);
     pinMode(LIC, INPUT);
     pinMode(AVMA, INPUT);
+    pinMode(BUSY, INPUT);
     pinMode(RD_WR, INPUT_PULLUP);
     pinMode(RAM_E, OUTPUT);
     disableRam();
@@ -544,8 +572,6 @@ void Pins::begin() {
     pinMode(ADR0, INPUT_PULLUP);
     pinMode(ADR1, INPUT_PULLUP);
 
-    pinMode(DBG_RTS, OUTPUT);
-    assertConsoleRts();
     pinMode(USR_SW, INPUT_PULLUP);
     pinMode(USR_LED, OUTPUT);
     turnOffUserLed();
