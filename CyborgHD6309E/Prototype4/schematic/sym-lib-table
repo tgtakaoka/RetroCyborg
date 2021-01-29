@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name 0-LocalLibrary)(type Legacy)(uri ${KIPRJMOD}/0-LocalLibrary.lib)(options "")(descr ""))
+  (lib (name Prototype4-rescue)(type Legacy)(uri ${KIPRJMOD}/Prototype4-rescue.lib)(options "")(descr ""))
+)
