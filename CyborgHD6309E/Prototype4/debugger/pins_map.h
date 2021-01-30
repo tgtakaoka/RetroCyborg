@@ -32,21 +32,21 @@
 #define RXD_PORT C
 #define RXD_PIN 1
 
-// PC2: HD6309E A0, input
-#define ADR0_PORT C
-#define ADR0_PIN 2
-
-// PC3: HD6309E A1, input
-#define ADR1_PORT C
-#define ADR1_PIN 3
-
-// PC4: RAM enable, output
+// PC2: RAM enable, output
 #define RAM_E_PORT C
-#define RAM_E_PIN 4
+#define RAM_E_PIN 2
 
-// PC5: Clock Generator #ACK, output
+// PC3: Clock Generator #ACK, output
 #define ACK_PORT C
-#define ACK_PIN 5
+#define ACK_PIN 3
+
+// PC4: HD6309E A0, input
+#define ADR0_PORT C
+#define ADR0_PIN 4
+
+// PC5: HD6309E A1, input
+#define ADR1_PORT C
+#define ADR1_PIN 5
 
 // PD: HD6309E signals port
 #define SIGNALS_PORT D
@@ -114,18 +114,18 @@
 #define INT_PIN 2
 #define INT_INTERRUPT digitalPinToInterrupt(PIN_PF2)
 
-// PF3: User Switch, input
-#define USR_SW_PORT F
-#define USR_SW_PIN 3
-#define USR_SW_INTERRUPT digitalPinToInterrupt(PIN_PF3)
+// PF3: Clock Generator #STEP, output
+#define STEP_PORT F
+#define STEP_PIN 3
 
 // PF4: User LED, output
 #define USR_LED_PORT F
 #define USR_LED_PIN 4
 
-// PF5: Clock Generator #STEP, output
-#define STEP_PORT F
-#define STEP_PIN 5
+// PF5: User Switch, input
+#define USR_SW_PORT F
+#define USR_SW_PIN 5
+#define USR_SW_INTERRUPT digitalPinToInterrupt(PIN_PF5)
 
 #endif
 
