@@ -1,6 +1,6 @@
-/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
-#ifndef __console_h__
-#define __console_h__
+/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
+#ifndef __STRING_UTIL_H__
+#define __STRING_UTIL_H__
 
 #include <stdint.h>
 

@@ -1,4 +1,4 @@
-/* -*- mode: c++; c-basic-offset: 2; tab-width: 2; -*- */
+/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
 /*
  * Clock generator for HD6309E.
  * Supporting IO address detecting and STEP bus cycle.
@@ -74,23 +74,24 @@
 #define OPTIMIZED_ASM 1
 
 void setup() {
-  noInterrupts();
-  Pins.begin();               // QE=LL (0)
-  Pins.nop();
+    noInterrupts();
+    Pins.begin();  // QE=LL (0)
+    Pins.nop();
 }
 
 void loop() {
-  uint8_t io_adrh = IO_ADRH;
+    uint8_t io_adrh = IO_ADRH;
 #ifdef IO_ADRM
-  uint8_t io_adrm = IO_ADRM;
+    uint8_t io_adrm = IO_ADRM;
 #endif
 #ifdef IO_ADRL
-  uint8_t io_adrl = IO_ADRL;
+    uint8_t io_adrl = IO_ADRL;
 #endif
 
 #if OPTIMIZED_ASM
-  uint8_t tmp;
-  asm volatile(
+    uint8_t tmp = 0;
+    // clang-format off
+    asm volatile(
     " rjmp L%=_entry"                "\n"
     "L%=_main_loop:"                 "\n" //     QE=3[5]
     " cbi  %[eclk_port],%[eclk_pin]" "\n" // [2] QE=0:LL
@@ -180,7 +181,8 @@ void loop() {
       [step_pin]  "I" (__PIN__(STEP)),
       [ack_port]  "I" (_SFR_IO_ADDR(PIN(ACK))),
       [ack_pin]   "I" (__PIN__(ACK))
-    );
+      );
+// clang-formt on
 #else
   goto entry;
   for (;;) {

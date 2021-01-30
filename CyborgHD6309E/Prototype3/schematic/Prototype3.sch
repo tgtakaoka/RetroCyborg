@@ -1,5 +1,6 @@
 EESchema Schematic File Version 4
-EELAYER 30 0
+LIBS:Prototype3-cache
+EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -165,37 +166,37 @@ Entry Wire Line
 Entry Wire Line
 	4050 1950 4150 2050
 Text Label 4250 2850 2    50   ~ 0
-A15
+A8
 Text Label 4250 3450 2    50   ~ 0
-A3
-Text Label 4250 3350 2    50   ~ 0
 A14
-Text Label 4250 3250 2    50   ~ 0
-A4
-Text Label 4250 3150 2    50   ~ 0
-A1
-Text Label 4250 3050 2    50   ~ 0
-A2
-Text Label 4250 2950 2    50   ~ 0
-A0
-Text Label 4250 3550 2    50   ~ 0
+Text Label 4250 3350 2    50   ~ 0
 A13
+Text Label 4250 3250 2    50   ~ 0
+A12
+Text Label 4250 3150 2    50   ~ 0
+A11
+Text Label 4250 3050 2    50   ~ 0
+A10
+Text Label 4250 2950 2    50   ~ 0
+A9
+Text Label 4250 3550 2    50   ~ 0
+A15
 Text Label 4250 2750 2    50   ~ 0
-A5
+A7
 Text Label 4250 2650 2    50   ~ 0
 A6
 Text Label 4250 2550 2    50   ~ 0
-A7
+A5
 Text Label 4250 2450 2    50   ~ 0
-A8
+A4
 Text Label 4250 2350 2    50   ~ 0
-A9
+A3
 Text Label 4250 2250 2    50   ~ 0
-A10
+A2
 Text Label 4250 2150 2    50   ~ 0
-A11
+A1
 Text Label 4250 2050 2    50   ~ 0
-A12
+A0
 $Comp
 L power:GND #PWR0106
 U 1 1 5CE14B73
@@ -224,21 +225,21 @@ Entry Wire Line
 Entry Wire Line
 	5350 2050 5450 1950
 Text Label 5250 2750 0    50   ~ 0
-D0
-Text Label 5250 2650 0    50   ~ 0
-D1
-Text Label 5250 2550 0    50   ~ 0
-D2
-Text Label 5250 2450 0    50   ~ 0
-D3
-Text Label 5250 2350 0    50   ~ 0
-D4
-Text Label 5250 2250 0    50   ~ 0
 D7
-Text Label 5250 2150 0    50   ~ 0
+Text Label 5250 2650 0    50   ~ 0
 D6
-Text Label 5250 2050 0    50   ~ 0
+Text Label 5250 2550 0    50   ~ 0
 D5
+Text Label 5250 2450 0    50   ~ 0
+D4
+Text Label 5250 2350 0    50   ~ 0
+D3
+Text Label 5250 2250 0    50   ~ 0
+D2
+Text Label 5250 2150 0    50   ~ 0
+D1
+Text Label 5250 2050 0    50   ~ 0
+D0
 Entry Wire Line
 	8350 2650 8450 2750
 Entry Wire Line
@@ -765,7 +766,7 @@ Wire Wire Line
 Connection ~ 1350 5350
 Connection ~ 1250 5350
 $Comp
-L 0-LocalLibrary:Conn_Micro_SD J2
+L Prototype3-rescue:Conn_Micro_SD-0-LocalLibrary J2
 U 1 1 5D0A3A84
 P 6050 5750
 F 0 "J2" H 6050 6200 50  0000 L CNN
@@ -776,7 +777,7 @@ F 3 "~" H 6050 5750 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L 0-LocalLibrary:Conn_USB_Serial J3
+L Prototype3-rescue:Conn_USB_Serial-0-LocalLibrary J3
 U 1 1 5D0B116C
 P 9300 5800
 F 0 "J3" H 9300 6150 50  0000 L CNN
