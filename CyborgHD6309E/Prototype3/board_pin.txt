@@ -1,0 +1,50 @@
+                         CyborgHD6309E/Prototype3 (frontside)
+
+      _________            _________            _________            _____
+  PB0|*        |PA0     NC|*        |VCC    VSS|*        |#HALT  PC6|*    |PC5
+  PB1|         |PA1    A16|         |A15   #NMI|         |TSC    PD0|  A  |PC4
+  PB2|         |PA2    A14|    H    |CS2   #IRQ|         |LIC    PD1|  T  |PC3
+  PB3|         |PA3    A12|    M    |#WE  #FIRQ|         |#RES   PD2|  m  |PC2
+  PB4|    A    |PA4     A7|    6    |A13     BS|         |AVMA   PD3|  e  |PC1
+  PB5|    T    |PA5     A6|    2    |A8      BA|         |Q      PD4|  g  |PC0
+  PB6|    m    |PA6     A5|    8    |A9     VCC|    M    |E      VCC|  a  |GND
+  PB7|    e    |PA7     A4|    1    |A11     A0|    C    |BUSY   GND|  3  |AREF
+  SET|    g    |AREF    A3|    2    |#OE     A1|    6    |R/W    PB6|  2  |AVCC
+  VCC|    a    |GND     A2|    8    |A10     A2|    8    |D0     PB7|  8  |PB5
+  GND|    1    |AVCC    A1|    D    |#CS1    A3|    0    |D1     PD5|  P  |PB4
+XTAL2|    2    |PC7     A0|    L    |D7      A4|    9    |D2     PD6|     |PB3
+XTAL1|    8    |PC6     D0|    P    |D6      A5|    E    |D3     PD7|     |PB2
+  PD0|    4    |PC5     D1|         |D5      A6|         |D4     PB0|_____|PB1
+  PD1|    P    |PC4     D2|         |D4      A7|         |D5
+  PD2|         |PC3    Vss|_________|D3      A8|         |D6
+  PD3|         |PC2                          A9|         |D7
+  PD4|         |PC1                         A10|         |A15
+  PD5|         |PC0                         A11|         |A14
+  PD6|_________|PD7                         A12|_________|A13
+
+
+
+
+                         CyborgHD6309E/Prototype3 (backside)
+
+      _____            _________            _________            _________
+  PC5|    *|PC6  #HALT|        *|VSS    VCC|        *|NC     PA0|        *|PB0
+  PC4|  A  |PD0    TSC|         |#NMI   A15|         |A16    PA1|         |PB1
+  PC3|  T  |PD1    LIC|         |#IRQ   CS2|    H    |A14    PA2|         |PB2
+  PC2|  m  |PD2   #RES|         |#FIRQ  #WE|    M    |A12    PA3|         |PB3
+  PC1|  e  |PD3   AVMA|         |BS     A13|    6    |A7     PA4|    A    |PB4
+  PC0|  g  |PD4      Q|         |BA      A8|    2    |A6     PA5|    T    |PB5
+  GND|  a  |VCC      E|    M    |VCC     A9|    8    |A5     PA6|    m    |PB6
+ AREF|  3  |GND   BUSY|    C    |A0     A11|    1    |A4     PA7|    e    |PB7
+ AVCC|  2  |PB6    R/W|    6    |A1     #OE|    2    |A3    AREF|    g    |SET
+  PB5|  8  |PB7     D0|    8    |A2     A10|    8    |A2     GND|    a    |VCC
+  PB4|  P  |PD5     D1|    0    |A3    #CS1|    D    |A1    AVCC|    1    |GND
+  PB3|     |PD6     D2|    9    |A4      D7|    L    |A0     PC7|    2    |XTAL2
+  PB2|     |PD7     D3|    E    |A5      D6|    P    |D0     PC6|    8    |XTAL1
+  PB1|_____|PB0     D4|         |A6      D5|         |D1     PC5|    4    |PD0
+                    D5|         |A7      D4|         |D2     PC4|    P    |PD1
+                    D6|         |A8      D3|_________|Vss    PC3|         |PD2
+                    D7|         |A9                          PC2|         |PD3
+                   A15|         |A10                         PC1|         |PD4
+                   A14|         |A11                         PC0|         |PD5
+                   A13|_________|A12                         PD7|_________|PD6

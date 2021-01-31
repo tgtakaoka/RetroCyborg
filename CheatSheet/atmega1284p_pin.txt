@@ -20,3 +20,49 @@ INT1 D11 PD3  17|         |24  PC2 D18
 OC1B D12 PD4  18|         |23  PC1 D17 SDA
 OC1A D13 PD5  19|         |22  PC0 D16 SCL
 OC2B D14 PD6  20|_________|21  PD7 D15 OC2A
+
+
+      _________
+  PB0|*        |PA0
+  PB1|         |PA1
+  PB2|         |PA2
+  PB3|         |PA3
+  PB4|    A    |PA4
+  PB5|    T    |PA5
+  PB6|    m    |PA6
+  PB7|    e    |PA7
+  SET|    g    |AREF
+  VCC|    a    |GND
+  GND|    1    |AVCC
+XTAL2|    2    |PC7
+XTAL1|    8    |PC6
+  PD0|    4    |PC5
+  PD1|    P    |PC4
+  PD2|         |PC3
+  PD3|         |PC2
+  PD4|         |PC1
+  PD5|         |PC0
+  PD6|_________|PD7
+
+
+      _________
+  PA0|        *|PB0
+  PA1|         |PB1
+  PA2|         |PB2
+  PA3|         |PB3
+  PA4|    A    |PB4
+  PA5|    T    |PB5
+  PA6|    m    |PB6
+  PA7|    e    |PB7
+ AREF|    g    |SET
+  GND|    a    |VCC
+ AVCC|    1    |GND
+  PC7|    2    |XTAL2
+  PC6|    8    |XTAL1
+  PC5|    4    |PD0
+  PC4|    P    |PD1
+  PC3|         |PD2
+  PC2|         |PD3
+  PC1|         |PD4
+  PC0|         |PD5
+  PD7|_________|PD6

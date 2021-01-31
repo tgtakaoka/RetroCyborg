@@ -21,3 +21,48 @@
   A11  19|         |22  A14
   A12  20|_________|21  A13
 
+
+      _________
+  VSS|*        |#HALT
+ #NMI|         |TSC
+ #IRQ|         |LIC
+#FIRQ|         |#RES
+   BS|         |AVMA
+   BA|         |Q
+  VCC|    M    |E
+   A0|    C    |BUSY
+   A1|    6    |R/W
+   A2|    8    |D0
+   A3|    0    |D1
+   A4|    9    |D2
+   A5|    E    |D3
+   A6|         |D4
+   A7|         |D5
+   A8|         |D6
+   A9|         |D7
+  A10|         |A15
+  A11|         |A14
+  A12|_________|A13  
+
+
+      _________
+#HALT|        *|VSS
+  TSC|         |#NMI
+  LIC|         |#IRQ
+ #RES|         |#FIRQ
+ AVMA|         |BS
+    Q|         |BA
+    E|    M    |VCC
+ BUSY|    C    |A0
+  R/W|    6    |A1
+   D0|    8    |A2
+   D1|    0    |A3
+   D2|    9    |A4
+   D3|    E    |A5
+   D4|         |A6
+   D5|         |A7
+   D6|         |A8
+   D7|         |A9
+  A15|         |A10
+  A14|         |A11
+  A13|_________|A12

@@ -1,12 +1,38 @@
-         ATtiny3216-SS
-            _____
-    VCC   1|*    |20  GND
- SS/PA4   2|     |19  PA3/SCK
-    PA5   3|     |18  PA2/MISO
-    PA6   4|     |17  PA1/MOSI
-    PA7   5|     |16  PA0/UPDI
-    PB5   6|     |15  PC3
-    PB4   7|     |14  PC2
-RXD/PB3   8|     |13  PC1
-TXD/PB2   9|     |12  PC0
-SDA/PB1  10|_____|11  PB0/SCL
+ ATtiny3216-SS/megaTinyCore
+              _____
+       VCC  1|*    |20  GND
+    D0 PA4  2|     |19  PA3  D16 SCK
+    D1 PA5  3|     |18  PA2  D15 MISO
+    D2 PA6  4|     |17  PA1  D14 MOSI
+    D3 PA7  5|     |16  UPDI D17
+    D4 PB5  6|     |15  PC3  D13
+    D5 PB4  7|     |14  PC2  D12
+RXD D6 PB3  8|     |13  PC1  D11
+TXD D7 PB2  9|     |12  PC0  D10
+    D8 PB1 10|_____|11  PB0  D9
+
+
+     _____
+ VCC|*    |GND
+ PA4|     |PA3
+ PA5|   A |PA2
+ PA6| 3 T |PA1
+ PA7| 2 t |UPDI
+ PB5| 1 i |PC3
+ PB4| 6 n |PC2
+ PB3|   y |PC1
+ PB2|     |PC0
+ PB1|_____|PB0
+
+
+     _____
+ GND|    *|VCC
+ PA3|     |PA4
+ PA2|   A |PA5
+ PA1| 3 T |PA6
+UPDI| 2 t |PA7
+ PC3| 1 i |PB5
+ PC2| 6 n |PB4
+ PC1|   y |PB3
+ PC0|     |PB2
+ PB0|_____|PB1

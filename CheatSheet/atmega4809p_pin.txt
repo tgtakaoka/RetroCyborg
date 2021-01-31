@@ -20,3 +20,49 @@
                  GND  18|         |23  PF0  D34  TXD2  3IN0
         A8  D30  PE0  19|         |22  PE3  D33  A11
         A9  D31  PE1  20|_________|21  PE2  D32  A10
+
+
+     _________
+ PC0|*        |PA7
+ PC1|         |PA6
+ PC2|         |PA5
+ PC3|         |PA4
+ VDD|    A    |PA3
+ GND|    T    |PA2
+ PC4|    m    |PA1
+ PC5|    e    |PA0
+ PD0|    g    |GND
+ PD1|    a    |VDD
+ PD2|    4    |UPDI
+ PD3|    8    |PF6
+ PD4|    0    |PF5
+ PD5|    9    |PF4
+ PD6|    P    |PF3
+ PD7|         |PF2
+AVDD|         |PF1
+ GND|         |PF0
+ PE0|         |PE3
+ PE1|_________|PE2  
+
+
+     _________
+ PA7|        *|PC0
+ PA6|         |PC1
+ PA5|         |PC2
+ PA4|         |PC3
+ PA3|    A    |VDD
+ PA2|    T    |GND
+ PA1|    m    |PC4
+ PA0|    e    |PC5
+ GND|    g    |PD0
+ VDD|    a    |PD1
+UPDI|    4    |PD2
+ PF6|    8    |PD3
+ PF5|    0    |PD4
+ PF4|    9    |PD5
+ PF3|    P    |PD6
+ PF2|         |PD7
+ PF1|         |AVDD
+ PF0|         |GND
+ PE3|         |PE0
+ PE2|_________|PE1

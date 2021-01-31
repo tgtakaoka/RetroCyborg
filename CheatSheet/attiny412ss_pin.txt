@@ -1,6 +1,20 @@
-       ATtiny412-SS
-          _____
-  VDD   1|*    |8   GND
-  PA6   2|     |7   PA3
-  PA7   3|     |6   PA0/UPDI
-  PA1   4|_____|5   PA2
+ATtiny412-SS/megaTinyeCore
+           _____
+    VDD  1|*    |8  GND
+D0  PA6  2|     |7  PA3  D4
+D1  PA7  3|     |6  PA0  D5 UPDI
+D2  PA1  4|_____|5  PA2  D3
+
+
+    _____
+VDD|* t  |GND
+PA6| 4iA |PA3
+PA7| 1nT |PA0
+PA1|_2y__|PA2
+
+
+    _____
+GND| 4t *|VDD
+PA3| 1iA |PA6
+PA0| 2nT |PA7
+PA2|__y__|PA1

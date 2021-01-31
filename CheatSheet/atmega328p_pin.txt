@@ -14,3 +14,37 @@ XTAL2 D21 PB7  10|     |19  PB5 D13 SCK
  OC0A D6  PD6  12|     |17  PB3 D11 MOSI OC2A
       D7  PD7  13|     |16  PB2 D10 SS   OC1B
       D8  PB0  14|_____|15  PB1 D9       OC1A
+
+
+     _____
+ PC6|*    |PC5
+ PD0|  A  |PC4
+ PD1|  T  |PC3
+ PD2|  m  |PC2
+ PD3|  e  |PC1
+ PD4|  g  |PC0
+ VCC|  a  |GND
+ GND|  3  |AREF
+ PB6|  2  |AVCC
+ PB7|  8  |PB5
+ PD5|  P  |PB4
+ PD6|     |PB3
+ PD7|     |PB2
+ PB0|_____|PB1 
+
+
+     _____
+ PC5|    *|PC6
+ PC4|  A  |PD0
+ PC3|  T  |PD1
+ PC2|  m  |PD2
+ PC1|  e  |PD3
+ PC0|  g  |PD4
+ GND|  a  |VCC
+AREF|  3  |GND
+AVCC|  2  |PB6
+ PB5|  8  |PB7
+ PB4|  P  |PD5
+ PB3|     |PD6
+ PB2|     |PD7
+ PB1|_____|PB0
