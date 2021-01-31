@@ -11,9 +11,12 @@
 #include "pins_map.h"
 #include "string_util.h"
 
+extern class libcli::Cli Cli;
+
 static inline void assertReset() {
     digitalWrite(RESET, LOW);
 }
+
 static inline void negateReset() {
     digitalWrite(RESET, HIGH);
 }
@@ -21,8 +24,17 @@ static inline void negateReset() {
 static inline void assertHalt() {
     digitalWrite(HALT, LOW);
 }
+
 static inline void negateHalt() {
     digitalWrite(HALT, HIGH);
+}
+
+static inline void assertNmi() {
+    digitalWrite(NMI, LOW);
+}
+
+static inline void negateNmi() {
+    digitalWrite(NMI, HIGH);
 }
 
 static inline bool isWriteDirection() {
@@ -32,6 +44,7 @@ static inline bool isWriteDirection() {
 static inline void enableStep() {
     digitalWrite(STEP, LOW);
 }
+
 static inline void disableStep() {
     digitalWrite(STEP, HIGH);
 }
@@ -43,6 +56,7 @@ static inline bool isIntAsserted() {
 static inline void assertAck() {
     digitalWrite(ACK, LOW);
 }
+
 static inline void negateAck() {
     digitalWrite(ACK, HIGH);
 }
@@ -50,6 +64,7 @@ static inline void negateAck() {
 static inline void enableRam() {
     digitalWrite(RAM_E, LOW);
 }
+
 static inline void disableRam() {
     digitalWrite(RAM_E, HIGH);
 }
@@ -57,14 +72,24 @@ static inline void disableRam() {
 static inline bool userSwitchAsserted() {
     return digitalRead(USR_SW) == LOW;
 }
+
 static inline void turnOnUserLed() {
-    digitalWrite(USR_LED, LOW);
-}
-static inline void turnOffUserLed() {
     digitalWrite(USR_LED, HIGH);
 }
 
-extern class libcli::Cli Cli;
+static inline void turnOffUserLed() {
+    digitalWrite(USR_LED, LOW);
+}
+
+static void toggleUserLed() __attribute__((unused));
+static inline void toggleUserLed() {
+    if (digitalRead(USR_LED)) {
+        digitalWrite(USR_LED, LOW);
+    } else {
+        digitalWrite(USR_LED, HIGH);
+    }
+}
+
 class Pins Pins;
 
 class Mc6850 Mc6850(Console, Pins::ioBaseAddress(),
@@ -432,6 +457,8 @@ void Pins::begin() {
     pinMode(RESET, OUTPUT);
     negateHalt();
     pinMode(HALT, OUTPUT);
+    negateNmi();
+    pinMode(NMI, OUTPUT);
     negateIrq();
     pinMode(IRQ, OUTPUT);
 
@@ -445,9 +472,12 @@ void Pins::begin() {
     pinMode(BA, INPUT);
     pinMode(LIC, INPUT);
     pinMode(AVMA, INPUT);
+    pinMode(BUSY, INPUT);
     pinMode(RD_WR, INPUT_PULLUP);
     pinMode(RAM_E, OUTPUT);
     disableRam();
+
+    _dbus.begin();
 
     pinMode(ADR0, INPUT_PULLUP);
     pinMode(ADR1, INPUT_PULLUP);
@@ -455,8 +485,6 @@ void Pins::begin() {
     pinMode(USR_SW, INPUT_PULLUP);
     pinMode(USR_LED, OUTPUT);
     turnOffUserLed();
-
-    _dbus.begin();
 
     _previous.get();
 
