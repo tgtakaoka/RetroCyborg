@@ -5,6 +5,7 @@
   R - reset MPU.
   p - print MPU hardware signal status.
   i - inject instruction.
+  I - inject instruction with printing signal status.
   d - dump memory. addr [length]
   m - write memory. addr byte...
   s - step one instruction.
@@ -23,24 +24,25 @@
 
 #include "commands.h"
 
+#include "pins.h"
+#include "regs.h"
+
+#include <Arduino.h>
 #include <SD.h>
 #include <asm_mc6809.h>
 #include <dis_mc6809.h>
 #include <dis_memory.h>
 #include <libcli.h>
 #include <string.h>
-#include <symbol_table.h>
-
-#include "pins.h"
-#include "regs.h"
-
-#define VERSION F("* CyborgHD6309 Prototype3 2.0.0")
-#define USAGE                                                                \
-    F("R:eset r:egs =:setReg d:ump D:iasm m:emory i:nst A:sm s/S:tep c:ont " \
-      "G:o h/H:alt p:ins F:iles L:oad")
 
 using namespace libasm;
 using namespace libasm::mc6809;
+
+#define VERSION "* CyborgHD6309E Prototype3 2.1.0"
+#define USAGE                                                                \
+    "R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont " \
+    "G:o "                                                                   \
+    "h/H:alt p:ins F:iles L:oad"
 
 using libcli::Cli;
 extern class Cli Cli;
@@ -63,30 +65,35 @@ static uint16_t last_addr;
 #define ASM_ADDR 0
 #define DIS_ADDR 0
 #define DIS_LENGTH 1
-#define INST_DATA(i) ((uintptr_t)(i))
+#define INST_DATA(c, i) ((uintptr_t)((c << 8) | i))
 
 static uint8_t buffer[16];
 #define MEMORY_ADDR static_cast<uintptr_t>(sizeof(buffer) + 10)
 #define MEMORY_DATA(i) ((uintptr_t)(i))
 
-static void execInst2(uint8_t inst, uint8_t opr, bool show = false) {
-    const uint8_t insn[] = {inst, opr};
-    Pins.execInst(insn, sizeof(insn), show);
+static void writeMemory(uint16_t addr, uint8_t data) {
+    const uint8_t lda[] = {0x86, data};
+    const uint8_t sta[] = {0xB7, (uint8_t)(addr >> 8), (uint8_t)addr};
+    Pins.execInst(lda, sizeof(lda));
+    Pins.execInst(sta, sizeof(sta));
 }
 
-static void execInst3(uint8_t inst, uint16_t opr, bool show = false) {
-    const uint8_t insn[] = {inst, (uint8_t)(opr >> 8), (uint8_t)opr};
-    Pins.execInst(insn, sizeof(insn), show);
+static uint8_t readMemory(uint16_t addr) {
+    const uint8_t sta[] = {0xB6, (uint8_t)(addr >> 8), (uint8_t)addr};
+    uint8_t data;
+    Pins.captureReads(sta, sizeof(sta), &data, 1);
+    return data;
 }
 
 static void handleInstruction(
         uint32_t value, uintptr_t extra, Cli::State state) {
-    uint16_t index = extra;
+    const char c = extra >> 8;
+    uint16_t index = extra & 0xFF;
     if (state == Cli::State::CLI_DELETE) {
         if (index > 0) {
             index--;
             Cli.backspace();
-            Cli.readHex8(handleInstruction, INST_DATA(index), buffer[index]);
+            Cli.readHex8(handleInstruction, INST_DATA(c, index), buffer[index]);
         }
         return;
     }
@@ -94,26 +101,26 @@ static void handleInstruction(
     buffer[index++] = value;
     if (state == Cli::State::CLI_SPACE) {
         if (index < sizeof(buffer)) {
-            Cli.readHex8(handleInstruction, INST_DATA(index));
+            Cli.readHex8(handleInstruction, INST_DATA(c, index));
             return;
         }
         Cli.println();
     }
-    Pins.execInst(buffer, index, true /* show */);
+    Pins.execInst(buffer, index, c == 'I');
     printPrompt();
 }
 
 static void memoryDump(uint16_t addr, uint16_t len) {
     Regs.save();
     for (uint16_t i = 0; i < len; i++, addr++) {
-        execInst3(0xB6, addr);  // LDA $addr
+        const uint8_t data = readMemory(addr);
         if (i % 16 == 0) {
             if (i)
                 Cli.println();
             Cli.printHex16(addr);
             Cli.print(':');
         }
-        Cli.printHex8(Pins.dbus());
+        Cli.printHex8(data);
         Cli.print(' ');
     }
     Cli.println();
@@ -150,8 +157,7 @@ public:
 protected:
     uint8_t nextByte() {
         Regs.save();
-        execInst3(0xB6, address());  // LDA $address
-        const uint8_t data = Pins.dbus();
+        const uint8_t data = readMemory(address());
         Regs.restore();
         return data;
     }
@@ -179,7 +185,8 @@ static void print(const Insn &insn) {
 static uint16_t disassemble(uint16_t addr, uint16_t max) {
     DisMc6809 dis6809;
     Disassembler &disassembler(dis6809);
-    disassembler.setCpu("6309");
+    disassembler.setCpu(Regs.cpu());
+    disassembler.setUppercase(true);
     class Mc6809Memory memory;
     memory.setAddress(addr);
     uint16_t len = 0;
@@ -226,8 +233,7 @@ static void memoryWrite(
         uint16_t addr, const uint8_t values[], const uint8_t len) {
     Regs.save();
     for (uint8_t i = 0; i < len; i++, addr++) {
-        execInst2(0x86, values[i]);  // LDA #values[i]
-        execInst3(0xB7, addr);       // STA $addr
+        writeMemory(addr, values[i]);
     }
     Regs.restore();
 }
@@ -273,7 +279,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, Cli::State state) {
     }
     AsmMc6809 as6809;
     Assembler &assembler(as6809);
-    assembler.setCpu("6309");
+    assembler.setCpu(Regs.cpu());
     Insn insn;
     if (assembler.encode(line, insn, last_addr, nullptr)) {
         Cli.print(F("Error: "));
@@ -380,21 +386,25 @@ static void handleRegisterValue(uint32_t, uintptr_t, Cli::State);
 static void handleSetRegister(char value, uintptr_t extra) {
     (void)extra;
     const char c = value;
-    if (c == 'p' || c == 's' || c == 'u' || c == 'y' || c == 'x' || c == 'd') {
+    if (c == 'p' || c == 's' || c == 'u' || c == 'y' || c == 'x' || c == 'd' ||
+            (Regs.is6309() && (c == 'w' || c == 'v'))) {
         Cli.print(c);
         Cli.print('?');
         Cli.readHex16(handleRegisterValue, (uintptr_t)c);
         return;
     }
-    if (c == 'D' || c == 'a' || c == 'b' || c == 'c') {
+    if (c == 'D' || c == 'a' || c == 'b' || c == 'c' ||
+            (Regs.is6309() && (c == 'e' || c == 'f'))) {
         Cli.print(c);
         Cli.print('?');
         Cli.readHex8(handleRegisterValue, (uintptr_t)c);
         return;
     }
-    Cli.println(F("?Reg: pc s u y x a b d Dp cc"));
+    Cli.print(F("?Reg: pc s u x y a b d"));
+    if (Regs.is6309())
+        Cli.print(F(" w e f v"));
+    Cli.println(F(" Dp cc"));
     printPrompt();
-    ;
 }
 
 static void handleRegisterValue(
@@ -426,11 +436,23 @@ static void handleRegisterValue(
     case 'd':
         Regs.d = value;
         break;
+    case 'w':
+        Regs.w = value;
+        break;
+    case 'v':
+        Regs.v = value;
+        break;
     case 'a':
         Regs.a = value;
         break;
     case 'b':
         Regs.b = value;
+        break;
+    case 'e':
+        Regs.e = value;
+        break;
+    case 'f':
+        Regs.f = value;
         break;
     case 'D':
         Regs.dp = value;
@@ -458,9 +480,10 @@ void Commands::exec(char c) {
         disassemble(Regs.pc, 1);
         break;
     case 'i':
+    case 'I':
         Cli.print(F("inst? "));
-        Cli.readHex8(handleInstruction, INST_DATA(0));
-        break;
+        Cli.readHex8(handleInstruction, INST_DATA(c, 0));
+        return;
     case 'd':
         Cli.print(F("dump? "));
         Cli.readHex16(handleDump, DUMP_ADDR);
