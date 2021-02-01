@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 
+#include "config.h"
+
 //#define DEBUG_SIGNALS
 
 class Signals {
@@ -94,6 +96,8 @@ public:
     static uint8_t getIrqMask(uint16_t addr) {
         return 1 << (addr - ioBaseAddress());
     }
+
+    int sdCardChipSelectPin() const;
 
 private:
     class Dbus {

@@ -3,6 +3,7 @@
 #include "regs.h"
 
 #include <libcli.h>
+
 #include "pins.h"
 #include "string_util.h"
 
@@ -42,19 +43,19 @@ void Regs::print() const {
     // text=35, hex=(sizeof(bytes)-1)*2, cc=8, eos=1
     char buffer[35 + (sizeof(bytes) - 1) * 2 + 8 + 1];
     char *p = buffer;
-    p = outHex16(outText(p, "PC="), pc);
-    p = outHex16(outText(p, " S="), s);
-    p = outHex16(outText(p, " U="), u);
-    p = outHex16(outText(p, " Y="), y);
-    p = outHex16(outText(p, " X="), x);
-    p = outHex8(outText(p, " B="), b);
-    p = outHex8(outText(p, " A="), a);
+    p = outHex16(outText(p, F("PC=")), pc);
+    p = outHex16(outText(p, F(" S=")), s);
+    p = outHex16(outText(p, F(" U=")), u);
+    p = outHex16(outText(p, F(" Y=")), y);
+    p = outHex16(outText(p, F(" X=")), x);
+    p = outHex8(outText(p, F(" B=")), b);
+    p = outHex8(outText(p, F(" A=")), a);
     if (is6309()) {
-        p = outHex16(outText(p, " W="), w);
-        p = outHex16(outText(p, " V="), v);
+        p = outHex16(outText(p, F(" W=")), w);
+        p = outHex16(outText(p, F(" V=")), v);
     }
-    p = outHex8(outText(p, " DP="), dp);
-    p = outText(p, " CC=");
+    p = outHex8(outText(p, F(" DP=")), dp);
+    p = outText(p, F(" CC="));
     *p++ = bit1(cc & 0x80, 'E');
     *p++ = bit1(cc & 0x40, 'F');
     *p++ = bit1(cc & 0x20, 'H');

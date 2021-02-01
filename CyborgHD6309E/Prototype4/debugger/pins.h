@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 
+#include "config.h"
+
 //#define DEBUG_SIGNALS
 
 class Signals {
@@ -24,6 +26,7 @@ public:
         return prev && prev->advancedValidMemoryAddress() && (_pins & rw) == 0;
     }
     void debug(char c) {
+        (void)c;
 #ifdef DEBUG_SIGNALS
         _debug = c;
 #endif

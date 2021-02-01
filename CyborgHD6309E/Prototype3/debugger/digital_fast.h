@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
-#ifndef __PINS_BASE_H__
-#define __PINS_BASE_H__
+#ifndef __DIGITAL_FAST_H__
+#define __DIGITAL_FAST_H__
 
 #define __concat2__(a, b) a##b
 #define __concat3__(a, b, c) a##b##c

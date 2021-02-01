@@ -1,18 +1,14 @@
 /* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
 /**
-   CyborgHD6309E controller
+ *  CyborgHD6309E controller
+ *
+ * This sketch is designed to controll and debug MC6809E/HD6309E MPU.
+ */
 
-   This sketch is designed for ATmega1284p 16MHz (MightyCore) and
-   controll vanilla HD6309E MPU.
-
-   USB Console port is used as console. So one can connect with
-   $ screen /dev/<tty USB> 115200
-*/
+#include <libcli.h>
 
 #include "commands.h"
 #include "pins.h"
-
-#include <libcli.h>
 
 libcli::Cli Cli;
 

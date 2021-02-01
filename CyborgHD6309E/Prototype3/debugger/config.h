@@ -1,7 +1,10 @@
 /* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
-#ifndef __PINS_MAP_H__
-#define __PINS_MAP_H__
+#ifndef __CONFIG_H__
+#define __CONFIG_H__
 
+#define VERSION_TEXT F("* CyborgHD6309E Prototype3 2.1.0")
+
+#if defined(ARDUINO_AVR_ATmega1284) && defined(STANDARD_PINOUT)
 /**
  * Arduino IDE settings
  * FQBN: MightyCore:avr:1284:clock=16MHz_external,LTO=Os_flto,variant=modelP,pinout=standard,bootloader=uart0
@@ -14,8 +17,6 @@
  * Bootloader: Yes (UART0)
  * Programmer: Arduino as ISP (MightyCore)
  */
-
-#if defined(ARDUINO_AVR_ATmega32) || defined(ARDUINO_AVR_ATmega1284)
 
 #define Console Serial
 #define CONSOLE_BAUD 115200
@@ -39,6 +40,23 @@
 // PB3: HD6309E A1, input
 #define ADR1_PORT B
 #define ADR1_PIN 3
+
+// PB4: Micro SD card, SPI Chip Select
+#define SS_PORT B
+#define SS_PIN 4
+#define SD_CS_PIN PIN_PB4
+
+// PB5: Micro SD card, SPI MOSI
+#define MOSI_PORT B
+#define MOSI_PIN 5
+
+// PB6: Micro SD card, SPI MISO
+#define MISO_PORT B
+#define MISO_PIN 6
+
+// PB7: Micro SD card, SPI SCK
+#define SCK_PORT B
+#define SCK_PIN 7
 
 // PC: HD6309E signals port
 #define SIGNALS_PORT C

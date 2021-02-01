@@ -1,7 +1,10 @@
 /* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
-#ifndef __PINS_MAP_H__
-#define __PINS_MAP_H__
+#ifndef __CONFIG_H__
+#define __CONFIG_H__
 
+#define VERSION_TEXT F("* CyborgHD6309E Prototype4 2.1.0")
+
+#if defined(ARDUINO_AVR_ATmega4809) && defined(MEGACOREX_DEFAULT_40PIN_PINOUT)
 /**
  * Arduino IDE settings
  * FQBN: MegaCoreX:megaavr:4809:clock=internal_20MHz,pinout=40pin_standard,resetpin=reset,bootloader=uart1_default
@@ -13,12 +16,9 @@
  * Bootloader: Optiboot (UART1 default pins)
  * Programmer: Atmel mEDBG (ATmega32u4)
  */
-#if defined(MEGACOREX_DEFAULT_40PIN_PINOUT)
 
 #define Console Serial1
 #define CONSOLE_BAUD 115200
-
-#define SPI_MAPPING 2
 
 // PA: HD6309E data bus, bidirectional
 #define DB_PORT A
@@ -84,6 +84,9 @@
 #define BUSY_PORT SIGNALS_PORT
 #define BUSY_PIN 7
 
+// SPI use Alternate 2 pin mapping.
+#define SPI_MAPPING 2
+
 // PE0: Micro SD card, SPI MOSI
 #define MOSI_PORT E
 #define MOSI_PIN 0
@@ -127,6 +130,6 @@
 #define USR_SW_PIN 5
 #define USR_SW_INTERRUPT digitalPinToInterrupt(PIN_PF5)
 
-#endif
+#endif // MEGACOREX_DEFAULT_40PIN_PINOUT
 
 #endif

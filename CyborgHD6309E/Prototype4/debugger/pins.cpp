@@ -3,15 +3,16 @@
 #include "pins.h"
 
 #include <Arduino.h>
-#include <SPI.h>
-#include <avr/pgmspace.h>
 #include <libcli.h>
 
 #include "commands.h"
+#include "digital_fast.h"
 #include "mc6850.h"
-#include "pins_base.h"
-#include "pins_map.h"
 #include "string_util.h"
+
+#ifdef SPI_MAPPING
+#include <SPI.h>
+#endif
 
 extern libcli::Cli Cli;
 
@@ -156,7 +157,7 @@ void Pins::Dbus::begin() {
 
 void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
     if (dir == OUTPUT && isWriteDirection()) {
-        Cli.println("!! R/W is LOW");
+        Cli.println(F("!! R/W is LOW"));
         return;
     }
     if (dir == OUTPUT || _capture) {
@@ -225,10 +226,10 @@ void Signals::get() {
 #endif
 }
 
-static char *outPin(char *p, bool value, const char *name) {
+static char *outPin(char *p, bool value, const __FlashStringHelper *name) {
     if (value)
         return outText(p, name);
-    for (const char *s = name; *s; s++)
+    for (PGM_P s = reinterpret_cast<PGM_P>(name); pgm_read_byte(s); s++)
         *p++ = ' ';
     *p = 0;
     return p;
@@ -240,14 +241,14 @@ void Signals::print(const Signals *prev) const {
 #ifdef DEBUG_SIGNALS
     *p++ = _debug ? _debug : ' ';
 #endif
-    p = outPin(p, (_pins & halt) == 0, " HALT");
-    p = outPin(p, _pins & ba, " BA");
-    p = outPin(p, _pins & bs, " BS");
-    p = outPin(p, _pins & busy, " BUSY");
-    p = outPin(p, _pins & lic, " LIC");
-    p = outPin(p, _pins & avma, " AVMA");
-    p = outText(p, (_pins & rw) ? " RD" : " WR");
-    p = outText(p, " DB=0x");
+    p = outPin(p, (_pins & halt) == 0, F(" HALT"));
+    p = outPin(p, _pins & ba, F(" BA"));
+    p = outPin(p, _pins & bs, F(" BS"));
+    p = outPin(p, _pins & busy, F(" BUSY"));
+    p = outPin(p, _pins & lic, F(" LIC"));
+    p = outPin(p, _pins & avma, F(" AVMA"));
+    p = outText(p, (_pins & rw) ? F(" RD") : F(" WR"));
+    p = outText(p, F(" DB=0x"));
     p = outHex8(p, _dbus);
     if (prev) {
         *p++ = ' ';
@@ -579,7 +580,9 @@ void Pins::begin() {
     Console.begin(CONSOLE_BAUD);
     Cli.begin(Console);
 
+#ifdef SPI_MAPPING
     SPI.swap(SPI_MAPPING);
+#endif
 
     assertHalt();
     negateReset();

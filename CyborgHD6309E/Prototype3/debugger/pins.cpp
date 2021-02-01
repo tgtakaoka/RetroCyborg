@@ -3,14 +3,16 @@
 #include "pins.h"
 
 #include <Arduino.h>
-#include <avr/pgmspace.h>
 #include <libcli.h>
 
 #include "commands.h"
+#include "digital_fast.h"
 #include "mc6850.h"
-#include "pins_base.h"
-#include "pins_map.h"
 #include "string_util.h"
+
+#ifdef SPI_MAPPING
+#include <SPI.h>
+#endif
 
 extern libcli::Cli Cli;
 
@@ -155,7 +157,7 @@ void Pins::Dbus::begin() {
 
 void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
     if (dir == OUTPUT && isWriteDirection()) {
-        Cli.println("!! R/W is LOW");
+        Cli.println(F("!! R/W is LOW"));
         return;
     }
     if (dir == OUTPUT || _capture) {
@@ -578,6 +580,10 @@ void Pins::begin() {
     Console.begin(CONSOLE_BAUD);
     Cli.begin(Console);
 
+#ifdef SPI_MAPPING
+    SPI.swap(SPI_MAPPING);
+#endif
+
     assertHalt();
     negateReset();
     _freeRunning = false;
@@ -628,4 +634,8 @@ void Pins::acknowledgeIoRequest() {
 void Pins::leaveIoRequest() {
     _dbus.input();
     negateAck();
+}
+
+int Pins::sdCardChipSelectPin() const {
+    return SD_CS_PIN;
 }

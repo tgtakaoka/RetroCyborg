@@ -24,9 +24,6 @@
 
 #include "commands.h"
 
-#include "pins.h"
-#include "regs.h"
-
 #include <Arduino.h>
 #include <SD.h>
 #include <asm_mc6809.h>
@@ -35,14 +32,16 @@
 #include <libcli.h>
 #include <string.h>
 
+#include "config.h"
+#include "pins.h"
+#include "regs.h"
+
 using namespace libasm;
 using namespace libasm::mc6809;
 
-#define VERSION "* CyborgHD6309E Prototype3 2.1.0"
-#define USAGE                                                                \
-    "R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont " \
-    "G:o "                                                                   \
-    "h/H:alt p:ins F:iles L:oad"
+#define USAGE                                                                  \
+    F("R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont " \
+      "G:o h/H:alt p:ins F:iles L:oad")
 
 using libcli::Cli;
 extern class Cli Cli;
@@ -307,7 +306,7 @@ static void handleAssembler(uint32_t value, uintptr_t extra, Cli::State state) {
 }
 
 static void handleFileListing() {
-    SD.begin();
+    SD.begin(Pins.sdCardChipSelectPin());
     File root = SD.open("/");
     while (true) {
         File entry = root.openNextFile();
@@ -358,7 +357,7 @@ static void handleLoadFile(char *line, uintptr_t extra, Cli::State state) {
     if (state != Cli::State::CLI_NEWLINE)
         return;
     uint16_t size = 0;
-    SD.begin();
+    SD.begin(Pins.sdCardChipSelectPin());
     File file = SD.open(line);
     if (file) {
         char s19[80];
@@ -552,7 +551,7 @@ void Commands::exec(char c) {
         Cli.readString(handleLoadFile, 0);
         return;
     case '?':
-        Cli.println(VERSION);
+        Cli.println(VERSION_TEXT);
         Cli.println(USAGE);
         break;
     case '\r':

@@ -24,9 +24,6 @@
 
 #include "commands.h"
 
-#include "pins.h"
-#include "regs.h"
-
 #include <Arduino.h>
 #include <SD.h>
 #include <asm_mc6809.h>
@@ -35,14 +32,16 @@
 #include <libcli.h>
 #include <string.h>
 
+#include "config.h"
+#include "pins.h"
+#include "regs.h"
+
 using namespace libasm;
 using namespace libasm::mc6809;
 
-#define VERSION "* CyborgHD6309E Prototype4 2.1.0"
-#define USAGE                                                                \
-    "R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont " \
-    "G:o "                                                                   \
-    "h/H:alt p:ins F:iles L:oad"
+#define USAGE                                                                  \
+    F("R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont " \
+      "G:o h/H:alt p:ins F:iles L:oad")
 
 using libcli::Cli;
 extern class Cli Cli;
@@ -178,7 +177,7 @@ static void print(const Insn &insn) {
         Cli.print(' ');
     }
     for (int i = insn.length(); i < 5; i++) {
-        Cli.print("   ");
+        Cli.print(F("   "));
     }
 }
 
@@ -197,7 +196,7 @@ static uint16_t disassemble(uint16_t addr, uint16_t max) {
         len += insn.length();
         print(insn);
         if (disassembler.getError()) {
-            Cli.print("Error: ");
+            Cli.print(F("Error: "));
             Cli.println(disassembler.getError());
             continue;
         }
@@ -273,7 +272,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, Cli::State state) {
     (void)state;
     (void)extra;
     if (*line == 0) {
-        Cli.println("end");
+        Cli.println(F("end"));
         printPrompt();
         return;
     }
@@ -282,7 +281,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, Cli::State state) {
     assembler.setCpu(Regs.cpu());
     Insn insn;
     if (assembler.encode(line, insn, last_addr, nullptr)) {
-        Cli.print("Error: ");
+        Cli.print(F("Error: "));
         Cli.println(assembler.getError());
     } else {
         print(insn);
@@ -377,13 +376,14 @@ static void handleLoadFile(char *line, uintptr_t extra, Cli::State state) {
     }
     Cli.println();
     Cli.print(size);
-    Cli.println(" bytes loaded");
+    Cli.println(F(" bytes loaded"));
     printPrompt();
 }
 
 static void handleRegisterValue(uint32_t, uintptr_t, Cli::State);
 
 static void handleSetRegister(char value, uintptr_t extra) {
+    (void)extra;
     const char c = value;
     if (c == 'p' || c == 's' || c == 'u' || c == 'y' || c == 'x' || c == 'd' ||
             (Regs.is6309() && (c == 'w' || c == 'v'))) {
@@ -399,10 +399,10 @@ static void handleSetRegister(char value, uintptr_t extra) {
         Cli.readHex8(handleRegisterValue, (uintptr_t)c);
         return;
     }
-    Cli.print("?Reg: pc s u x y a b d");
+    Cli.print(F("?Reg: pc s u x y a b d"));
     if (Regs.is6309())
-        Cli.print(" w e f v");
-    Cli.println(" Dp cc");
+        Cli.print(F(" w e f v"));
+    Cli.println(F(" Dp cc"));
     printPrompt();
 }
 
@@ -468,11 +468,11 @@ static void handleRegisterValue(
 void Commands::exec(char c) {
     switch (c) {
     case 'p':
-        Cli.print("pins:");
+        Cli.print(F("pins:"));
         Pins.print();
         break;
     case 'R':
-        Cli.println("RESET");
+        Cli.println(F("RESET"));
         _target = HALT;
         Pins.reset(true);
         Regs.get(true);
@@ -480,32 +480,32 @@ void Commands::exec(char c) {
         break;
     case 'i':
     case 'I':
-        Cli.print("inst? ");
+        Cli.print(F("inst? "));
         Cli.readHex8(handleInstruction, INST_DATA(c, 0));
         return;
     case 'd':
-        Cli.print("dump? ");
+        Cli.print(F("dump? "));
         Cli.readHex16(handleDump, DUMP_ADDR);
         return;
     case 'D':
-        Cli.print("Dis? ");
+        Cli.print(F("Dis? "));
         Cli.readHex16(handleDisassemble, DIS_ADDR);
         return;
     case 'A':
-        Cli.print("Asm? ");
+        Cli.print(F("Asm? "));
         Cli.readHex16(handleAssembler, ASM_ADDR);
         return;
     case 'm':
-        Cli.print("mem? ");
+        Cli.print(F("mem? "));
         Cli.readHex16(handleMemory, MEMORY_ADDR);
         return;
     case 's':
     case 'S':
         if (_target == HALT) {
             if (c == 's')
-                Cli.print("step: ");
+                Cli.print(F("step: "));
             else
-                Cli.println("Step");
+                Cli.println(F("Step"));
             Pins.step(c == 'S');
         } else {
             _target = HALT;
@@ -515,11 +515,11 @@ void Commands::exec(char c) {
         disassemble(Regs.pc, 1);
         break;
     case 'r':
-        Cli.print("regs: ");
+        Cli.print(F("regs: "));
         Regs.get(true);
         break;
     case '=':
-        Cli.print("set reg? ");
+        Cli.print(F("set reg? "));
         Cli.readLetter(handleSetRegister, 0);
         return;
     case 'c':
@@ -527,7 +527,7 @@ void Commands::exec(char c) {
         return;
     case 'G':
         if (_target != RUN) {
-            Cli.println("GO");
+            Cli.println(F("GO"));
             _target = RUN;
             Pins.run();
         }
@@ -537,21 +537,21 @@ void Commands::exec(char c) {
         if (_target != HALT) {
             _target = HALT;
             Pins.halt(c == 'H');
-            Cli.println("HALT");
+            Cli.println(F("HALT"));
             Regs.get(true);
             disassemble(Regs.pc, 1);
         }
         break;
     case 'F':
-        Cli.println("Files");
+        Cli.println(F("Files"));
         handleFileListing();
         break;
     case 'L':
-        Cli.print("Load? ");
+        Cli.print(F("Load? "));
         Cli.readString(handleLoadFile, 0);
         return;
     case '?':
-        Cli.println(VERSION);
+        Cli.println(VERSION_TEXT);
         Cli.println(USAGE);
         break;
     case '\r':
