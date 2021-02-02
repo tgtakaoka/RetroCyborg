@@ -1,15 +1,14 @@
 AS=asl -gnuerrors -L +t 0x1E -q
-OBJCOPY=p2hex -l 32 -F Moto +5 -r '$$-$$' >/dev/null
+OBJCOPY=p2hex -k -l 32 -F Moto +5 -r '$$-$$' >/dev/null
 
 .PHONY: clean
 
-all: echo.s19 echoir.s19 echoitr.s19 hd6309.s19
+all: echo.s19 echoir.s19 echoitr.s19
 
 %.p:	%.asm
 	$(AS) $^
 %.s19:	%.p
-	$(OBJCOPY) $^
-	@mv -f $*.hex $@
+	$(OBJCOPY) $^ $@
 
 clean:
 	-rm -f *.p *.lst *.s19

@@ -167,7 +167,7 @@ void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
     }
     _dir = dir;
     if (dir == INPUT) {
-        busMode(DB, INPUT);
+        busMode(DB, INPUT_PULLUP);
     } else {
         busWrite(DB, data);
         busMode(DB, OUTPUT);

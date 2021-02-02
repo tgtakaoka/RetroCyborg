@@ -192,7 +192,7 @@ static uint16_t disassemble(uint16_t addr, uint16_t max) {
     while (len < max) {
         char operands[20];
         Insn insn;
-        disassembler.decode(memory, insn, operands, nullptr);
+        disassembler.decode(memory, insn, operands, sizeof(operands));
         len += insn.length();
         print(insn);
         if (disassembler.getError()) {

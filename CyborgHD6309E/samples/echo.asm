@@ -2,10 +2,10 @@
         include "mc6809.inc"
 
 ;;; MC6850 Asynchronous Communication Interface Adapter
-ACIA:   equ     $FFC0
+ACIA:   equ     $DF00
         include "mc6850.inc"
 
-        org     $F000
+        org     $1000
 stack:  equ     *
 
         org     $1000
@@ -13,10 +13,9 @@ initialize:
         lds     #stack
         lda     #CDS_RESET_gc   ; Master reset
         sta     ACIA_control
-        lda     #WSB_8N1_gc        ; 8 bits + No Parity + 1 Stop Bits
-        ora     #TCB_EI_gc|RIEB_bm ; Transmit, Receive interrupts enable
+        lda     #WSB_8N1_gc     ; 8 bits + No Parity + 1 Stop Bits
+                                ; Transmit, Receive interrupts disabled
         sta     ACIA_control
-        orcc    #CC_IRQ         ; Set Interrupt mask
 
 receive_loop:
         lda     ACIA_status

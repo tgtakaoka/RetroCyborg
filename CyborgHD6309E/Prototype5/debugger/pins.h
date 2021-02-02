@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 
+#include "config.h"
+
 //#define DEBUG_SIGNALS
 
 class Signals {
@@ -35,7 +37,7 @@ private:
 #ifdef SIGNALS_BUS
         bs = _BV(BS_PIN),
         ba = _BV(BA_PIN),
-        babs = _BV(BA_PIN) | _BV(BS_BIN),
+        babs = _BV(BA_PIN) | _BV(BS_PIN),
         reset = _BV(RESET_PIN),
         halt = _BV(HALT_PIN),
         lic = _BV(LIC_PIN),
@@ -80,13 +82,12 @@ public:
             const uint8_t *inst, uint8_t len, uint8_t *capBuf, uint8_t max);
 
     void acknowledgeIoRequest();
-    void leaveIoRequest();
     uint16_t ioRequestAddress() const;
     bool ioRequestWrite() const;
     uint8_t ioGetData();
     void ioSetData(uint8_t data);
 
-    static constexpr uint16_t ioBaseAddress() { return 0xFFC0; }
+    static constexpr uint16_t ioBaseAddress() { return IO_BASE_ADDR; }
 
     void assertIrq(const uint8_t mask);
     void negateIrq(const uint8_t mask = 0xff);
@@ -109,7 +110,6 @@ private:
 
     private:
         void setDbus(uint8_t dir, uint8_t data);
-        uint8_t _dir = INPUT;
         uint8_t _data;
         bool _valid;
         bool _capture;

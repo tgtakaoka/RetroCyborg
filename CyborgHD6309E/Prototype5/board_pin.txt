@@ -23,17 +23,16 @@
   PE0|         |PE3     D2|         |D4      A11|         |A14
   PE1|_________|PE2    Vss|_________|D3      A12|_________|A13
 
-                                                    E Q #
-          V                      V                G C C I
-          c # B A B A B A B A    c N     N N #    N L L O
-          c Y 7 7 6 6 5 5 4 4    c C H G C C Y    D K K R
-         +-------------------+  +-------------+  +-------+
-         |                   |  |             |  |       |
-         |*    TC74HC688     |  |*  TC74HC30  |  |*      |
-         +-------------------+  +-------------+  +-------+
-          # A B A B A B A B G    A B C D E F G    V # E Q
-          E 0 0 1 1 2 2 3 3 N                N    D Y
-                            D                D    D
+         V                          S S S S S S S S
+         c # B A B A B A B A        W W W W W W W W
+         c Y 7 7 6 6 5 5 4 4        8 7 6 5 4 4 2 1
+        +-------------------+      +---------------+
+        |                   |      |               |
+        |*    TC74HC688     |      |*   DIP SW8    |
+        +-------------------+      +---------------+
+         # A B A B A B A B G        S S S S S S S S
+         E 0 0 1 1 2 2 3 3 N        W W W W W W W W
+                           D        8 7 6 5 4 3 2 1
 
 
 
@@ -62,14 +61,13 @@
   A14|         |A11     D4|         |D2     PE3|         |PE0
   A13|_________|A12     D3|_________|Vss    PE2|_________|PE1
 
-      # Q E
-      I C C G                V                      V
-      O L L N    # N N     N c    A B A B A B A B # c
-      R K K D    Y C C G H C c    4 4 5 5 6 6 7 7 Y c
-     +-------+  +-------------+  +-------------------+
-     |       |  |             |  |                   |
-     |      *|  |  TC74HC30  *|  |     TC74HC688    *|
-     +-------+  +-------------+  +-------------------+
-      Q E # V    G F E D C B A    G B A B A B A B A #
-          Y D    N                N 3 3 2 2 1 1 0 0 E
-            D    D                D
+            S S S S S S S S                          V
+            W W W W W W W W        A B A B A B A B # c
+            1 2 3 4 5 7 7 8        4 4 5 5 6 6 7 7 Y c
+           +---------------+      +-------------------+
+           |               |      |                   |
+           |    DIP DE8   *|      |     TC74HC688    *|
+           +---------------+      +-------------------+
+            S S S S S S S S        G B A B A B A B A #
+            W W W W W W W W        N 3 3 2 2 1 1 0 0 E
+            1 2 3 4 5 6 7 8        D

@@ -2,15 +2,17 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define VERSION_TEXT F("* CyborgHD6309E Prototype4 2.1.0")
+#define VERSION_TEXT F("* CyborgHD6309E Prototype5 2.2.0")
 
-#if defined(ARDUINO_AVR_ATmega4809) && defined(MEGACOREX_DEFAULT_40PIN_PINOUT)
+#define IO_BASE_ADDR 0xDF00
+
+#if defined(__AVR_ATmega4809__) && defined(MEGACOREX_DEFAULT_40PIN_PINOUT)
 /**
  * Arduino IDE settings
- * FQBN: MegaCoreX:megaavr:4809:clock=internal_20MHz,pinout=40pin_standard,resetpin=reset,bootloader=uart1_default
+ * FQBN: MegaCoreX:megaavr:4809:clock=internal_16MHz,pinout=40pin_standard,resetpin=reset,bootloader=uart1_default
  * Core: https://github.com/MCUdude/MegaCoreX
  * Board: ATmega4809
- * Clock: Internal 20MHz
+ * Clock: Internal 16MHz
  * Pinout: 40 pin standard
  * Reset pin: Reset
  * Bootloader: Optiboot (UART1 default pins)
@@ -19,6 +21,49 @@
 
 #define Console Serial1
 #define CONSOLE_BAUD 115200
+
+/*
+ * E_OSC: TCA0-WO3-PORTB(PB3)
+ * Q_OSC: TCA0-WO0-PORTB(PB0)
+ * E_CLK: CCL-LUT0, EVOUTF(PF2)
+ *        IN0=CCLLUT0A(CHANNEL2:#INT)
+ *        IN2=CCLLUT0B(CHANNEL1:E_OSC)
+ * Q_CLK: CCL-LUT1, EVOUTC(PC2)
+ *        IN0=CCLLUT1A(CHANNEL2:#INT)
+ *        IN2=CCLLUT1B(CHANNEL0:Q_OSC)
+ * #IOR_E: CCL-LUT2
+ *        IN1=CCLLUT2A(CHANNEL4:#IOR)
+ *        CLK=CCLLUT2B(CHANNEL1:E_OSC)
+ * #INT: SEQUNCE1-OUT
+ *        SEQSEL1: DFF(D Flip FLop)
+ *        D: CCL-LUT2(#IOR_E)
+ *        G: 1
+ *        CLK: CCL-LUT2-IN2(E_OSC)
+ * CHANNEL0: PB0(Q_OSC)
+ * CHANNEL1: PB3(E_OSC)
+ * CHANNEL2: CCL-LUT2(#INT)
+ * CHANNEL3: CCL-LUT0(E_CLK)
+ * CHANNEL4: PF3(#IOR)
+ * CHANNEL5: CCL-LUT1(Q_CLK)
+ * EVOUTC: PC2(Q_CLK)
+ * EVOUTF: PF2(E_CLK)
+ */
+
+/* Timer A, Split Single-slope PWM mode */
+#define CLK_MHZ (F_CPU / 1000000L)
+#define MPU_MHZ 2
+#define CLK_PER_MPU (CLK_MHZ / MPU_MHZ)
+
+// PB0(internal): TCA0-WO0-PORTB
+#define Q_OSC_PINCTRL PORTB.PIN0CTRL
+#define Q_OSC_DIRSET PORTB.DIRSET
+#define Q_OSC_bm (1 << 0)
+
+// PB3(internal): TCA0-WO3-PORTB
+#define E_OSC_PINCTRL PORTB.PIN3CTRL
+#define E_OSC_DIRSET PORTB.DIRSET
+#define E_OSC_bm (1 << 3)
+#define E_OSC_CHANNEL 1
 
 // PA: HD6309E data bus, bidirectional
 #define DB_PORT A
@@ -32,9 +77,9 @@
 #define RXD_PORT C
 #define RXD_PIN 1
 
-// PC2: Clock Generator #ACK, output
-#define ACK_PORT C
-#define ACK_PIN 2
+// PC2: HD6309E Q, output
+#define Q_CLK_PORT C
+#define Q_CLK_PIN 2
 
 // PC3: RAM enable, output
 #define RAM_E_PORT C
@@ -50,7 +95,7 @@
 
 // PD: HD6309E signals port
 #define SIGNALS_PORT D
-//#define SIGNALS_BUS 0xff
+#define SIGNALS_BUS 0xff
 
 // PD0: HD6309E #RESET, output
 #define RESET_PORT SIGNALS_PORT
@@ -112,14 +157,13 @@
 #define NMI_PORT F
 #define NMI_PIN 1
 
-// PF2: Clock Generator #INT, input
-#define INT_PORT F
-#define INT_PIN 2
-#define INT_INTERRUPT digitalPinToInterrupt(PIN_PF2)
+// PF2: HD6309E E, output
+#define E_CLK_PORT F
+#define E_CLK_PIN 2
 
-// PF3: Clock Generator #STEP, output
-#define STEP_PORT F
-#define STEP_PIN 3
+// PF3: 74HC688 #IOR, input
+#define IOR_PORT F
+#define IOR_PIN 3
 
 // PF4: User LED, output
 #define USR_LED_PORT F
@@ -129,6 +173,10 @@
 #define USR_SW_PORT F
 #define USR_SW_PIN 5
 #define USR_SW_INTERRUPT digitalPinToInterrupt(PIN_PF5)
+
+#else
+
+#error "Unknown Arduino board config"
 
 #endif // MEGACOREX_DEFAULT_40PIN_PINOUT
 

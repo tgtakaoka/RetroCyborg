@@ -2,7 +2,7 @@
         include "mc6809.inc"
         
 ;;; MC6850 Asynchronous Communication Interface Adapter
-ACIA:   equ     $FFC0
+ACIA:   equ     $DF00
         include "mc6850.inc"
 
         org     $2000
@@ -11,7 +11,7 @@ rx_queue_size:  equ     128
 rx_queue:       rmb     rx_queue_size
 RX_INT_TX_NO:   equ     WSB_8N1_gc|RIEB_bm
 
-        org     $F000
+        org     $1000
 stack:  equ     *
 
         org     $1000

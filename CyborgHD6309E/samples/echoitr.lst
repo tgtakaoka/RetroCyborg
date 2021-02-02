@@ -1,4 +1,4 @@
- AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 1 - 03/12/2020 11:39:23 PM
+ AS V1.42 Beta [Bld 204] - Source File echoitr.asm - Page 1 - 11/06/2021 16:32:45
 
 
           0 :                             cpu     6809
@@ -15,7 +15,7 @@
 (1)       0 :                     
           0 :                     
           0 :                     ;;; MC6850 Asynchronous Communication Interface Adapter
-          0 : =$FFC0              ACIA:   equ     $FFC0
+          0 : =$DF00              ACIA:   equ     $DF00
           0 :                             include "mc6850.inc"
 (1)       0 :                     ;;; -*- mode: asm; mode: flyspell-prog; -*-
 (1)       0 :                     
@@ -23,7 +23,7 @@
 (1)       0 :                     ;;; Asynchronous Communication Interface Adapter
 (1)       0 :                     
 (1)       0 :                     ;;; Control register
-(1)       0 : =$FFC0              ACIA_control:   equ     ACIA+0
+(1)       0 : =$DF00              ACIA_control:   equ     ACIA+0
 (1)       0 :                             ;; Counter Divider Select Bits
 (1)       0 : =$3                 CDS_gm:         equ     %11    ; Group mask
 (1)       0 : =$0                 CDS_DIV1_gc:    equ     %00000000 ; /1
@@ -50,7 +50,7 @@
 (1)       0 : =$80                RIEB_bm:        equ     %10000000 ; Receive Interrupt Enable Bit mask
 (1)       0 :                     
 (1)       0 :                     ;;; Status register
-(1)       0 : =$FFC0              ACIA_status:    equ     ACIA+0
+(1)       0 : =$DF00              ACIA_status:    equ     ACIA+0
 (1)       0 : =$1                 RDRF_bm:        equ     %00000001 ; Receive Data Register Full
 (1)       0 : =$2                 TDRE_bm:        equ     %00000010 ; Transmit Data Register Empty
 (1)       0 : =$4                 DCDF_bm:        equ     %00000100 ; Data Carrier Detect Flag
@@ -61,10 +61,10 @@
 (1)       0 : =$80                IRQF_bm:        equ     %10000000 ; Interrupt Request Flag
 (1)       0 :                     
 (1)       0 :                     ;;; Data register
- AS V1.42 Beta [Bld 157] - Source File echoitr.asm(mc6850.inc) - Page 2 - 03/12/2020 11:39:23 PM
+ AS V1.42 Beta [Bld 204] - Source File echoitr.asm(mc6850.inc) - Page 2 - 11/06/2021 16:32:45
 
 
-(1)       0 : =$FFC1              ACIA_data:      equ     ACIA+1          ; Data register
+(1)       0 : =$DF01              ACIA_data:      equ     ACIA+1          ; Data register
 (1)       0 :                     
           0 :                     
        2000 :                             org     $2000
@@ -77,12 +77,12 @@
        2100 : =$B4                RX_INT_TX_INT:  equ     WSB_8N1_gc|RIEB_bm|TCB_EI_gc
        2100 :                     tx_int_control: rmb     1
        2101 :                     
-       F000 :                             org     $F000
-       F000 : =$F000              stack:  equ     *
-       F000 :                     
+       1000 :                             org     $1000
+       1000 : =$1000              stack:  equ     *
+       1000 :                     
        1000 :                             org     $1000
        1000 :                     initialize:
-       1000 : 10 CE F0 00                 lds     #stack
+       1000 : 10 CE 10 00                 lds     #stack
        1004 : 8E 20 00                    ldx     #rx_queue
        1007 : C6 80                       ldb     #rx_queue_size
        1009 : 17 00 AC                    lbsr    queue_init
@@ -91,9 +91,9 @@
        1011 : 17 00 A4                    lbsr    queue_init
        1014 :                             ;; initialize ACIA
        1014 : 86 03                       lda     #CDS_RESET_gc   ; master reset
-       1016 : B7 FF C0                    sta     ACIA_control
+       1016 : B7 DF 00                    sta     ACIA_control
        1019 : 86 94                       lda     #RX_INT_TX_NO
-       101B : B7 FF C0                    sta     ACIA_control
+       101B : B7 DF 00                    sta     ACIA_control
        101E : 7F 21 00                    clr     tx_int_control  ; disabl Tx interrupt
        1021 : 1C EF                       andcc   #~CC_IRQ        ; Clear IRQ mask
        1023 :                     
@@ -124,7 +124,7 @@
        1048 :                     ;;; @param B uint8_t value to be printed in hex.
        1048 :                     ;;; @clobber A
        1048 :                     put_hex8:
- AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 3 - 03/12/2020 11:39:23 PM
+ AS V1.42 Beta [Bld 204] - Source File echoitr.asm - Page 3 - 11/06/2021 16:32:45
 
 
        1048 : 86 30                       lda     #'0'
@@ -187,7 +187,7 @@
        1099 : 25 02                       bcs     getchar_end
        109B : 6A E4                       dec     ,s              ; clear carry
        109D :                     getchar_end:
- AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 4 - 03/12/2020 11:39:23 PM
+ AS V1.42 Beta [Bld 204] - Source File echoitr.asm - Page 4 - 11/06/2021 16:32:45
 
 
        109D : 35 91                       puls    cc,x,pc
@@ -203,7 +203,7 @@
        10AC : 26 08                       bne     putchar_end
        10AE : 86 B4                       lda     #RX_INT_TX_INT  ; enable Tx interrupt
        10B0 : B7 21 00                    sta     tx_int_control
-       10B3 : B7 FF C0                    sta     ACIA_control
+       10B3 : B7 DF 00                    sta     ACIA_control
        10B6 :                     putchar_end:
        10B6 : 35 93                       puls    cc,a,x,pc
        10B8 :                     
@@ -250,7 +250,7 @@
 (1)    10D8 : 33 CB               	leau	d,u
 (1)    10DA : A6 E4               	lda	,s		; an element
 (1)    10DC : A7 C4               	sta	,u
- AS V1.42 Beta [Bld 157] - Source File echoitr.asm(queue.inc) - Page 5 - 03/12/2020 11:39:23 PM
+ AS V1.42 Beta [Bld 204] - Source File echoitr.asm(queue.inc) - Page 5 - 11/06/2021 16:32:45
 
 
 (1)    10DE : 6C 84               	inc	queue_len,x
@@ -291,13 +291,13 @@
 (1)    110C :                     
        110C :                     
        110C :                     isr_irq:
-       110C : F6 FF C0                    ldb     ACIA_status
+       110C : F6 DF 00                    ldb     ACIA_status
        110F : C5 80                       bitb    #IRQF_bm
        1111 : 27 2B                       beq     isr_irq_return
        1113 :                     isr_irq_receive:
        1113 : C5 01                       bitb    #RDRF_bm
        1115 : 27 09                       beq     isr_irq_recv_end
-       1117 : B6 FF C1                    lda     ACIA_data       ; receive character
+       1117 : B6 DF 01                    lda     ACIA_data       ; receive character
        111A : 8E 20 00                    ldx     #rx_queue
        111D : 17 FF A9                    lbsr    queue_add
        1120 :                     isr_irq_recv_end:
@@ -307,16 +307,16 @@
        1124 : 8E 20 80                    ldx     #tx_queue
        1127 : 17 FF C3                    lbsr    queue_remove
        112A : 24 05                       bcc     isr_irq_send_empty
-       112C : B7 FF C1                    sta     ACIA_data       ; send character
+       112C : B7 DF 01                    sta     ACIA_data       ; send character
        112F : 20 0D                       bra     isr_irq_send_end
        1131 :                     isr_irq_send_empty:
        1131 : 7D 21 00                    tst     tx_int_control
        1134 : 27 08                       beq     isr_irq_send_end
        1136 : 86 94                       lda     #RX_INT_TX_NO
- AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 6 - 03/12/2020 11:39:23 PM
+ AS V1.42 Beta [Bld 204] - Source File echoitr.asm - Page 6 - 11/06/2021 16:32:45
 
 
-       1138 : B7 FF C0                    sta     ACIA_control    ; disable Tx interrupt
+       1138 : B7 DF 00                    sta     ACIA_control    ; disable Tx interrupt
        113B : 7F 21 00                    clr     tx_int_control
        113E :                     isr_irq_send_end:
        113E :                     isr_irq_return:
@@ -328,7 +328,7 @@
        FFFE :                             org     $FFFE
        FFFE : 10 00                       fdb     initialize
       10000 :                     
- AS V1.42 Beta [Bld 157] - Source File echoitr.asm - Page 7 - 03/12/2020 11:39:23 PM
+ AS V1.42 Beta [Bld 204] - Source File echoitr.asm() - Page 7 - 11/06/2021 16:32:45
 
 
   Code Pages:
@@ -338,7 +338,7 @@ STANDARD (0 changed characters)
 
 1 code page
 
-0.02 seconds assembly time
+0.01 seconds assembly time
 
     312 lines source file
       2 passes
