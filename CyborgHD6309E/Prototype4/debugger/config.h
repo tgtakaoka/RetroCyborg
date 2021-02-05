@@ -32,13 +32,13 @@
 #define RXD_PORT C
 #define RXD_PIN 1
 
-// PC2: RAM enable, output
-#define RAM_E_PORT C
-#define RAM_E_PIN 2
-
-// PC3: Clock Generator #ACK, output
+// PC2: Clock Generator #ACK, output
 #define ACK_PORT C
-#define ACK_PIN 3
+#define ACK_PIN 2
+
+// PC3: RAM enable, output
+#define RAM_E_PORT C
+#define RAM_E_PIN 3
 
 // PC4: HD6309E A0, input
 #define ADR0_PORT C

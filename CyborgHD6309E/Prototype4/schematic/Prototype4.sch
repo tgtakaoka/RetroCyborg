@@ -5,8 +5,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title "CyborgHD6309E Prototype4"
-Date "2021-01-29"
-Rev "4"
+Date "2021-02-05"
+Rev "5"
 Comp "Tadashi G. Takaoka"
 Comment1 ""
 Comment2 ""
@@ -286,9 +286,9 @@ Text Label 5150 3150 0    50   ~ 0
 E_CLK
 Text Label 5150 2950 0    50   ~ 0
 RD_WR
-Text Label 7250 3750 0    50   ~ 0
-E_CLK
 Text Label 7250 3650 0    50   ~ 0
+E_CLK
+Text Label 7250 3750 0    50   ~ 0
 Q_CLK
 Text Label 5750 3750 2    50   ~ 0
 LIC
@@ -1231,13 +1231,13 @@ Wire Wire Line
 	2950 2300 3150 2300
 Wire Wire Line
 	2950 2100 3150 2100
-Text Label 1850 3300 2    50   ~ 0
+Text Label 1850 3200 2    50   ~ 0
 ~ACK~
 Wire Wire Line
 	2950 2200 3150 2200
 Wire Wire Line
 	2950 2800 3150 2800
-Text Label 1850 3200 2    50   ~ 0
+Text Label 1850 3300 2    50   ~ 0
 ~RAM_E~
 Wire Wire Line
 	2950 2700 3150 2700
