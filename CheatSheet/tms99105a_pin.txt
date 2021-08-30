@@ -1,4 +1,4 @@
-                TMS999105A
+                TMS99105A
                 _________
  #WE/#IOCLK   1|*        |40  #MEM
         #RD   2|         |39  BST1
