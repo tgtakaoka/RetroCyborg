@@ -7,7 +7,7 @@
 #include "pins.h"
 #include "string_util.h"
 
-extern libcli::Cli Cli;
+extern libcli::Cli &cli;
 
 union Regs Regs;
 static const char *cpu_type = nullptr;
@@ -65,7 +65,7 @@ void Regs::print() const {
     *p++ = bit1(cc & 0x02, 'V');
     *p++ = bit1(cc & 0x01, 'C');
     *p = 0;
-    Cli.println(buffer);
+    cli.println(buffer);
 }
 
 void Regs::get(bool show) {

@@ -10,7 +10,7 @@
 #include "commands.h"
 #include "pins.h"
 
-libcli::Cli Cli;
+libcli::Cli &cli = libcli::Cli::instance();
 
 void setup() {
     Pins.begin();
@@ -22,7 +22,7 @@ void loop() {
     if (Pins.isRunning()) {
         Pins.loop();
     } else {
-        Cli.loop();
+        cli.loop();
         Commands.loop();
     }
 }

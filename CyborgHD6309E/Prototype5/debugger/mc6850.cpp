@@ -12,16 +12,16 @@
 //#define DEBUG_READ
 //#define DEBUG_WRITE
 
-extern class libcli::Cli Cli;
+extern libcli::Cli &cli;
 
 void Mc6850::assertIrq(uint8_t intMask) {
     _status |= IRQF_bm;
     Pins.assertIrq(intMask);
 #ifdef DEBUG_IRQ
     if (intMask & _rxInt)
-        Cli.println(F("@@ Assert RX INT"));
+        cli.println(F("@@ Assert RX INT"));
     if (intMask & _txInt)
-        Cli.println(F("@@ Assert TX INT"));
+        cli.println(F("@@ Assert TX INT"));
 #endif
 }
 
@@ -30,9 +30,9 @@ void Mc6850::negateIrq(uint8_t intMask) {
     _status &= ~IRQF_bm;
 #ifdef DEBUG_IRQ
     if (intMask & _rxInt)
-        Cli.println(F("@@ Negate RX IRQ"));
+        cli.println(F("@@ Negate RX IRQ"));
     if (intMask & _txInt)
-        Cli.println(F("@@ Negate TX IRQ"));
+        cli.println(F("@@ Negate TX IRQ"));
 #endif
 }
 
@@ -48,11 +48,11 @@ void Mc6850::loop() {
             assertIrq(_rxInt);
         sei();
 #ifdef DEBUG_READ
-        Cli.print(F("@@ Recv "));
-        Cli.printHex8(_rxData);
-        Cli.print(' ');
-        Cli.printHex8(_status);
-        Cli.println();
+        cli.print(F("@@ Recv "));
+        cli.printHex8(_rxData);
+        cli.print(' ');
+        cli.printHex8(_status);
+        cli.println();
 #endif
     }
     // TODO: Implement flow control
@@ -66,11 +66,11 @@ void Mc6850::loop() {
             sei();
             _serial.write(data);
 #ifdef DEBUG_WRITE
-            Cli.print(F("@@ Send "));
-            Cli.printHex8(_txData);
-            Cli.print(' ');
-            Cli.printHex8(_status);
-            Cli.println();
+            cli.print(F("@@ Send "));
+            cli.printHex8(_txData);
+            cli.print(' ');
+            cli.printHex8(_status);
+            cli.println();
 #endif
         }
     }
@@ -79,9 +79,9 @@ void Mc6850::loop() {
 void Mc6850::write(uint8_t data, uint16_t addr) {
     if (addr == _baseAddr) {
 #ifdef DEBUG_CONTROL
-        Cli.print(F("@@ Control "));
-        Cli.printHex8(data);
-        Cli.println();
+        cli.print(F("@@ Control "));
+        cli.printHex8(data);
+        cli.println();
 #endif
         const uint8_t delta = _control ^ data;
         _control = data;
@@ -111,11 +111,11 @@ void Mc6850::write(uint8_t data, uint16_t addr) {
         if (txIntEnabled())
             negateIrq(_txInt);
 #ifdef DEBUG_WRITE
-        Cli.print(F("@@ Write "));
-        Cli.printHex8(data);
-        Cli.print(' ');
-        Cli.printHex8(_status);
-        Cli.println();
+        cli.print(F("@@ Write "));
+        cli.printHex8(data);
+        cli.print(' ');
+        cli.printHex8(_status);
+        cli.println();
 #endif
     }
 }
@@ -125,9 +125,9 @@ uint8_t Mc6850::read(uint16_t addr) {
         _readFlags = _status & (DCD_bm | OVRN_bm);
 #ifdef DEBUG_STATUS
         if (rxRegFull() || !txRegEmpty()) {
-            Cli.print(F("@@ Status "));
-            Cli.printHex8(_status);
-            Cli.println();
+            cli.print(F("@@ Status "));
+            cli.printHex8(_status);
+            cli.println();
         }
 #endif
         return _status;
@@ -139,13 +139,13 @@ uint8_t Mc6850::read(uint16_t addr) {
         _status |= _nextFlags;
         _readFlags = _nextFlags = 0;
 #ifdef DEBUG_READ
-        Cli.print(F("@@ Read "));
-        Cli.printHex8(_rxData);
-        Cli.print(' ');
-        Cli.printHex8(prev_status);
-        Cli.print(F("->"));
-        Cli.printHex8(_status);
-        Cli.println();
+        cli.print(F("@@ Read "));
+        cli.printHex8(_rxData);
+        cli.print(' ');
+        cli.printHex8(prev_status);
+        cli.print(F("->"));
+        cli.printHex8(_status);
+        cli.println();
 #endif
         if (rxIntEnabled()) {
             if (_status & (RDRF_bm | OVRN_bm)) {
