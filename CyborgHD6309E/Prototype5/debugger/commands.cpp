@@ -64,9 +64,11 @@ static uint16_t last_addr;
 #define DIS_LENGTH 1
 #define INST_DATA(c, i) ((uintptr_t)((c << 8) | i))
 
-static uint8_t buffer[16];
-#define MEMORY_ADDR static_cast<uintptr_t>(sizeof(buffer) + 10)
+static uint8_t mem_buffer[16];
+#define MEMORY_ADDR static_cast<uintptr_t>(sizeof(mem_buffer) + 10)
 #define MEMORY_DATA(i) ((uintptr_t)(i))
+
+static char str_buffer[40];
 
 static void writeMemory(uint16_t addr, uint8_t data) {
     const uint8_t lda[] = {0x86, data};
@@ -89,20 +91,20 @@ static void handleInstruction(uint32_t value, uintptr_t extra, State state) {
         if (index > 0) {
             index--;
             cli.backspace();
-            cli.readHex(handleInstruction, INST_DATA(c, index), UINT8_MAX, buffer[index]);
+            cli.readHex(handleInstruction, INST_DATA(c, index), UINT8_MAX, mem_buffer[index]);
         }
         return;
     }
 
-    buffer[index++] = value;
+    mem_buffer[index++] = value;
     if (state == State::CLI_SPACE) {
-        if (index < sizeof(buffer)) {
+        if (index < sizeof(mem_buffer)) {
             cli.readHex(handleInstruction, INST_DATA(c, index), UINT8_MAX);
             return;
         }
         cli.println();
     }
-    Pins.execInst(buffer, index, c == 'I');
+    Pins.execInst(mem_buffer, index, c == 'I');
     printPrompt();
 }
 
@@ -246,19 +248,19 @@ static void handleMemory(uint32_t value, uintptr_t extra, State state) {
             cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX, last_addr);
         } else {
             index--;
-            cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX, buffer[index]);
+            cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX, mem_buffer[index]);
         }
         return;
     }
-    buffer[index++] = value;
+    mem_buffer[index++] = value;
     if (state == State::CLI_SPACE) {
-        if (index < sizeof(buffer)) {
+        if (index < sizeof(mem_buffer)) {
             cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX);
             return;
         }
         cli.println();
     }
-    memoryWrite(last_addr, buffer, index);
+    memoryWrite(last_addr, mem_buffer, index);
     memoryDump(last_addr, index);
     last_addr += index;
     printPrompt();
@@ -287,7 +289,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
     }
     cli.printHex(last_addr, 4);
     cli.print('?');
-    cli.readLine(handleAssembleLine, 0);
+    cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));
 }
 
 static void handleAssembler(uint32_t value, uintptr_t extra, State state) {
@@ -296,7 +298,7 @@ static void handleAssembler(uint32_t value, uintptr_t extra, State state) {
         if (state == State::CLI_NEWLINE) {
             cli.printHex(last_addr, 4);
             cli.print('?');
-            cli.readLine(handleAssembleLine, 0);
+            cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));
         }
     }
 }
@@ -543,7 +545,7 @@ void Commands::exec(char c) {
         break;
     case 'L':
         cli.print(F("Load? "));
-        cli.readLine(handleLoadFile, 0);
+        cli.readLine(handleLoadFile, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
         cli.println(VERSION_TEXT);
