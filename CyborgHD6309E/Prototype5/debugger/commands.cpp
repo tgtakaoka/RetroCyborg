@@ -40,9 +40,9 @@ using namespace libasm;
 typedef libcli::Cli::State State;
 extern libcli::Cli &cli;
 
-#define USAGE                                                                  \
-    F("R:eset r:egs =:setReg d:ump D:iasm m:emory i/I:nst A:sm s/S:tep c:ont " \
-      "G:o h/H:alt p:ins F:iles L:oad")
+#define USAGE                                                             \
+    F("R:eset r:egs =:setReg d:ump D:isasm m:emory i/I:nst A:sm s/S:tep " \
+      "c:ont G:o h/H:alt p:ins F:iles L:oad")
 
 class Commands Commands;
 
@@ -91,7 +91,8 @@ static void handleInstruction(uint32_t value, uintptr_t extra, State state) {
         if (index > 0) {
             index--;
             cli.backspace();
-            cli.readHex(handleInstruction, INST_DATA(c, index), UINT8_MAX, mem_buffer[index]);
+            cli.readHex(handleInstruction, INST_DATA(c, index), UINT8_MAX,
+                    mem_buffer[index]);
         }
         return;
     }
@@ -248,7 +249,8 @@ static void handleMemory(uint32_t value, uintptr_t extra, State state) {
             cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX, last_addr);
         } else {
             index--;
-            cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX, mem_buffer[index]);
+            cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX,
+                    mem_buffer[index]);
         }
         return;
     }
@@ -430,10 +432,10 @@ static void handleRegisterValue(uint32_t value, uintptr_t extra, State state) {
         Regs.x = value;
         break;
     case 'd':
-        Regs.d = value;
+        Regs.setD(value);
         break;
     case 'w':
-        Regs.w = value;
+        Regs.setW(value);
         break;
     case 'v':
         Regs.v = value;

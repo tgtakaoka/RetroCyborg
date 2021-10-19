@@ -9,7 +9,8 @@
 
 extern libcli::Cli &cli;
 
-union Regs Regs;
+struct Regs Regs;
+
 static const char *cpu_type = nullptr;
 static const char MC6809[] = "6809";
 static const char HD6309[] = "6309";
@@ -40,8 +41,8 @@ static char bit1(uint8_t v, char name) {
 }
 
 void Regs::print() const {
-    // text=35, hex=(sizeof(bytes)-1)*2, cc=8, eos=1
-    char buffer[35 + (sizeof(bytes) - 1) * 2 + 8 + 1];
+    // text=35, hex=17*2, cc=8, eos=1
+    char buffer[35 + 17 * 2 + 8 + 1];
     char *p = buffer;
     p = outHex16(outText(p, F("PC=")), pc);
     p = outHex16(outText(p, F(" S=")), s);
@@ -51,7 +52,7 @@ void Regs::print() const {
     p = outHex8(outText(p, F(" B=")), b);
     p = outHex8(outText(p, F(" A=")), a);
     if (is6309()) {
-        p = outHex16(outText(p, F(" W=")), w);
+        p = outHex16(outText(p, F(" W=")), getW());
         p = outHex16(outText(p, F(" V=")), v);
     }
     p = outHex8(outText(p, F(" DP=")), dp);
@@ -75,41 +76,59 @@ void Regs::get(bool show) {
         print();
 }
 
+static constexpr uint16_t le16(const uint8_t *p) {
+    return *p | (static_cast<uint16_t>(p[1]) << 8);
+}
 static const uint8_t pshs_all[] = {0x34, 0xFF};  // PSHS PC,U,Y,X,DP,B,A,CC
 static const uint8_t pshu_s[] = {0x36, 0x40};    // PSHU S
 static const uint8_t tfr_wy[] = {0x1F, 0x62};    // TFR W,Y
 static const uint8_t tfr_vx[] = {0x1F, 0x71};    // TFR V,X
 static const uint8_t pshu_yx[] = {0x36, 0x30};   // PSHU Y,X
 void Regs::save() {
+    uint8_t bytes[12];
     Pins.captureWrites(pshs_all, sizeof(pshs_all), bytes, 12);
-    pc -= 2;  // offset PSHS instruction.
-    Pins.captureWrites(pshu_s, sizeof(pshu_s), bytes + 12, 2);
-    s += 12;  // offset PSHS stack frame.
+    // capture writes to stack in reverse order.
+    pc = le16(bytes + 0) - 2;  // offset PSHS instruction.
+    u = le16(bytes + 2);
+    y = le16(bytes + 4);
+    x = le16(bytes + 6);
+    dp = bytes[8];
+    b = bytes[9];
+    a = bytes[10];
+    cc = bytes[11];
+    Pins.captureWrites(pshu_s, sizeof(pshu_s), bytes, 2);
+    s = le16(bytes + 0) + 12;  // offset PSHS stack frame.
     if (cpu_type == nullptr)
         cpu_type = checkCpu();
     if (is6309()) {
         Pins.execInst(tfr_wy, sizeof(tfr_wy));
         Pins.execInst(tfr_vx, sizeof(tfr_vx));
-        Pins.captureWrites(pshu_yx, sizeof(pshu_yx), bytes + 14, 4);
+        Pins.captureWrites(pshu_yx, sizeof(pshu_yx), bytes, 4);
+        setW(le16(bytes + 0));
+        v = le16(bytes + 2);
     }
 }
 
+static constexpr uint8_t hi(const uint16_t v) {
+    return static_cast<uint8_t>(v >> 8);
+}
+static constexpr uint8_t lo(const uint16_t v) {
+    return static_cast<uint8_t>(v);
+}
 static const uint8_t tfr_dv[] = {0x1F, 0x07};  // TFR D,V
 void Regs::restore() {
     if (is6309()) {
-        const uint8_t ldd[] = {0xCC, (uint8_t)(v >> 8), (uint8_t)v};  // LDD #v
+        const uint8_t ldd[] = {0xCC, hi(v), lo(v)};  // LDD #v
         Pins.execInst(ldd, sizeof(ldd));
         Pins.execInst(tfr_dv, sizeof(tfr_dv));
-        const uint8_t ldw[] = {
-                0x10, 0x86, (uint8_t)(w >> 8), (uint8_t)w};  // LDW #w
+        const uint16_t w = getW();
+        const uint8_t ldw[] = {0x10, 0x86, hi(w), lo(w)};  // LDW #w
         Pins.execInst(ldw, sizeof(ldw));
     }
     const uint16_t sp = s - 12;
-    const uint8_t lds[] = {
-            0x10, 0xCE, (uint8_t)(sp >> 8), (uint8_t)sp};  // LDS #(s-12)
+    const uint8_t lds[] = {0x10, 0xCE, hi(sp), lo(sp)};  // LDS #(s-12)
     Pins.execInst(lds, sizeof(lds));
-    const uint8_t puls_all[] = {0x35, 0xFF, cc, a, b, dp, (uint8_t)(x >> 8),
-            (uint8_t)x, (uint8_t)(y >> 8), (uint8_t)y, (uint8_t)(u >> 8),
-            (uint8_t)u, (uint8_t)(pc >> 8), (uint8_t)pc};
+    const uint8_t puls_all[] = {0x35, 0xFF, cc, a, b, dp, hi(x), lo(x), hi(y),
+            lo(y), hi(u), lo(u), hi(pc), lo(pc)};
     Pins.execInst(puls_all, sizeof(puls_all));
 }
