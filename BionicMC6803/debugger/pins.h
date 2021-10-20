@@ -22,8 +22,18 @@ public:
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
+    static constexpr uint16_t ioBaseAddress() { return IO_BASE_ADDR; }
+
+    void assertIrq(const uint8_t mask);
+    void negateIrq(const uint8_t mask = 0xff);
+    uint8_t irqSignals(const uint8_t mask = 0xff) const { return _irq & mask; }
+    static uint8_t getIrqMask(uint16_t addr) {
+        return 1 << (addr - ioBaseAddress());
+    }
+
 private:
     bool _freeRunning;
+    uint8_t _irq;
 
     Signals &cycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,

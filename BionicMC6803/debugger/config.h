@@ -10,6 +10,8 @@
 #define VERSION_TEXT "* Bionic" MPU_NAME " 0.1"
 #define Console Serial
 
+#define IO_BASE_ADDR 0xDF00
+
 #define PORT_DB D     /* GPIOD */
 #define DB_gp 0       /* PTD00 */
 #define DB_gm 0xFF    /* PTD00-PTD07 */

@@ -5,6 +5,7 @@
 #include "commands.h"
 #include "config.h"
 #include "digital_fast.h"
+#include "mc6850.h"
 #include "regs.h"
 #include "string_util.h"
 
@@ -20,6 +21,10 @@ class Pins Pins;
 DO_DEBUG_CYCLE(bool debug_cycle; uint32_t count);
 
 uint8_t RAM[0x10000];
+
+class Mc6850 Mc6850(Console, Pins::ioBaseAddress(),
+        Pins::getIrqMask(Pins::ioBaseAddress()),
+        Pins::getIrqMask(Pins::ioBaseAddress() + 1));
 
 static inline void clock_hi() {
     digitalWriteFast(PIN_CLOCK, HIGH);
@@ -48,7 +53,6 @@ static void negate_nmi() {
     digitalWriteFast(PIN_NMI, HIGH);
 }
 
-static void assert_irq1() __attribute__((unused));
 static void assert_irq1() {
     digitalWriteFast(PIN_IRQ1, LOW);
 }
@@ -178,7 +182,10 @@ Signals &Pins::cycle() {
         DO_DEBUG_CYCLE(rw = 'R');
         // change data bus to output
         busMode(DB, OUTPUT);
-        if (signals.readRam()) {
+        if (Mc6850.isSelected(signals.addr)) {
+            signals.data = Mc6850.read(signals.addr);
+            DO_DEBUG_CYCLE(state = 'A');
+        } else if (signals.readRam()) {
             signals.data = RAM[signals.addr];
             DO_DEBUG_CYCLE(state = 'M');
         } else {
@@ -189,7 +196,10 @@ Signals &Pins::cycle() {
     } else {
         DO_DEBUG_CYCLE(rw = 'W');
         signals.readData().debug('W');
-        if (signals.writeRam()) {
+        if (Mc6850.isSelected(signals.addr)) {
+            Mc6850.write(signals.data, signals.addr);
+            DO_DEBUG_CYCLE(state = 'A');
+        } else if (signals.writeRam()) {
             RAM[signals.addr] = signals.data;
             DO_DEBUG_CYCLE(state = 'M');
         } else {
@@ -269,6 +279,7 @@ void Pins::reset(bool show) {
 
 void Pins::loop() {
     if (_freeRunning) {
+        Mc6850.loop();
         cycle();
         if (user_sw() == LOW)
             Commands.halt();
@@ -333,6 +344,18 @@ void Pins::step(bool show) {
     if (show)
         Signals::printCycles();
     Regs.save(show);
+}
+
+void Pins::assertIrq(uint8_t mask) {
+    _irq |= mask;
+    if (_irq)
+        assert_irq1();
+}
+
+void Pins::negateIrq(uint8_t mask) {
+    _irq &= ~mask;
+    if (_irq == 0)
+        negate_irq1();
 }
 
 // Local Variables:
