@@ -20,7 +20,7 @@ struct Regs {
     }
 
     void print() const;
-    void save(bool show = false);
+    void save(bool show = false, bool undoPrefetch = false);
     void restore(bool show = false);
     void set(const Signals *stack);
     uint8_t cycles(uint8_t insn) const;

@@ -275,6 +275,9 @@ void Pins::reset(bool show) {
     negate_reset();
     cycle().debug('r');
     release_mode();
+#if defined(BIONIC_HD6303)
+    cycle().debug('E');
+#endif
     // Read Reset vector
     cycle().debug('V');
     cycle().debug('v');
@@ -324,7 +327,11 @@ void Pins::halt(bool show) {
         }
         negate_nmi();
         Regs.set(&Signals::currCycle() - writes);
+#if defined(BIONIC_HD6303)
+        ;  // No irrelevant bus cycle is necessary.
+#else
         cycle().debug('n');
+#endif
         // Inject the current PC as NMI vector.
         Signals::currCycle().inject(Regs.pc >> 8);
         cycle().debug('V');
@@ -345,16 +352,22 @@ void Pins::run() {
 
 void Pins::step(bool show) {
     const uint8_t insn = RAM[Regs.pc];
-    const uint8_t cycles = Regs.cycles(insn);
+    const uint8_t info = Regs.cycles(insn);
+    const uint8_t cycles = info & ~0x80;
     Regs.restore(show);
     Signals::resetCycles();
     for (uint8_t c = 0; c < cycles; c++) {
         SciH.loop();
-        cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
+        if (c == 1 && (info & 0x80)) {
+            Signals::currCycle().inject(0x01);  // prefetch next instruction NOP
+            cycle().debug('-');
+        } else {
+            cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
+        }
     }
     if (show)
         Signals::printCycles();
-    Regs.save(show);
+    Regs.save(show, info & 0x80);
 }
 
 uint8_t Pins::allocateIrq() {
