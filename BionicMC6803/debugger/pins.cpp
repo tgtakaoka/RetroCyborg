@@ -7,6 +7,7 @@
 #include "digital_fast.h"
 #include "mc6850.h"
 #include "regs.h"
+#include "sci_handler.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
@@ -22,9 +23,16 @@ DO_DEBUG_CYCLE(bool debug_cycle; uint32_t count);
 
 uint8_t RAM[0x10000];
 
+//#define MC6850_ENABLE
+#define MC6801SCI_ENABLE
+
+#if defined(MC6850_ENABLE)
 class Mc6850 Mc6850(Console, Pins::ioBaseAddress(),
         Pins::getIrqMask(Pins::ioBaseAddress()),
         Pins::getIrqMask(Pins::ioBaseAddress() + 1));
+#elif defined(MC6801SCI_ENABLE)
+class SciHandler<PIN_SCIRXD, PIN_SCITXD> SciH(Console, SciDivider::DIV16);
+#endif
 
 static inline void clock_hi() {
     digitalWriteFast(PIN_CLOCK, HIGH);
@@ -148,8 +156,6 @@ void Pins::begin() {
     pinMode(PIN_PC2, INPUT_PULLUP);
     // #NMI is connected to P21/PC1 for LILBUG trace.
     pinMode(PIN_NMI, OUTPUT_OPENDRAIN);
-    pinMode(PIN_SCITXD, INPUT_PULLUP);
-    pinMode(PIN_SCIRXD, OUTPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
     turn_off_led();
@@ -182,10 +188,13 @@ Signals &Pins::cycle() {
         DO_DEBUG_CYCLE(rw = 'R');
         // change data bus to output
         busMode(DB, OUTPUT);
+#if defined(MC6850_ENABLE)
         if (Mc6850.isSelected(signals.addr)) {
             signals.data = Mc6850.read(signals.addr);
             DO_DEBUG_CYCLE(state = 'A');
-        } else if (signals.readRam()) {
+        } else
+#endif
+        if (signals.readRam()) {
             signals.data = RAM[signals.addr];
             DO_DEBUG_CYCLE(state = 'M');
         } else {
@@ -196,10 +205,13 @@ Signals &Pins::cycle() {
     } else {
         DO_DEBUG_CYCLE(rw = 'W');
         signals.readData().debug('W');
+#if defined(MC6850_ENABLE)
         if (Mc6850.isSelected(signals.addr)) {
             Mc6850.write(signals.data, signals.addr);
             DO_DEBUG_CYCLE(state = 'A');
-        } else if (signals.writeRam()) {
+        } else
+#endif
+        if (signals.writeRam()) {
             RAM[signals.addr] = signals.data;
             DO_DEBUG_CYCLE(state = 'M');
         } else {
@@ -275,11 +287,19 @@ void Pins::reset(bool show) {
     if (show)
         Signals::printCycles();
     Regs.save(show);
+#if defined(MC6801SCI_ENABLE)
+    SciH.reset();
+#endif
 }
 
 void Pins::loop() {
     if (_freeRunning) {
+#if defined(MC6850_ENABLE)
         Mc6850.loop();
+#endif
+#if defined(MC6801SCI_ENABLE)
+        SciH.loop();
+#endif
         cycle();
         if (user_sw() == LOW)
             Commands.halt();
@@ -339,8 +359,12 @@ void Pins::step(bool show) {
     const uint8_t cycles = Regs.cycles(insn);
     Regs.restore(show);
     Signals::resetCycles();
-    for (uint8_t c = 0; c < cycles; c++)
+    for (uint8_t c = 0; c < cycles; c++) {
+#if defined(MC6801SCI_ENABLE)
+        SciH.loop();
+#endif
         cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
+    }
     if (show)
         Signals::printCycles();
     Regs.save(show);
