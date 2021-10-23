@@ -15,6 +15,7 @@ public:
     uint8_t read(uint16_t addr);
     void loop();
     void enable(bool enabled, uint16_t baseAddr);
+    uint16_t baseAddr() const { return _baseAddr; }
 
 private:
     Stream &_stream;

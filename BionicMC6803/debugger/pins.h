@@ -28,9 +28,17 @@ public:
     void assertIrq(const uint8_t irq);
     void negateIrq(const uint8_t irq);
 
+    enum SerialDevice : uint8_t {
+        DEV_SCI = 0,   // MC6801 SCI
+        DEV_ACIA = 1,  // MC6850 ACIA
+    };
+    SerialDevice getIoDevice(uint16_t &baseAddr);
+    void setIoDevice(SerialDevice device, uint16_t addr);
+
 private:
     bool _freeRunning;
     uint8_t _irq;
+    SerialDevice _ioDevice;
 
     Signals &cycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,

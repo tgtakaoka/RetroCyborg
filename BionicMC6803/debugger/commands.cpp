@@ -38,7 +38,7 @@ extern libcli::Cli &cli;
 
 #define USAGE                                                          \
     "R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep c:ont G:o " \
-    "h/H:alt F:iles L:oad"
+    "h/H:alt F:iles L:oad I:o"
 
 class Commands Commands;
 
@@ -406,6 +406,58 @@ static void handleRegisterValue(uint32_t value, uintptr_t extra, State state) {
     printPrompt();
 }
 
+static void handleIo(char *line, uintptr_t extra, State state);
+
+static void printIoDevice(State state) {
+    cli.println();
+    uint16_t baseAddr;
+    if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
+        cli.print(F("ACIA (MC6850) at $"));
+    } else {
+        cli.print(F("SCI (" MPU_NAME ") at $"));
+    }
+    cli.printHex(baseAddr, 4);
+    cli.println();
+}
+
+static void handleAciaAddr(uint32_t val, uintptr_t extra, State state) {
+    if (state == State::CLI_CANCEL)
+        goto cancel;
+    if (state == State::CLI_DELETE) {
+        cli.backspace();
+        strcpy_P(str_buffer, PSTR("ACIA"));
+        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer), true);
+        return;
+    }
+    Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, val);
+    printIoDevice(state);
+cancel:
+    printPrompt();
+}
+
+static void handleIo(char *line, uintptr_t extra, State state) {
+    if (state == State::CLI_CANCEL)
+        goto cancel;
+    if (state == State::CLI_DELETE) {
+        cli.backspace();
+        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
+        return;
+    }
+    if (state == State::CLI_SPACE &&
+            strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
+        cli.readHex(handleAciaAddr, 0, UINT16_MAX);
+        return;
+    }
+    if (strcasecmp_P(str_buffer, PSTR("sci")) == 0) {
+        Pins.setIoDevice(Pins::SerialDevice::DEV_SCI, 0);
+    } else if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
+        Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, Pins.ioBaseAddress());
+    }
+    printIoDevice(state);
+cancel:
+    printPrompt();
+}
+
 void Commands::exec(char c) {
     switch (c) {
     case 'R':
@@ -474,6 +526,10 @@ void Commands::exec(char c) {
     case 'L':
         cli.print(F("Load? "));
         cli.readLine(handleLoadFile, 0, str_buffer, sizeof(str_buffer));
+        return;
+    case 'I':
+        cli.print(F("Io? "));
+        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
         cli.println(VERSION_TEXT);

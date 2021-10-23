@@ -156,8 +156,7 @@ void Pins::begin() {
     clock_lo();
     _freeRunning = false;
 
-    Acia.enable(false, ioBaseAddress());
-    SciH.enable(true);
+    setIoDevice(SerialDevice::DEV_SCI, 0x10);
 }
 
 Signals &Pins::cycle() {
@@ -373,6 +372,26 @@ void Pins::negateIrq(uint8_t irq) {
     _irq &= ~(1 << irq);
     if (_irq == 0)
         negate_irq1();
+}
+
+Pins::SerialDevice Pins::getIoDevice(uint16_t &baseAddr) {
+    if (_ioDevice == SerialDevice::DEV_SCI) {
+        baseAddr = 0x10;
+    } else {
+        baseAddr = Acia.baseAddr();
+    }
+    return _ioDevice;
+}
+
+void Pins::setIoDevice(SerialDevice device, uint16_t baseAddr) {
+    _ioDevice = device;
+    if (device == SerialDevice::DEV_SCI) {
+        Acia.enable(false, 0);
+        SciH.enable(true);
+    } else {
+        SciH.enable(false);
+        Acia.enable(true, baseAddr);
+    }
 }
 
 // Local Variables:
