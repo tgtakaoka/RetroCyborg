@@ -23,14 +23,10 @@ DO_DEBUG_CYCLE(bool debug_cycle; uint32_t count);
 
 uint8_t RAM[0x10000];
 
-//#define MC6850_ENABLE
-#define MC6801SCI_ENABLE
+//#define MC6801SCI_ENABLE
 
-#if defined(MC6850_ENABLE)
-class Mc6850 Mc6850(Console, Pins::ioBaseAddress(),
-        Pins::getIrqMask(Pins::ioBaseAddress()),
-        Pins::getIrqMask(Pins::ioBaseAddress() + 1));
-#elif defined(MC6801SCI_ENABLE)
+Mc6850 Acia(Console);
+#if defined(MC6801SCI_ENABLE)
 class SciHandler<PIN_SCIRXD, PIN_SCITXD> SciH(Console, SciDivider::DIV16);
 #endif
 
@@ -163,6 +159,8 @@ void Pins::begin() {
     assert_reset();
     clock_lo();
     _freeRunning = false;
+
+    Acia.enable(true, ioBaseAddress());
 }
 
 Signals &Pins::cycle() {
@@ -188,13 +186,10 @@ Signals &Pins::cycle() {
         DO_DEBUG_CYCLE(rw = 'R');
         // change data bus to output
         busMode(DB, OUTPUT);
-#if defined(MC6850_ENABLE)
-        if (Mc6850.isSelected(signals.addr)) {
-            signals.data = Mc6850.read(signals.addr);
+        if (Acia.isSelected(signals.addr)) {
+            signals.data = Acia.read(signals.addr);
             DO_DEBUG_CYCLE(state = 'A');
-        } else
-#endif
-        if (signals.readRam()) {
+        } else if (signals.readRam()) {
             signals.data = RAM[signals.addr];
             DO_DEBUG_CYCLE(state = 'M');
         } else {
@@ -205,13 +200,10 @@ Signals &Pins::cycle() {
     } else {
         DO_DEBUG_CYCLE(rw = 'W');
         signals.readData().debug('W');
-#if defined(MC6850_ENABLE)
-        if (Mc6850.isSelected(signals.addr)) {
-            Mc6850.write(signals.data, signals.addr);
+        if (Acia.isSelected(signals.addr)) {
+            Acia.write(signals.data, signals.addr);
             DO_DEBUG_CYCLE(state = 'A');
-        } else
-#endif
-        if (signals.writeRam()) {
+        } else if (signals.writeRam()) {
             RAM[signals.addr] = signals.data;
             DO_DEBUG_CYCLE(state = 'M');
         } else {
@@ -294,9 +286,7 @@ void Pins::reset(bool show) {
 
 void Pins::loop() {
     if (_freeRunning) {
-#if defined(MC6850_ENABLE)
-        Mc6850.loop();
-#endif
+        Acia.loop();
 #if defined(MC6801SCI_ENABLE)
         SciH.loop();
 #endif
@@ -370,14 +360,19 @@ void Pins::step(bool show) {
     Regs.save(show);
 }
 
-void Pins::assertIrq(uint8_t mask) {
-    _irq |= mask;
+uint8_t Pins::allocateIrq() {
+    static uint8_t irq = 0;
+    return irq++;
+}
+
+void Pins::assertIrq(uint8_t irq) {
+    _irq |= (1 << irq);
     if (_irq)
         assert_irq1();
 }
 
-void Pins::negateIrq(uint8_t mask) {
-    _irq &= ~mask;
+void Pins::negateIrq(uint8_t irq) {
+    _irq &= ~(1 << irq);
     if (_irq == 0)
         negate_irq1();
 }
