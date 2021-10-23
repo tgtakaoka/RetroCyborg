@@ -4,36 +4,46 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-enum SciDivider : uint16_t {
-    DIV16 = 16,
-    DIV128 = 128,
-    DIV1024 = 1024,
-    DIV4096 = 4096,
-};
-
-template <uint8_t RXD_PIN, uint8_t TXD_PIN>
+template <const uint8_t RXD_PIN, const uint8_t TXD_PIN>
 class SciHandler {
 public:
-    SciHandler(Stream &stream, SciDivider divider)
-        : _stream(stream), _divider(divider) {
+    SciHandler(Stream &stream)
+        : _stream(stream), _enabled(false) {
         pinMode(RXD_PIN, INPUT_PULLUP);  // output mark/idle
         pinMode(TXD_PIN, INPUT_PULLUP);
         reset();
     }
 
+    bool isSelected(uint16_t addr) const { return _enabled && addr == 0x10; }
+    void write(uint8_t data, uint16_t addr) {
+        static uint16_t scaler[] = {16, 128, 1024, 4096};
+        reset();
+        _divider = scaler[data & 3];
+    }
+    uint8_t read(uint16_t addr) { return 0; }
+
     void reset() {
+        _divider = 16;
         _rx.bit = 0;
         _tx.bit = 0;
     }
 
     void loop() {
-        txloop(_tx);
-        rxloop(_rx);
+        if (_enabled) {
+            txloop(_tx);
+            rxloop(_rx);
+        }
+    }
+
+    void enable(bool enabled) {
+        _enabled = enabled;
+        reset();
     }
 
 private:
     Stream &_stream;
-    SciDivider _divider;
+    bool _enabled;
+    uint16_t _divider;
     struct Transmitter {
         uint8_t bit;
         uint8_t data;
@@ -50,7 +60,7 @@ private:
             if (_stream.available()) {
                 tx.bit = 10;  // start bit + data bits + stop bit
                 tx.data = _stream.read();
-                tx.delay = uint16_t(_divider);
+                tx.delay = _divider;
                 digitalWriteFast(RXD_PIN, LOW);  // start bit
                 pinMode(RXD_PIN, OUTPUT);
             }
@@ -58,9 +68,9 @@ private:
             if (--tx.delay == 0) {
                 digitalWriteFast(RXD_PIN, tx.data & 1);
                 tx.data >>= 1;
-                tx.delay = uint16_t(_divider);
+                tx.delay = _divider;
                 if (--tx.bit == 2) {
-                    tx.data = 3;  // stop bit
+                    tx.data = 3;  // stop bit and mark
                 } else if (tx.bit == 0) {
                     pinMode(RXD_PIN, INPUT_PULLUP);  // output mark/idle
                 }
@@ -73,14 +83,14 @@ private:
             if (digitalReadFast(TXD_PIN) == LOW) {
                 rx.bit = 9;
                 rx.data = 0;
-                rx.delay = uint16_t(_divider) * 3 / 2;
+                rx.delay = _divider + (_divider >> 1);
             }
         } else {
             if (--rx.delay == 0) {
                 rx.data >>= 1;
                 if (digitalReadFast(TXD_PIN) == HIGH)
                     rx.data |= 0x80;
-                rx.delay = uint16_t(_divider);
+                rx.delay = _divider;
                 if (--rx.bit == 1) {
                     _stream.write(rx.data);
                     // stop bit will be ignored.

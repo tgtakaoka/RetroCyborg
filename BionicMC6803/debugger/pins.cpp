@@ -23,12 +23,8 @@ DO_DEBUG_CYCLE(bool debug_cycle; uint32_t count);
 
 uint8_t RAM[0x10000];
 
-//#define MC6801SCI_ENABLE
-
 Mc6850 Acia(Console);
-#if defined(MC6801SCI_ENABLE)
-class SciHandler<PIN_SCIRXD, PIN_SCITXD> SciH(Console, SciDivider::DIV16);
-#endif
+SciHandler<PIN_SCIRXD, PIN_SCITXD> SciH(Console);
 
 static inline void clock_hi() {
     digitalWriteFast(PIN_CLOCK, HIGH);
@@ -160,7 +156,8 @@ void Pins::begin() {
     clock_lo();
     _freeRunning = false;
 
-    Acia.enable(true, ioBaseAddress());
+    Acia.enable(false, ioBaseAddress());
+    SciH.enable(true);
 }
 
 Signals &Pins::cycle() {
@@ -186,7 +183,10 @@ Signals &Pins::cycle() {
         DO_DEBUG_CYCLE(rw = 'R');
         // change data bus to output
         busMode(DB, OUTPUT);
-        if (Acia.isSelected(signals.addr)) {
+        if (SciH.isSelected(signals.addr)) {
+            signals.data = SciH.read(signals.addr);
+            DO_DEBUG_CYCLE(state = 'S');
+        } else if (Acia.isSelected(signals.addr)) {
             signals.data = Acia.read(signals.addr);
             DO_DEBUG_CYCLE(state = 'A');
         } else if (signals.readRam()) {
@@ -200,7 +200,10 @@ Signals &Pins::cycle() {
     } else {
         DO_DEBUG_CYCLE(rw = 'W');
         signals.readData().debug('W');
-        if (Acia.isSelected(signals.addr)) {
+        if (SciH.isSelected(signals.addr)) {
+            SciH.write(signals.data, signals.addr);
+            DO_DEBUG_CYCLE(state = 'S');
+        } else if (Acia.isSelected(signals.addr)) {
             Acia.write(signals.data, signals.addr);
             DO_DEBUG_CYCLE(state = 'A');
         } else if (signals.writeRam()) {
@@ -279,17 +282,14 @@ void Pins::reset(bool show) {
     if (show)
         Signals::printCycles();
     Regs.save(show);
-#if defined(MC6801SCI_ENABLE)
+
     SciH.reset();
-#endif
 }
 
 void Pins::loop() {
     if (_freeRunning) {
         Acia.loop();
-#if defined(MC6801SCI_ENABLE)
         SciH.loop();
-#endif
         cycle();
         if (user_sw() == LOW)
             Commands.halt();
@@ -350,9 +350,7 @@ void Pins::step(bool show) {
     Regs.restore(show);
     Signals::resetCycles();
     for (uint8_t c = 0; c < cycles; c++) {
-#if defined(MC6801SCI_ENABLE)
         SciH.loop();
-#endif
         cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
     }
     if (show)
