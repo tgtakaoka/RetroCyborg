@@ -67,7 +67,7 @@ static void assert_reset() {
     negate_nmi();
     negate_irq1();
 
-    // Toggle reset to put MC6803 in reset
+    // Toggle reset to put MC68030/HD6303 in reset
     clock_cycle();
     clock_cycle();
     clock_cycle();
@@ -161,7 +161,7 @@ void Pins::begin() {
 
 Signals &Pins::cycle() {
     Signals &signals = Signals::currCycle();
-    // MC6803 clock E is CLK/4, so we toggle CLK 4 times
+    // MC6803/HD6303 clock E is CLK/4, so we toggle CLK 4 times
     clock_lo();
     clock_hi();
     //
