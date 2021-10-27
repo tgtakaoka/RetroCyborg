@@ -40,9 +40,9 @@ using namespace libasm;
 typedef libcli::Cli::State State;
 extern libcli::Cli &cli;
 
-#define USAGE                                                             \
-    F("R:eset r:egs =:setReg d:ump D:isasm m:emory i/I:nst A:sm s/S:tep " \
-      "c:ont G:o h/H:alt p:ins F:iles L:oad")
+#define USAGE                                                          \
+    F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm i:nst s/S:tep " \
+      "c:ont G:o h/H:alt p:ins F:iles L:oad I:o")
 
 class Commands Commands;
 
@@ -127,6 +127,8 @@ static void memoryDump(uint16_t addr, uint16_t len) {
 }
 
 static void handleDump(uint32_t value, uintptr_t extra, State state) {
+    if (state == State::CLI_CANCEL)
+        goto cancel;
     if (state == State::CLI_DELETE) {
         if (extra == DUMP_LENGTH) {
             cli.backspace();
@@ -142,8 +144,10 @@ static void handleDump(uint32_t value, uintptr_t extra, State state) {
         }
         value = 16;
     }
+    cli.println();
     memoryDump(last_addr, value);
     last_addr += value;
+cancel:
     printPrompt();
 }
 
@@ -181,33 +185,36 @@ static void print(const Insn &insn) {
     }
 }
 
-static uint16_t disassemble(uint16_t addr, uint16_t max) {
+static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
     mc6809::DisMc6809 dis6809;
     Disassembler &disassembler(dis6809);
     disassembler.setCpu(Regs.cpu());
     disassembler.setUppercase(true);
     class Mc6809Memory memory;
     memory.setAddress(addr);
-    uint16_t len = 0;
-    while (len < max) {
+    uint16_t num = 0;
+    while (num < numInsn) {
         char operands[20];
         Insn insn(addr);
         disassembler.decode(memory, insn, operands, sizeof(operands));
-        len += insn.length();
+        addr += insn.length();
+        num++;
         print(insn);
         if (disassembler.getError()) {
             cli.print(F("Error: "));
-            cli.println(disassembler.getError());
+            cli.println(disassembler.errorText(disassembler.getError()));
             continue;
         }
         print(insn.name(), 6);
         print(operands, 12);
         cli.println();
     }
-    return addr + len;
+    return addr;
 }
 
 static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
+    if (state == State::CLI_CANCEL)
+        goto cancel;
     if (state == State::CLI_DELETE) {
         if (extra == DIS_LENGTH) {
             cli.backspace();
@@ -223,7 +230,9 @@ static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
         }
         value = 16;
     }
+    cli.println();
     last_addr = disassemble(last_addr, value);
+cancel:
     printPrompt();
 }
 
@@ -237,41 +246,42 @@ static void memoryWrite(
 }
 
 static void handleMemory(uint32_t value, uintptr_t extra, State state) {
-    if (extra == MEMORY_ADDR) {
-        last_addr = value;
-        cli.readHex(handleMemory, MEMORY_DATA(0), UINT8_MAX);
-        return;
-    }
-    uint16_t index = extra;
-    if (state == State::CLI_DELETE) {
-        cli.backspace();
-        if (index == 0) {
-            cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX, last_addr);
-        } else {
-            index--;
-            cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX,
-                    mem_buffer[index]);
-        }
-        return;
-    }
-    mem_buffer[index++] = value;
-    if (state == State::CLI_SPACE) {
-        if (index < sizeof(mem_buffer)) {
-            cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX);
+    if (state != State::CLI_CANCEL) {
+        if (extra == MEMORY_ADDR) {
+            last_addr = value;
+            cli.readHex(handleMemory, MEMORY_DATA(0), UINT8_MAX);
             return;
         }
+        uint16_t index = extra;
+        if (state == State::CLI_DELETE) {
+            cli.backspace();
+            if (index == 0) {
+                cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX, last_addr);
+            } else {
+                index--;
+                cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX,
+                        mem_buffer[index]);
+            }
+            return;
+        }
+        mem_buffer[index++] = value;
+        if (state == State::CLI_SPACE) {
+            if (index < sizeof(mem_buffer)) {
+                cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX);
+                return;
+            }
+        }
         cli.println();
+        memoryWrite(last_addr, mem_buffer, index);
+        memoryDump(last_addr, index);
+        last_addr += index;
     }
-    memoryWrite(last_addr, mem_buffer, index);
-    memoryDump(last_addr, index);
-    last_addr += index;
     printPrompt();
 }
 
 static void handleAssembleLine(char *line, uintptr_t extra, State state) {
-    (void)state;
     (void)extra;
-    if (*line == 0) {
+    if (state == State::CLI_CANCEL || *line == 0) {
         cli.println(F("end"));
         printPrompt();
         return;
@@ -282,7 +292,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
     Insn insn(last_addr);
     if (assembler.encode(line, insn)) {
         cli.print(F("Error: "));
-        cli.println(assembler.getError());
+        cli.println(assembler.errorText(assembler.getError()));
     } else {
         print(insn);
         cli.println();
@@ -295,13 +305,15 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
 }
 
 static void handleAssembler(uint32_t value, uintptr_t extra, State state) {
-    if (extra == ASM_ADDR) {
-        last_addr = value;
-        if (state == State::CLI_NEWLINE) {
-            cli.printHex(last_addr, 4);
-            cli.print('?');
-            cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));
-        }
+    if (state == State::CLI_CANCEL) {
+        printPrompt();
+        return;
+    }
+    last_addr = value;
+    if (state == State::CLI_NEWLINE) {
+        cli.printHex(last_addr, 4);
+        cli.print('?');
+        cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));
     }
 }
 
@@ -354,113 +366,109 @@ static int loadS19Record(const char *line) {
 
 static void handleLoadFile(char *line, uintptr_t extra, State state) {
     (void)extra;
-    if (state != State::CLI_NEWLINE)
-        return;
-    uint16_t size = 0;
-    SD.begin(Pins.sdCardChipSelectPin());
-    File file = SD.open(line);
-    if (file) {
-        char s19[80];
-        char *p = s19;
-        while (file.available() > 0) {
-            const char c = file.read();
-            if (c == '\n') {
-                *p = 0;
-                size += loadS19Record(s19);
-                p = s19;
-            } else if (c != '\r' && p < s19 + sizeof(s19) - 1) {
-                *p++ = c;
+    if (state != State::CLI_CANCEL && *line) {
+        cli.println();
+        SD.begin(Pins.sdCardChipSelectPin());
+        File file = SD.open(line);
+        if (!file) {
+            cli.print(line);
+            cli.println(F(": not found"));
+        } else {
+            uint16_t size = 0;
+            char s19[80];
+            char *p = s19;
+            while (file.available() > 0) {
+                const char c = file.read();
+                if (c == '\n') {
+                    *p = 0;
+                    size += loadS19Record(s19);
+                    p = s19;
+                } else if (c != '\r' && p < s19 + sizeof(s19) - 1) {
+                    *p++ = c;
+                }
             }
+            file.close();
+            cli.println();
+            cli.print(size);
+            cli.println(F(" bytes loaded"));
         }
-        file.close();
     }
-    cli.println();
-    cli.print(size);
-    cli.println(F(" bytes loaded"));
     printPrompt();
 }
 
 static void handleRegisterValue(uint32_t, uintptr_t, State);
 
-static void handleSetRegister(char value, uintptr_t extra) {
+static void handleSetRegister(char reg, uintptr_t extra) {
     (void)extra;
-    const char c = value;
-    if (c == 'p' || c == 's' || c == 'u' || c == 'y' || c == 'x' || c == 'd' ||
-            (Regs.is6309() && (c == 'w' || c == 'v'))) {
-        cli.print(c);
+    if (Regs.validUint16Reg(reg)) {
         cli.print('?');
-        cli.readHex(handleRegisterValue, (uintptr_t)c, UINT16_MAX);
+        cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT16_MAX);
         return;
     }
-    if (c == 'D' || c == 'a' || c == 'b' || c == 'c' ||
-            (Regs.is6309() && (c == 'e' || c == 'f'))) {
-        cli.print(c);
+    if (Regs.validUint8Reg(reg)) {
         cli.print('?');
-        cli.readHex(handleRegisterValue, (uintptr_t)c, UINT8_MAX);
+        cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT8_MAX);
         return;
     }
-    cli.print(F("?Reg: pc s u x y a b d"));
-    if (Regs.is6309())
-        cli.print(F(" w e f v"));
-    cli.println(F(" Dp cc"));
+    Regs.printRegList();
     printPrompt();
 }
 
-static void handleRegisterValue(uint32_t value, uintptr_t extra, State state) {
-    if (state == State::CLI_DELETE) {
-        cli.backspace(2);
+static void handleRegisterValue(uint32_t value, uintptr_t reg, State state) {
+    if (Regs.setRegValue(reg, value, state)) {
+        printPrompt();
+    } else {
         cli.readLetter(handleSetRegister, 0);
+    }
+}
+
+static void handleIo(char *line, uintptr_t extra, State state);
+
+static void printIoDevice(State state) {
+    cli.println();
+    uint16_t baseAddr;
+    if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
+        cli.print(F("ACIA (MC6850) at $"));
+    } else {
+        cli.print(F("SCI (" MPU_NAME ") at $"));
+    }
+    cli.printHex(baseAddr, 4);
+    cli.println();
+}
+
+static void handleAciaAddr(uint32_t val, uintptr_t extra, State state) {
+    if (state == State::CLI_CANCEL)
+        goto cancel;
+    if (state == State::CLI_DELETE) {
+        cli.backspace();
+        strcpy_P(str_buffer, PSTR("ACIA"));
+        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer), true);
         return;
     }
-    if (state == State::CLI_SPACE)
-        cli.println();
-    const char reg = extra;
-    switch (reg) {
-    case 'p':
-        Regs.pc = value;
-        break;
-    case 's':
-        Regs.s = value;
-        break;
-    case 'u':
-        Regs.u = value;
-        break;
-    case 'y':
-        Regs.y = value;
-        break;
-    case 'x':
-        Regs.x = value;
-        break;
-    case 'd':
-        Regs.setD(value);
-        break;
-    case 'w':
-        Regs.setW(value);
-        break;
-    case 'v':
-        Regs.v = value;
-        break;
-    case 'a':
-        Regs.a = value;
-        break;
-    case 'b':
-        Regs.b = value;
-        break;
-    case 'e':
-        Regs.e = value;
-        break;
-    case 'f':
-        Regs.f = value;
-        break;
-    case 'D':
-        Regs.dp = value;
-        break;
-    case 'c':
-        Regs.cc = value;
-        break;
+    Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, val);
+    printIoDevice(state);
+cancel:
+    printPrompt();
+}
+
+static void handleIo(char *line, uintptr_t extra, State state) {
+    if (state == State::CLI_CANCEL)
+        goto cancel;
+    if (state == State::CLI_DELETE) {
+        cli.backspace();
+        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
+        return;
     }
-    Regs.restore();
-    Regs.print();
+    if (state == State::CLI_SPACE &&
+            strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
+        cli.readHex(handleAciaAddr, 0, UINT16_MAX);
+        return;
+    }
+    if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
+        Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, Pins.ioBaseAddress());
+    }
+    printIoDevice(state);
+cancel:
     printPrompt();
 }
 
@@ -478,7 +486,6 @@ void Commands::exec(char c) {
         disassemble(Regs.pc, 1);
         break;
     case 'i':
-    case 'I':
         cli.print(F("inst? "));
         cli.readHex(handleInstruction, INST_DATA(c, 0), UINT8_MAX);
         return;
@@ -548,6 +555,10 @@ void Commands::exec(char c) {
     case 'L':
         cli.print(F("Load? "));
         cli.readLine(handleLoadFile, 0, str_buffer, sizeof(str_buffer));
+        return;
+    case 'I':
+        cli.print(F("Io? "));
+        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
         cli.println(VERSION_TEXT);

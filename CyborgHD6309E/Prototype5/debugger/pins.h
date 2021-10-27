@@ -89,14 +89,17 @@ public:
 
     static constexpr uint16_t ioBaseAddress() { return IO_BASE_ADDR; }
 
-    void assertIrq(const uint8_t mask);
-    void negateIrq(const uint8_t mask = 0xff);
-    uint8_t irqSignals(const uint8_t mask = 0xff) const { return _irq & mask; }
-    static uint8_t getIrqMask(uint16_t addr) {
-        return 1 << (addr - ioBaseAddress());
-    }
+    uint8_t allocateIrq();
+    void assertIrq(const uint8_t irq);
+    void negateIrq(const uint8_t irq);
 
     int sdCardChipSelectPin() const;
+
+    enum SerialDevice : uint8_t {
+        DEV_ACIA = 0,  // MC6850 ACIA
+    };
+    SerialDevice getIoDevice(uint16_t &baseAddr);
+    void setIoDevice(SerialDevice device, uint16_t addr);
 
 private:
     class Dbus {
@@ -135,6 +138,7 @@ private:
     bool _stopRunning;
     uint8_t _irq;
     Signals _signals[MAX_CYCLES + 1];
+    SerialDevice _ioDevice;
 };
 
 extern Pins Pins;

@@ -2,8 +2,6 @@
 
 #include "regs.h"
 
-#include <libcli.h>
-
 #include "pins.h"
 #include "string_util.h"
 
@@ -131,4 +129,91 @@ void Regs::restore() {
     const uint8_t puls_all[] = {0x35, 0xFF, cc, a, b, dp, hi(x), lo(x), hi(y),
             lo(y), hi(u), lo(u), hi(pc), lo(pc)};
     Pins.execInst(puls_all, sizeof(puls_all));
+}
+
+void Regs::printRegList() const {
+    cli.print(F("?Reg: pc s u x y a b d"));
+    if (is6309())
+        cli.print(F(" w e f v"));
+    cli.println(F(" DP cc"));
+}
+
+bool Regs::validUint8Reg(char reg) const {
+    if (reg == 'D' || reg == 'a' || reg == 'b' || reg == 'c' ||
+            (is6309() && (reg == 'e' || reg == 'f'))) {
+        cli.print(reg);
+        if (reg == 'D')
+            cli.print('P');
+        if (reg == 'c')
+            cli.print('c');
+        return true;
+    }
+    return false;
+}
+
+bool Regs::validUint16Reg(char reg) const {
+    if (reg == 'p' || reg == 's' || reg == 'u' || reg == 'y' || reg == 'x' ||
+            reg == 'd' || (is6309() && (reg == 'w' || reg == 'v'))) {
+        cli.print(reg);
+        if (reg == 'p')
+            cli.print('c');
+        return true;
+    }
+    return false;
+}
+
+bool Regs::setRegValue(char reg, uint32_t value, State state) {
+    if (state == State::CLI_CANCEL)
+        return true;
+    if (state == State::CLI_DELETE) {
+        cli.backspace(reg == 'p' || reg == 'D' || reg == 'c' ? 3 : 2);
+        return false;
+    }
+    switch (reg) {
+    case 'p':
+        pc = value;
+        break;
+    case 's':
+        s = value;
+        break;
+    case 'u':
+        u = value;
+        break;
+    case 'y':
+        y = value;
+        break;
+    case 'x':
+        x = value;
+        break;
+    case 'd':
+        setD(value);
+        break;
+    case 'w':
+        setW(value);
+        break;
+    case 'v':
+        v = value;
+        break;
+    case 'a':
+        a = value;
+        break;
+    case 'b':
+        b = value;
+        break;
+    case 'e':
+        e = value;
+        break;
+    case 'f':
+        f = value;
+        break;
+    case 'D':
+        dp = value;
+        break;
+    case 'c':
+        cc = value;
+        break;
+    }
+    restore();
+    print();
+    return true;
 }

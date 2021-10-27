@@ -2,7 +2,9 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define VERSION_TEXT F("* CyborgHD6309E Prototype5 2.2.0")
+#define MPU_NAME "HD6309E"
+
+#define VERSION_TEXT F("* Cyborg" MPU_NAME " Prototype5 2.3.0")
 
 #define IO_BASE_ADDR 0xDF00
 

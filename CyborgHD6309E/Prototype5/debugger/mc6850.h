@@ -7,38 +7,30 @@
 
 class Mc6850 {
 public:
-    Mc6850(HardwareSerial &serial, uint16_t baseAddr, uint8_t rxInt,
-            uint8_t txInt)
-        : _serial(serial),
-          _baseAddr(baseAddr),
-          _rxInt(rxInt),
-          _txInt(txInt),
-          _control(CDS_DIV1_gc),
-          _status(TDRE_bm),
-          _readFlags(0),
-          _nextFlags(0),
-          _txData(0),
-          _rxData(0) {}
+    Mc6850(HardwareSerial &serial);
 
     bool isSelected(uint16_t addr) const {
-        return addr == _baseAddr || --addr == _baseAddr;
+        return _enabled && (addr & ~1) == _baseAddr;
     }
 
     void write(uint8_t data, uint16_t addr);
     uint8_t read(uint16_t addr);
     void loop();
+    void enable(bool enabled, uint16_t baseAddr);
+    uint16_t baseAddr() const { return _baseAddr; }
 
 private:
     HardwareSerial &_serial;
-    const uint16_t _baseAddr;
-    const uint8_t _rxInt;
-    const uint8_t _txInt;
     uint8_t _control;
     uint8_t _status;
     uint8_t _readFlags;
     uint8_t _nextFlags;
     uint8_t _txData;
     uint8_t _rxData;
+    bool _enabled;
+    uint16_t _baseAddr;
+    uint8_t _rxInt;
+    uint8_t _txInt;
 
     // Bit Definition of control register
     static constexpr uint8_t CDS_gm =
@@ -68,8 +60,8 @@ private:
     uint8_t rxIntEnabled() const { return rieb(_control); }
     uint8_t txRegEmpty() const { return _status & TDRE_bm; }
     uint8_t rxRegFull() const { return _status & RDRF_bm; }
-    void assertIrq(uint8_t intMask);
-    void negateIrq(uint8_t intMask);
+    void assertIrq(uint8_t irq);
+    void negateIrq(uint8_t irq);
 
     // Bit definition of status register
     // DCD, CTS, FERR, PERR are always zero.

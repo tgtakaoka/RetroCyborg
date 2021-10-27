@@ -16,35 +16,39 @@
 
 extern libcli::Cli &cli;
 
-static inline void assertReset() {
+static inline void assert_reset() {
     digitalWrite(RESET, LOW);
 }
 
-static inline void negateReset() {
+static inline void negate_reset() {
     digitalWrite(RESET, HIGH);
 }
 
-static inline void assertHalt() {
+static inline void assert_halt() {
     digitalWrite(HALT, LOW);
 }
 
-static inline void negateHalt() {
+static inline void negate_halt() {
     digitalWrite(HALT, HIGH);
 }
 
-static inline void assertNmi() {
-    digitalWrite(NMI, LOW);
+static inline void assert_irq() {
+    digitalWrite(IRQ, LOW);
 }
 
-static inline void negateNmi() {
+static inline void negate_irq() {
+    digitalWrite(IRQ, HIGH);
+}
+
+static inline void negate_nmi() {
     digitalWrite(NMI, HIGH);
 }
 
-static inline bool isWriteDirection() {
+static inline bool write_bus_cycle() {
     return digitalRead(RD_WR) == LOW;
 }
 
-static inline bool isUnhalt() {
+static inline bool is_running() {
 #ifdef SIGNALS_BUS
     const uint8_t pins = busRead(SIGNALS);
     return (pins & (_BV(BA_PIN) | _BV(BS_PIN) | _BV(LIC_PIN))) == 0;
@@ -54,7 +58,7 @@ static inline bool isUnhalt() {
 #endif
 }
 
-static inline bool validBusCycle(const Signals *prev) {
+static inline bool valid_bus_cycle(const Signals *prev) {
 #ifdef SIGNALS_BUS
     const uint8_t pins = busRead(SIGNALS);
     return (pins & (_BV(BA_PIN) | _BV(BS_PIN))) == 0 && prev &&
@@ -65,28 +69,28 @@ static inline bool validBusCycle(const Signals *prev) {
 #endif
 }
 
-static inline void enableRam() {
+static inline void enable_ram() {
     digitalWrite(RAM_E, LOW);
 }
 
-static inline void disableRam() {
+static inline void disable_ram() {
     digitalWrite(RAM_E, HIGH);
 }
 
-static inline bool userSwitchAsserted() {
+static inline bool user_switch_asserted() {
     return digitalRead(USR_SW) == LOW;
 }
 
-static inline void turnOnUserLed() {
+static inline void turnon_led() {
     digitalWrite(USR_LED, HIGH);
 }
 
-static inline void turnOffUserLed() {
+static inline void turnoff_led() {
     digitalWrite(USR_LED, LOW);
 }
 
-static inline void toggleUserLed() __attribute__((unused));
-static inline void toggleUserLed() {
+static inline void toggle_led() __attribute__((unused));
+static inline void toggle_led() {
     if (digitalRead(USR_LED)) {
         digitalWrite(USR_LED, LOW);
     } else {
@@ -96,23 +100,21 @@ static inline void toggleUserLed() {
 
 class Pins Pins;
 
-class Mc6850 Mc6850(Console, Pins::ioBaseAddress(),
-        Pins::getIrqMask(Pins::ioBaseAddress()),
-        Pins::getIrqMask(Pins::ioBaseAddress() + 1));
+class Mc6850 Acia(Console);
 
 void Pins::Dbus::begin() {
     busMode(DB, INPUT_PULLUP);
 }
 
 void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
-    if (dir == OUTPUT && isWriteDirection()) {
+    if (dir == OUTPUT && write_bus_cycle()) {
         cli.println(F("!! R/W is LOW"));
         return;
     }
     if (dir == OUTPUT || _capture) {
-        disableRam();
+        disable_ram();
     } else {
-        enableRam();
+        enable_ram();
     }
     if (dir == INPUT) {
         busMode(DB, INPUT);
@@ -377,12 +379,12 @@ static void ioRequest() {
     static uint8_t data;
     const uint16_t ioAddr = Pins.ioRequestAddress();
     const bool ioWrite = Pins.ioRequestWrite();
-    if (Mc6850.isSelected(ioAddr)) {
+    if (Acia.isSelected(ioAddr)) {
         if (ioWrite) {
-            toggleUserLed();
-            Mc6850.write(Pins.ioGetData(), ioAddr);
+            toggle_led();
+            Acia.write(Pins.ioGetData(), ioAddr);
         } else {
-            Pins.ioSetData(Mc6850.read(ioAddr));
+            Pins.ioSetData(Acia.read(ioAddr));
         }
     } else {
         if (ioWrite) {
@@ -407,16 +409,16 @@ ISR(CCL_CCL_vect) {
 }
 
 void Pins::reset(bool show) {
-    assertReset();
-    negateHalt();
+    assert_reset();
+    negate_halt();
     startOscillator();
     delayMicroseconds(10);
 
     resetCycles();
     const Signals *prev = nullptr;
     stopOscillator();
-    negateReset();
-    assertHalt();
+    negate_reset();
+    assert_halt();
     for (;;) {
         fallingQ();
         Signals &signals = cycle(prev);
@@ -427,7 +429,7 @@ void Pins::reset(bool show) {
     }
     restartEQ();
 
-    turnOffUserLed();
+    turnoff_led();
     _freeRunning = false;
     _stopRunning = false;
     if (show)
@@ -441,7 +443,7 @@ void Pins::reset(bool show) {
  */
 Signals &Pins::cycle(const Signals *prev) {
     // Setup data bus.
-    if (validBusCycle(prev) && !isWriteDirection()) {
+    if (valid_bus_cycle(prev) && !write_bus_cycle()) {
         _dbus.output();
     } else {
         _dbus.input();
@@ -464,8 +466,8 @@ void Pins::stopRunning() {
 
 void Pins::loop() {
     if (_freeRunning) {
-        Mc6850.loop();
-        if (userSwitchAsserted())
+        Acia.loop();
+        if (user_switch_asserted())
             stopRunning();
     }
 
@@ -481,15 +483,15 @@ void Pins::loop() {
 void Pins::run() {
     _freeRunning = true;
     CCL.INTCTRL0 = CCL_INTMODE2_FALLING_gc;
-    turnOnUserLed();
-    negateHalt();
+    turnon_led();
+    negate_halt();
 }
 
 void Pins::halt(bool show) {
     resetCycles();
     const Signals *prev = nullptr;
     stopOscillator();
-    assertHalt();
+    assert_halt();
     for (;;) {
         fallingQ();
         Signals &signals = cycle(prev);
@@ -500,7 +502,7 @@ void Pins::halt(bool show) {
     }
     restartEQ();
 
-    turnOffUserLed();
+    turnoff_led();
     if (show)
         printCycles();
 }
@@ -513,11 +515,11 @@ const Signals *Pins::unhalt() {
     resetCycles();
     const Signals *prev = nullptr;
     stopOscillator();
-    negateHalt();
+    negate_halt();
     fallingQ();
-    assertHalt();
+    assert_halt();
     for (;;) {
-        if (isUnhalt())
+        if (is_running())
             break;
         Signals &signals = cycle(prev);
         signals.debug('U');
@@ -603,13 +605,13 @@ void Pins::step(bool show) {
 
 void Pins::begin() {
     pinMode(RESET, OUTPUT);
-    assertReset();
+    assert_reset();
     pinMode(HALT, OUTPUT);
-    negateHalt();
+    negate_halt();
     pinMode(NMI, OUTPUT);
-    negateNmi();
+    negate_nmi();
     pinMode(IRQ, OUTPUT);
-    negateIrq();
+    negate_irq();
 
     setupPORTMUX();
     setupEVSYS();
@@ -627,7 +629,7 @@ void Pins::begin() {
     pinMode(BUSY, INPUT_PULLUP);
     pinMode(RD_WR, INPUT_PULLUP);
     pinMode(RAM_E, OUTPUT);
-    disableRam();
+    disable_ram();
 
     _dbus.begin();
 
@@ -636,7 +638,7 @@ void Pins::begin() {
 
     pinMode(USR_SW, INPUT_PULLUP);
     pinMode(USR_LED, OUTPUT);
-    turnOffUserLed();
+    turnoff_led();
 
     Console.begin(CONSOLE_BAUD);
     cli.begin(Console);
@@ -645,24 +647,41 @@ void Pins::begin() {
     SPI.swap(SPI_MAPPING);
 #endif
 
-    assertHalt();
-    negateReset();
+    assert_halt();
+    negate_reset();
     _freeRunning = false;
     _stopRunning = false;
+
+    setIoDevice(SerialDevice::DEV_ACIA, ioBaseAddress());
 
     startOscillator();
 }
 
-void Pins::assertIrq(uint8_t mask) {
-    _irq |= mask;
-    if (_irq)
-        digitalWrite(IRQ, LOW);
+uint8_t Pins::allocateIrq() {
+    static uint8_t irq = 0;
+    return irq++;
 }
 
-void Pins::negateIrq(uint8_t mask) {
-    _irq &= ~mask;
+void Pins::assertIrq(const uint8_t irq) {
+    _irq |= (1 << irq);
+    if (_irq)
+        assert_irq();
+}
+
+void Pins::negateIrq(const uint8_t irq) {
+    _irq &= ~(1 << irq);
     if (_irq == 0)
-        digitalWrite(IRQ, HIGH);
+        negate_irq();
+}
+
+Pins::SerialDevice Pins::getIoDevice(uint16_t &baseAddr) {
+    baseAddr = Acia.baseAddr();
+    return _ioDevice;
+}
+
+void Pins::setIoDevice(SerialDevice device, uint16_t baseAddr) {
+    _ioDevice = device;
+    Acia.enable(true, baseAddr);
 }
 
 uint16_t Pins::ioRequestAddress() const {
@@ -675,7 +694,7 @@ uint16_t Pins::ioRequestAddress() const {
 }
 
 bool Pins::ioRequestWrite() const {
-    return isWriteDirection();
+    return write_bus_cycle();
 }
 
 uint8_t Pins::ioGetData() {

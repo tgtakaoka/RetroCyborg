@@ -14,29 +14,49 @@
 
 extern libcli::Cli &cli;
 
-void Mc6850::assertIrq(uint8_t intMask) {
+Mc6850::Mc6850(HardwareSerial &serial)
+    : _serial(serial),
+      _control(CDS_DIV1_gc),
+      _status(TDRE_bm),
+      _readFlags(0),
+      _nextFlags(0),
+      _txData(0),
+      _rxData(0),
+      _enabled(false) {
+    _rxInt = Pins.allocateIrq();
+    _txInt = Pins.allocateIrq();
+}
+
+void Mc6850::enable(bool enabled, uint16_t baseAddr) {
+    _enabled = enabled;
+    _baseAddr = baseAddr & ~1;
+}
+
+void Mc6850::assertIrq(uint8_t irq) {
     _status |= IRQF_bm;
-    Pins.assertIrq(intMask);
+    Pins.assertIrq(irq);
 #ifdef DEBUG_IRQ
-    if (intMask & _rxInt)
+    if (irq == _rxInt)
         cli.println(F("@@ Assert RX INT"));
-    if (intMask & _txInt)
+    if (irq == _txInt)
         cli.println(F("@@ Assert TX INT"));
 #endif
 }
 
-void Mc6850::negateIrq(uint8_t intMask) {
-    Pins.negateIrq(intMask);
+void Mc6850::negateIrq(uint8_t irq) {
+    Pins.negateIrq(irq);
     _status &= ~IRQF_bm;
 #ifdef DEBUG_IRQ
-    if (intMask & _rxInt)
+    if (irq == _rxInt)
         cli.println(F("@@ Negate RX IRQ"));
-    if (intMask & _txInt)
+    if (irq == _txInt)
         cli.println(F("@@ Negate TX IRQ"));
 #endif
 }
 
 void Mc6850::loop() {
+    if (!_enabled)
+        return;
     if (_serial.available() > 0) {
         const uint8_t data = _serial.read();
         cli();
