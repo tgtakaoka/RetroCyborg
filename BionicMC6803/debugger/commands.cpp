@@ -344,66 +344,28 @@ static void handleLoadFile(char *line, uintptr_t extra, State state) {
 
 static void handleRegisterValue(uint32_t, uintptr_t, State);
 
-static void handleSetRegister(char value, uintptr_t extra) {
+static void handleSetRegister(char reg, uintptr_t extra) {
     (void)extra;
-    const char c = value;
-    if (c == 'p' || c == 's' || c == 'x' || c == 'd') {
-        cli.print(c);
-        if (c == 'p')
-            cli.print('c');
-        if (c == 's')
-            cli.print('p');
+    if (Regs.validUint16Reg(reg)) {
         cli.print('?');
-        cli.readHex(handleRegisterValue, (uintptr_t)c, UINT16_MAX);
+        cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT16_MAX);
         return;
     }
-    if (c == 'a' || c == 'b' || c == 'c') {
-        cli.print(c);
-        if (c == 'c')
-            cli.print('c');
+    if (Regs.validUint8Reg(reg)) {
         cli.print('?');
-        cli.readHex(handleRegisterValue, (uintptr_t)c, UINT8_MAX);
+        cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT8_MAX);
         return;
     }
-    cli.println(F("?Reg: pc sp x a b d cc"));
+    Regs.printRegList();
     printPrompt();
 }
 
-static void handleRegisterValue(uint32_t value, uintptr_t extra, State state) {
-    if (state != State::CLI_CANCEL) {
-        const char reg = extra;
-        if (state == State::CLI_DELETE) {
-            cli.backspace(reg == 'p' || reg == 's' || reg == 'c' ? 3 : 2);
-            cli.readLetter(handleSetRegister, 0);
-            return;
-        }
-        cli.println();
-        switch (reg) {
-        case 'p':
-            Regs.pc = value;
-            break;
-        case 's':
-            Regs.sp = value;
-            break;
-        case 'x':
-            Regs.x = value;
-            break;
-        case 'd':
-            Regs.setD(value);
-            break;
-        case 'a':
-            Regs.a = value;
-            break;
-        case 'b':
-            Regs.b = value;
-            break;
-        case 'c':
-            Regs.cc = value;
-            break;
-        }
-        Regs.print();
+static void handleRegisterValue(uint32_t value, uintptr_t reg, State state) {
+    if (Regs.setRegValue(reg, value, state)) {
+        printPrompt();
+    } else {
+        cli.readLetter(handleSetRegister, 0);
     }
-    printPrompt();
 }
 
 static void handleIo(char *line, uintptr_t extra, State state);

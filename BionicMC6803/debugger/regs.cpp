@@ -1,7 +1,5 @@
 #include "regs.h"
 
-#include <libcli.h>
-
 #include "pins.h"
 #include "string_util.h"
 
@@ -391,6 +389,67 @@ void Regs::set(const Signals *stack) {
     a = stack[4].data;
     b = stack[5].data;
     cc = stack[6].data;
+}
+
+void Regs::printRegList() const {
+    cli.println(F("?Reg: pc sp x a b d cc"));
+}
+
+bool Regs::validUint8Reg(char reg) const {
+    if (reg == 'a' || reg == 'b' || reg == 'c') {
+        cli.print(reg);
+        if (reg == 'c')
+            cli.print('c');
+        return true;
+    }
+    return false;
+}
+
+bool Regs::validUint16Reg(char reg) const {
+    if (reg == 'p' || reg == 's' || reg == 'x' || reg == 'd') {
+        cli.print(reg);
+        if (reg == 'p')
+            cli.print('c');
+        if (reg == 's')
+            cli.print('p');
+        return true;
+    }
+    return false;
+}
+
+bool Regs::setRegValue(char reg, uint32_t value, State state) {
+    if (state == State::CLI_CANCEL)
+        return true;
+    if (state == State::CLI_DELETE) {
+        cli.backspace(reg == 'p' || reg == 's' || reg == 'c' ? 3 : 2);
+        return false;
+    }
+    cli.println();
+    switch (reg) {
+    case 'p':
+        pc = value;
+        break;
+    case 's':
+        sp = value;
+        break;
+    case 'x':
+        x = value;
+        break;
+    case 'd':
+        setD(value);
+        break;
+    case 'a':
+        a = value;
+        break;
+    case 'b':
+        b = value;
+        break;
+    case 'c':
+        cc = value;
+        break;
+    }
+    print();
+    return true;
 }
 
 // Local Variables:

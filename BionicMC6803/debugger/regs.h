@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include <libcli.h>
 #include "signals.h"
 
 struct Regs {
@@ -24,6 +25,12 @@ struct Regs {
     void set(const Signals *stack);
     uint8_t cycles(uint8_t insn) const;
     const char *cpu() const;
+
+    void printRegList() const;
+    bool validUint8Reg(char reg) const;
+    bool validUint16Reg(char reg) const;
+    typedef libcli::Cli::State State;
+    bool setRegValue(char reg, uint32_t value, State state);
 };
 
 extern Regs Regs;
