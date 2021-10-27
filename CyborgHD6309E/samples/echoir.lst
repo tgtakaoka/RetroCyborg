@@ -1,230 +1,208 @@
- AS V1.42 Beta [Bld 204] - Source File echoir.asm - Page 1 - 11/06/2021 16:32:45
-
-
-          0 :                             cpu     6809
-          0 :                             include "mc6809.inc"
-(1)       0 :                     ;;; Condition Code Register (CC)
-(1)       0 : =$1                 CC_CARRY      equ  %00000001   ; set to 1 if carry occurred
-(1)       0 : =$2                 CC_OVERFLOW   equ  %00000010   ; set to 1 if overflow occurred
-(1)       0 : =$4                 CC_ZERO       equ  %00000100   ; set to 1 if result is zero
-(1)       0 : =$8                 CC_NEGATIVE   equ  %00001000   ; set to 1 if result is negative
-(1)       0 : =$10                CC_IRQ        equ  %00010000   ; if 1, IRQ is masked
-(1)       0 : =$20                CC_HALF_CARRY equ  %00100000   ; if 1, decimal carry from least digit occurred
-(1)       0 : =$40                CC_FIRQ       equ  %01000000   ; if 1, FIRQ is masked
-(1)       0 : =$80                CC_ENTIRE     equ  %10000000   ; set to 1 if entire registers are pushed
-(1)       0 :                     
-          0 :                             
-          0 :                     ;;; MC6850 Asynchronous Communication Interface Adapter
-          0 : =$DF00              ACIA:   equ     $DF00
-          0 :                             include "mc6850.inc"
-(1)       0 :                     ;;; -*- mode: asm; mode: flyspell-prog; -*-
-(1)       0 :                     
-(1)       0 :                     ;;; MC6850
-(1)       0 :                     ;;; Asynchronous Communication Interface Adapter
-(1)       0 :                     
-(1)       0 :                     ;;; Control register
-(1)       0 : =$DF00              ACIA_control:   equ     ACIA+0
-(1)       0 :                             ;; Counter Divider Select Bits
-(1)       0 : =$3                 CDS_gm:         equ     %11    ; Group mask
-(1)       0 : =$0                 CDS_DIV1_gc:    equ     %00000000 ; /1
-(1)       0 : =$1                 CDS_DIV16_gc:   equ     %00000001 ; /16
-(1)       0 : =$2                 CDS_DIV64_gc:   equ     %00000010 ; /64
-(1)       0 : =$3                 CDS_RESET_gc:   equ     %00000011 ; Master Reset
-(1)       0 :                             ;; Word Select Bits
-(1)       0 : =$1C                WSB_gm:         equ     %00011100 ; Group mask
-(1)       0 : =$0                 WSB_7E2_gc:     equ     %00000000 ; 7 Bits + Even Parity + 2 Stop Bits
-(1)       0 : =$4                 WSB_7O2_gc:     equ     %00000100 ; 7 bits + Odd Parity  + 2 Stop Bits
-(1)       0 : =$8                 WSB_7E1_gc:     equ     %00001000 ; 7 bits + Even Parity + 1 Stop Bits
-(1)       0 : =$C                 WSB_7O1_gc:     equ     %00001100 ; 7 bits + Odd Parity  + 1 Stop Bits
-(1)       0 : =$10                WSB_8N2_gc:     equ     %00010000 ; 8 bits + No Parity   + 2 Stop Bits
-(1)       0 : =$14                WSB_8N1_gc:     equ     %00010100 ; 8 bits + No Parity   + 1 Stop Bits
-(1)       0 : =$18                WSB_8E1_gc:     equ     %00011000 ; 8 bits + Even Parity + 1 Stop Bits
-(1)       0 : =$1C                WSB_8O1_gc:     equ     %00011100 ; 8 bits + Odd Parity  + 1 Stop Bits
-(1)       0 :                             ;; Transmit Control Bits
-(1)       0 : =$60                TCB_gm:         equ     %01100000 ; Group mask
-(1)       0 : =$0                 TCB_DI_gc:      equ     %00000000 ; RTS=Low,  Tx Interrupt Disabled
-(1)       0 : =$20                TCB_EI_gc:      equ     %00100000 ; RTS=Low,  Tx Interrupt Enabled
-(1)       0 : =$40                TCB_RTS_gc:     equ     %01000000 ; RTS=High, Tx Interrupt Disabled
-(1)       0 : =$60                TCB_BREAK_gc:   equ     %01100000 ; RTS=Low,  Tx Interrupt Disabled
-(1)       0 :                                                       ; Transmit Break Level
-(1)       0 : =$80                RIEB_bm:        equ     %10000000 ; Receive Interrupt Enable Bit mask
-(1)       0 :                     
-(1)       0 :                     ;;; Status register
-(1)       0 : =$DF00              ACIA_status:    equ     ACIA+0
-(1)       0 : =$1                 RDRF_bm:        equ     %00000001 ; Receive Data Register Full
-(1)       0 : =$2                 TDRE_bm:        equ     %00000010 ; Transmit Data Register Empty
-(1)       0 : =$4                 DCDF_bm:        equ     %00000100 ; Data Carrier Detect Flag
-(1)       0 : =$8                 CTSF_bm:        equ     %00001000 ; Clear To Send Flag
-(1)       0 : =$10                FERR_bm:        equ     %00010000 ; Frame Error Flag
-(1)       0 : =$20                OVRN_bm:        equ     %00100000 ; Receiver Overrun Flag
-(1)       0 : =$40                PERR_bm:        equ     %01000000 ; Parity Error Flag
-(1)       0 : =$80                IRQF_bm:        equ     %10000000 ; Interrupt Request Flag
-(1)       0 :                     
-(1)       0 :                     ;;; Data register
- AS V1.42 Beta [Bld 204] - Source File echoir.asm(mc6850.inc) - Page 2 - 11/06/2021 16:32:45
-
-
-(1)       0 : =$DF01              ACIA_data:      equ     ACIA+1          ; Data register
-(1)       0 :                     
-          0 :                     
-       2000 :                             org     $2000
-       2000 :                     
-       2000 : =$80                rx_queue_size:  equ     128
-       2000 :                     rx_queue:       rmb     rx_queue_size
-       2080 : =$94                RX_INT_TX_NO:   equ     WSB_8N1_gc|RIEB_bm
-       2080 :                     
-       1000 :                             org     $1000
-       1000 : =$1000              stack:  equ     *
-       1000 :                     
-       1000 :                             org     $1000
-       1000 :                     initialize:
-       1000 : 10 CE 10 00                 lds     #stack
-       1004 : 8E 20 00                    ldx     #rx_queue
-       1007 : C6 80                       ldb     #rx_queue_size
-       1009 : 17 00 2A                    lbsr    queue_init
-       100C :                             ;; initialize ACIA
-       100C : 86 03                       lda     #CDS_RESET_gc   ; Master reset
-       100E : B7 DF 00                    sta     ACIA_control
-       1011 : 86 94                       lda     #RX_INT_TX_NO
-       1013 : B7 DF 00                    sta     ACIA_control
-       1016 : 1C EF                       andcc   #~CC_IRQ        ; Clear IRQ mask
-       1018 :                     
-       1018 : 8E 20 00                    ldx     #rx_queue
-       101B :                     receive_loop:
-       101B : 1A 10                       orcc    #CC_IRQ         ; Set IRQ mask
-       101D : 17 00 4B                    lbsr    queue_remove
-       1020 : 1C EF                       andcc   #~CC_IRQ        ; Clear IRQ mask
-       1022 : 24 F7                       bcc     receive_loop
-       1024 :                     transmit_loop:
-       1024 : F6 DF 00                    ldb     ACIA_status
-       1027 : C5 02                       bitb    #TDRE_bm
-       1029 : 27 F9                       beq     transmit_loop
-       102B :                     transmit_data:
-       102B : B7 DF 01                    sta     ACIA_data
-       102E : 81 0D                       cmpa    #$0d
-       1030 : 26 E9                       bne     receive_loop
-       1032 : 86 0A                       lda     #$0a
-       1034 : 20 EE                       bra     transmit_loop
-       1036 :                     
-       1036 :                             include "queue.inc"
-(1)    1036 :                     ;;; -*- mode: asm; mode: flying-spell; -*-
-(1)    1036 :                     
-(1)    1036 :                     ;;; [queue] queue structure
-(1)    1036 : =$0                 queue_len:	equ	0	; queue length
-(1)    1036 : =$1                 queue_size:	equ	1	; buffer size
-(1)    1036 : =$2                 queue_put:	equ	2	; queue put index
-(1)    1036 : =$3                 queue_get:	equ	3	; queue get index
-(1)    1036 : =$4                 queue_buf:	equ	4	; buffer start offset
-(1)    1036 :                     
-(1)    1036 :                     ;;; [queue] Initialize queue
-(1)    1036 :                     ;;; @param X queue work space pointer
-(1)    1036 :                     ;;; @param B queue work space size
-(1)    1036 :                     ;;; @clobber B
-(1)    1036 :                     queue_init:
-(1)    1036 : 34 16               	pshs	x,d
-(1)    1038 : 4F                          clra
-(1)    1039 :                     .clear_loop:
- AS V1.42 Beta [Bld 204] - Source File echoir.asm(queue.inc) - Page 3 - 11/06/2021 16:32:45
-
-
-(1)    1039 : 6F 80               	clr	,x+
-(1)    103B : 83 00 01            	subd	#1
-(1)    103E : 26 F9               	bne	.clear_loop
-(1)    1040 : 35 16               	puls	d,x
-(1)    1042 : C0 04               	subb	#queue_buf
-(1)    1044 : E7 01               	stb	queue_size,x
-(1)    1046 : 39                  	rts
-(1)    1047 :                     
-(1)    1047 :                     ;;; [queue] Add an element to queue
-(1)    1047 :                     ;;; @param X queue work space pointer
-(1)    1047 :                     ;;; @param A an element
-(1)    1047 :                     ;;; @return CC.C 0 if queue is full
-(1)    1047 :                     queue_add:
-(1)    1047 : 34 46               	pshs	u,b,a
-(1)    1049 : E6 84               	ldb	queue_len,x
-(1)    104B : E1 01               	cmpb	queue_size,x
-(1)    104D : 25 02               	blo	.add_elem
-(1)    104F : 35 C6               	puls	a,b,u,pc        ; carry is cleared
-(1)    1051 :                     .add_elem:
-(1)    1051 : 4F                  	clra
-(1)    1052 : E6 02               	ldb	queue_put,x	; 16 bits offset
-(1)    1054 : 33 04               	leau	queue_buf,x
-(1)    1056 : 33 CB               	leau	d,u
-(1)    1058 : A6 E4               	lda	,s		; an element
-(1)    105A : A7 C4               	sta	,u
-(1)    105C : 6C 84               	inc	queue_len,x
-(1)    105E : 5C                  	incb
-(1)    105F : E7 02               	stb	queue_put,x
-(1)    1061 : E1 01               	cmpb	queue_size,x
-(1)    1063 : 25 04               	blo	.return         ; carry is set
-(1)    1065 : 6F 02               	clr	queue_put,x
-(1)    1067 : 1A 01               	orcc	#1		; set carry
-(1)    1069 :                     .return:
-(1)    1069 : 35 C6               	puls	a,b,u,pc
-(1)    106B :                     
-(1)    106B :                     ;;; [queue] Remove an element from queue
-(1)    106B :                     ;;; @param X queue work space pointer
-(1)    106B :                     ;;; @return A an element
-(1)    106B :                     ;;; @return CC.C 0 if queue is empty
-(1)    106B :                     queue_remove:
-(1)    106B : 6D 84               	tst	queue_len,x
-(1)    106D : 26 03               	bne	.remove_elem
-(1)    106F : 1C FE               	andcc	#~1		; clear carry
-(1)    1071 : 39                  	rts
-(1)    1072 :                     .remove_elem: 
-(1)    1072 : 34 44               	pshs	u,b
-(1)    1074 : 4F                  	clra
-(1)    1075 : E6 03               	ldb	queue_get,x	; 16 bits offset
-(1)    1077 : 33 04               	leau	queue_buf,x
-(1)    1079 : A6 CB               	lda	d,u
-(1)    107B : 6A 84               	dec	queue_len,x
-(1)    107D : 5C                  	incb
-(1)    107E : E7 03               	stb	queue_get,x
-(1)    1080 : E1 01               	cmpb	queue_size,x
-(1)    1082 : 25 04               	blo	.return         ; carry is set
-(1)    1084 : 6F 03               	clr	queue_get,x
-(1)    1086 : 1A 01               	orcc	#1		; set carry
-(1)    1088 :                     .return:
-(1)    1088 : 35 C4                       puls	b,u,pc
-(1)    108A :                             
- AS V1.42 Beta [Bld 204] - Source File echoir.asm(queue.inc) - Page 4 - 11/06/2021 16:32:45
-
-
-(1)    108A :                     
-       108A :                     
-       108A :                     isr_irq:
-       108A : F6 DF 00                    ldb     ACIA_status
-       108D : C5 80                       bitb    #IRQF_bm
-       108F : 27 0D                       beq     isr_irq_return
-       1091 :                     isr_irq_receive:
-       1091 : C5 01                       bitb    #RDRF_bm
-       1093 : 27 09                       beq     isr_irq_recv_end
-       1095 : B6 DF 01                    lda     ACIA_data
-       1098 : 8E 20 00                    ldx     #rx_queue
-       109B : 17 FF A9                    lbsr    queue_add
-       109E :                     isr_irq_recv_end:
-       109E :                     isr_irq_return:
-       109E : 3B                          rti
-       109F :                     
-       FFF8 :                             org     $FFF8
-       FFF8 : 10 8A                       fdb     isr_irq
-       FFFA :                     
-       FFFE :                             org     $FFFE
-       FFFE : 10 00                       fdb     initialize
-      10000 :                     
- AS V1.42 Beta [Bld 204] - Source File echoir.asm() - Page 5 - 11/06/2021 16:32:45
-
-
-  Code Pages:
-  ----------
-
-STANDARD (0 changed characters)
-
-1 code page
-
-0.00 seconds assembly time
-
-    202 lines source file
-      2 passes
-      0 errors
-      0 warnings
+   0:                                CPU   6809
+   0:                                INCLUDE               "mc6809.inc"
+   0:                ;;; -*- mode: asm; mode: flyspell-prog; -*-
+   0:
+   0:                ;;; Condition Code Register (CC)
+   0: =$1            CC_CARRY        EQU   %00000001       ; set to 1 if carry occurred
+   0: =$2            CC_OVERFLOW     EQU   %00000010       ; set to 1 if overflow occurred
+   0: =$4            CC_ZERO         EQU   %00000100       ; set to 1 if result is zero
+   0: =$8            CC_NEGATIVE     EQU   %00001000       ; set to 1 if result is negative
+   0: =$10           CC_IRQ          EQU   %00010000       ; if 1, IRQ is masked
+   0: =$20           CC_HALF_CARRY   EQU   %00100000       ; if 1, decimal carry from least digit occurred
+   0: =$40           CC_FIRQ         EQU   %01000000       ; if 1, FIRQ is masked
+   0: =$80           CC_ENTIRE       EQU   %10000000       ; set to 1 if entire registers are pushed
+   0:
+   0:                ;;; Vector
+   0: =$FFF0         VEC_RESERVED:   EQU   $FFF0           ; $FFF0: Reserved
+   0: =$FFF2         VEC_SWI3:       EQU   $FFF2           ; $FFF2: Software Interrupt 3
+   0: =$FFF4         VEC_SWI2:       EQU   $FFF4           ; $FFF4: Software Interrupt 2
+   0: =$FFF6         VEC_FIRQ:       EQU   $FFF6           ; $FFF6: Fast Interrupt Request
+   0: =$FFF8         VEC_IRQ:        EQU   $FFF8           ; $FFF8: Interrupt Request
+   0: =$FFFA         VEC_SWI:        EQU   $FFFA           ; $FFFA: Software Interrupt
+   0: =$FFFC         VEC_NMI:        EQU   $FFFC           ; $FFFC: Non Maskable Interrupt
+   0: =$FFFE         VEC_RESET:      EQU   $FFFE           ; $FFFE: Reset
+   0:
+   0:                ;;; MC6850 Asynchronous Communication Interface Adapter
+   0: =$DF00         ACIA:           EQU   $DF00
+   0:                                INCLUDE               "mc6850.inc"
+   0:                ;;; -*- mode: asm; mode: flyspell-prog; -*-
+   0:
+   0:                ;;; MC6850
+   0:                ;;; Asynchronous Communication Interface Adapter
+   0:
+   0:                ;;; Control register
+   0: =$DF00         ACIA_control:   EQU   ACIA+0
+   0:                ;; Counter Divider Select Bits
+   0: =$3            CDS_gm:         EQU   %11             ; Group mask
+   0: =$0            CDS_DIV1_gc:    EQU   %00000000       ; /1
+   0: =$1            CDS_DIV16_gc:   EQU   %00000001       ; /16
+   0: =$2            CDS_DIV64_gc:   EQU   %00000010       ; /64
+   0: =$3            CDS_RESET_gc:   EQU   %00000011       ; Master Reset
+   0:                ;; Word Select Bits
+   0: =$1C           WSB_gm:         EQU   %00011100       ; Group mask
+   0: =$0            WSB_7E2_gc:     EQU   %00000000       ; 7 Bits + Even Parity + 2 Stop Bits
+   0: =$4            WSB_7O2_gc:     EQU   %00000100       ; 7 bits + Odd Parity  + 2 Stop Bits
+   0: =$8            WSB_7E1_gc:     EQU   %00001000       ; 7 bits + Even Parity + 1 Stop Bits
+   0: =$C            WSB_7O1_gc:     EQU   %00001100       ; 7 bits + Odd Parity  + 1 Stop Bits
+   0: =$10           WSB_8N2_gc:     EQU   %00010000       ; 8 bits + No Parity   + 2 Stop Bits
+   0: =$14           WSB_8N1_gc:     EQU   %00010100       ; 8 bits + No Parity   + 1 Stop Bits
+   0: =$18           WSB_8E1_gc:     EQU   %00011000       ; 8 bits + Even Parity + 1 Stop Bits
+   0: =$1C           WSB_8O1_gc:     EQU   %00011100       ; 8 bits + Odd Parity  + 1 Stop Bits
+   0:                ;; Transmit Control Bits
+   0: =$60           TCB_gm:         EQU   %01100000       ; Group mask
+   0: =$0            TCB_DI_gc:      EQU   %00000000       ; RTS=Low,  Tx Interrupt Disabled
+   0: =$20           TCB_EI_gc:      EQU   %00100000       ; RTS=Low,  Tx Interrupt Enabled
+   0: =$40           TCB_RTS_gc:     EQU   %01000000       ; RTS=High, Tx Interrupt Disabled
+   0: =$60           TCB_BREAK_gc:   EQU   %01100000       ; RTS=Low,  Tx Interrupt Disabled
+   0:                ; Transmit Break Level
+   0: =$80           RIEB_bm:        EQU   %10000000       ; Receive Interrupt Enable Bit mask
+   0:
+   0:                ;;; Status register
+   0: =$DF00         ACIA_status:    EQU   ACIA+0
+   0: =$1            RDRF_bm:        EQU   %00000001       ; Receive Data Register Full
+   0: =$2            TDRE_bm:        EQU   %00000010       ; Transmit Data Register Empty
+   0: =$4            DCDF_bm:        EQU   %00000100       ; Data Carrier Detect Flag
+   0: =$8            CTSF_bm:        EQU   %00001000       ; Clear To Send Flag
+   0: =$10           FERR_bm:        EQU   %00010000       ; Frame Error Flag
+   0: =$20           OVRN_bm:        EQU   %00100000       ; Receiver Overrun Flag
+   0: =$40           PERR_bm:        EQU   %01000000       ; Parity Error Flag
+   0: =$80           IRQF_bm:        EQU   %10000000       ; Interrupt Request Flag
+   0:
+   0:                ;;; Data register
+   0: =$DF01         ACIA_data:      EQU   ACIA+1          ; Data register
+   0:
+2000:                                ORG   $2000
+2000:
+2000: =$80           rx_queue_size:  EQU   128
+2000:                rx_queue:       RMB   rx_queue_size
+2080: =$94           RX_INT_TX_NO:   EQU   WSB_8N1_gc|RIEB_bm
+2080:
+1000:                                ORG   $1000
+1000: =$1000         stack:          EQU   *
+1000:
+1000:                                ORG   $1000
+1000:                initialize:
+1000: 10 CE 10 00                    LDS   #stack
+1004: 8E 20 00                       LDX   #rx_queue
+1007: C6 80                          LDB   #rx_queue_size
+1009: 17 00 2A                       LBSR  queue_init
+100C:                ;; initialize ACIA
+100C: 86 03                          LDA   #CDS_RESET_gc   ; Master reset
+100E: B7 DF 00                       STA   ACIA_control
+1011: 86 94                          LDA   #RX_INT_TX_NO
+1013: B7 DF 00                       STA   ACIA_control
+1016: 1C EF                          ANDCC #~CC_IRQ        ; Clear IRQ mask
+1018:
+1018: 8E 20 00                       LDX   #rx_queue
+101B:                receive_loop:
+101B: 1A 10                          ORCC  #CC_IRQ         ; Set IRQ mask
+101D: 17 00 47                       LBSR  queue_remove
+1020: 1C EF                          ANDCC #~CC_IRQ        ; Clear IRQ mask
+1022: 24 F7                          BCC   receive_loop
+1024:                transmit_loop:
+1024: F6 DF 00                       LDB   ACIA_status
+1027: C5 02                          BITB  #TDRE_bm
+1029: 27 F9                          BEQ   transmit_loop
+102B:                transmit_data:
+102B: B7 DF 01                       STA   ACIA_data
+102E: 81 0D                          CMPA  #$0d
+1030: 26 E9                          BNE   receive_loop
+1032: 86 0A                          LDA   #$0a
+1034: 20 EE                          BRA   transmit_loop
+1036:
+1036:                                INCLUDE               "queue.inc"
+1036:                ;;; -*- mode: asm; mode: flying-spell; -*-
+1036:
+1036:                ;;; [queue] queue structure
+1036: =$0            queue_len:      EQU   0               ; queue length
+1036: =$1            queue_size:     EQU   1               ; buffer size
+1036: =$2            queue_put:      EQU   2               ; queue put index
+1036: =$3            queue_get:      EQU   3               ; queue get index
+1036: =$4            queue_buf:      EQU   4               ; buffer start offset
+1036:
+1036:                ;;; [queue] Initialize queue
+1036:                ;;; @param X queue work space pointer
+1036:                ;;; @param B queue work space size
+1036:                ;;; @clobber B
+1036:                queue_init:
+1036: 34 16                          PSHS  x,d
+1038: 4F                             CLRA
+1039:                queue_init_loop:
+1039: 6F 80                          CLR   ,x+
+103B: 83 00 01                       SUBD  #1
+103E: 26 F9                          BNE   queue_init_loop
+1040: 35 16                          PULS  d,x
+1042: C0 04                          SUBB  #queue_buf
+1044: E7 01                          STB   queue_size,x
+1046: 39                             RTS
+1047:
+1047:                ;;; [queue] Add an element to queue
+1047:                ;;; @param X queue work space pointer
+1047:                ;;; @param A an element
+1047:                ;;; @return CC.C 0 if queue is full
+1047:                queue_add:
+1047: 34 04                          PSHS  b
+1049: E6 84                          LDB   queue_len,x
+104B: E1 01                          CMPB  queue_size,x
+104D: 24 16                          BHS   queue_add_return    ;carry is cleared
+104F: E6 02                          LDB   queue_put,x     ; 8 bits offset
+1051: 34 10                          PSHS  x
+1053: 3A                             ABX                   ; X+=B
+1054: A7 04                          STA   queue_buf,x     ; store an element
+1056: 35 10                          PULS  x
+1058: 6C 84                          INC   queue_len,x
+105A: 5C                             INCB
+105B: E7 02                          STB   queue_put,x
+105D: E1 01                          CMPB  queue_size,x
+105F: 25 04                          BLO   queue_add_return    ; carry is set
+1061: 6F 02                          CLR   queue_put,x
+1063: 1A 01                          ORCC  #1              ; set carry
+1065:                queue_add_return:
+1065: 35 84                          PULS  b,pc
+1067:
+1067:                ;;; [queue] Remove an element from queue
+1067:                ;;; @param X queue work space pointer
+1067:                ;;; @return A an element
+1067:                ;;; @return CC.C 0 if queue is empty
+1067:                queue_remove:
+1067: 6D 84                          TST   queue_len,x
+1069: 26 03                          BNE   queue_remove_elem
+106B: 1C FE                          ANDCC #~1             ; clear carry
+106D: 39                             RTS
+106E:                queue_remove_elem:
+106E: 34 04                          PSHS  b
+1070: E6 03                          LDB   queue_get,x     ; 8 bits offset
+1072: 34 10                          PSHS  x
+1074: 3A                             ABX                   ; X+=B
+1075: A6 04                          LDA   queue_buf,x
+1077: 35 10                          PULS  x
+1079: 6A 84                          DEC   queue_len,x
+107B: 5C                             INCB
+107C: E7 03                          STB   queue_get,x
+107E: E1 01                          CMPB  queue_size,x
+1080: 25 04                          BLO   queue_remove_return ; carry is set
+1082: 6F 03                          CLR   queue_get,x
+1084: 1A 01                          ORCC  #1              ; set carry
+1086:                queue_remove_return:
+1086: 35 84                          PULS  b,pc
+1088:
+1088:
+1088:                isr_irq:
+1088: F6 DF 00                       LDB   ACIA_status
+108B: C5 80                          BITB  #IRQF_bm
+108D: 27 0D                          BEQ   isr_irq_return
+108F:                isr_irq_receive:
+108F: C5 01                          BITB  #RDRF_bm
+1091: 27 09                          BEQ   isr_irq_recv_end
+1093: B6 DF 01                       LDA   ACIA_data
+1096: 8E 20 00                       LDX   #rx_queue
+1099: 17 FF AB                       LBSR  queue_add
+109C:                isr_irq_recv_end:
+109C:                isr_irq_return:
+109C: 3B                             RTI
+109D:
+FFF8:                                ORG   $FFF8
+FFF8: 10 88                          FDB   isr_irq
+FFFA:
+FFFE:                                ORG   $FFFE
+FFFE: 10 00                          FDB   initialize
