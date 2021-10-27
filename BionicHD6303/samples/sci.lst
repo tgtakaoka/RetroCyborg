@@ -12,89 +12,85 @@
    0: =$20           CC_HALF_CARRY   EQU   %00100000       ; if 1, decimal carry from least digit occurred
    0:
    0:                ;;; Internal Register Area
-   0:                                ORG   $00
-   0:                DDR1:           RMB   1               ; $00: Port 1 Data Direction Register
-   1:                DDR2:           RMB   1               ; $01: Port 2 Data Direction Register
-   2:                PORT1:          RMB   1               ; $02: Port 1 Data Register
-   3:                PORT2:          RMB   1               ; $03: Port 2 Data Register
-   4:                DDR3:           RMB   1               ; $04: Port 3 Data Direction Register
-   5:                DDR4:           RMB   1               ; $05: Port 4 Data Direction Register
-   6:                PORT3:          RMB   1               ; $06: Port 3 Data Register
-   7:                PORT4:          RMB   1               ; $07: Port 4 Data Register
-   8:                TCSR:           RMB   1               ; $08: Timer Control and Status Register
-   9:                TCNT:           RMB   2               ; $09: Timer Counter
-   B:                TOCR:           RMB   2               ; $0B: Output Compare Register
-   D:                TCAP:           RMB   2               ; $0D: Input Capture Register
-   F:                P3CSR:          RMB   1               ; $0F: Port 3 Control and Status Register
-  10:                RMCR:           RMB   1               ; $10: Rate and Mode Control Registers
-  11:                TRCSR:          RMB   1               ; $11: Transmit Receive Control and Status Register
-  12:                SCRDR:          RMB   1               ; $12: Receiver Data Register
-  13:                SCTDR:          RMB   1               ; $13: Transmit Data Register
-  14:                RAMCR:          RMB   1               ; $14: RAM Control Register
-  15:                                RMB   11              ; $15-$1F: Reserved
-  20: =$20           end_IRA:        EQU   *               ; end of internal register area
-  20:
-  20:                ;;; Port 2 Data Register
-  20: =$E0           PC_gm:          EQU   %11100000       ; PC group mask
-  20: =$5            PC_gp:          EQU   5               ; PC group position
-  20: =$20           PC0_bm:         EQU   %00100000       ; PC0
-  20: =$40           PC1_bm:         EQU   %01000000       ; PC1
-  20: =$80           PC2_bm:         EQU   %10000000       ; PC2
-  20:
-  20:                ;;; Port 3 Control and Status Register
-  20: =$8            P3_LATCH_bm:    EQU   %00001000       ; Latch Enable
-  20: =$10           P3_OSS_bm:      EQU   %00010000       ; Output Strobe Select
-  20: =$40           P3_IS3IE_bm:    EQU   %01000000       ; IS3 IRQ1 Enable
-  20: =$80           P3_IS3F_bm:     EQU   %10000000       ; IS3 Flag
-  20:
-  20:                ;;; RAM Control Register
-  20: =$40           RAME_bm:        EQU   %01000000       ; RAM Enable
-  20: =$80           STBY_PWR_bm:    EQU   %10000000       ; Standby Power status
-  20:
-  20:                ;;; Timer Control and Status Register
-  20: =$1            TCSR_OLVL_bm:   EQU   %00000001       ; Output Level
-  20: =$2            TCSR_IEDG_bm:   EQU   %00000010       ; Input Edge. 0=negative/1=positive
-  20: =$4            TCSR_ETOI_bm:   EQU   %00000100       ; Enable Timer Overflow Interrupt for IRQ2
-  20: =$8            TCSR_EOCI_bm:   EQU   %00001000       ; Enable Output Compare Interrupt for IRQ2
-  20: =$10           TCSR_EICI_bm:   EQU   %00010000       ; Enable Input Capture Interrupt for IRQ2
-  20: =$20           TCSR_TOF_bm:    EQU   %00100000       ; Timer Overflow Flag
-  20: =$40           TCSR_OCF_bm:    EQU   %01000000       ; Output Compare Flag
-  20: =$80           TCSR_ICF_bm:    EQU   %10000000       ; Input Capture Flag
-  20:
-  20:                ;;; Serial Communication Interface
-  20:                ;;; Rate and Mode Control Registers
-  20:                ;; Speed Select
-  20: =$3            SS_gm:          EQU   %00000011       ; Group mask
-  20: =$0            SS_DIV16_gc:    EQU   %00000000       ; E/16
-  20: =$1            SS_DIV128_gc:   EQU   %00000001       ; E/128
-  20: =$2            SS_DIV1024_gc:  EQU   %00000010       ; E/1024
-  20: =$3            SS_DIV4096_gc:  EQU   %00000011       ; E/4096
-  20:                ;; Clock Control and Format Select
-  20: =$C            CCFS_gm:        EQU   %00001100       ; Group mask
-  20: =$0            CCFS_BIPH_gc:   EQU   %00000000       ; Bi-Phase
-  20: =$4            CCFS_NRZ_gc:    EQU   %00000100       ; NRZ
-  20: =$8            CCFS_NRZO_gc:   EQU   %00001000       ; NRZ P22=Clock Output
-  20: =$C            CCFS_NRZI_gc:   EQU   %00001100       ; NRZ P22=Clock Input
-  20:                ;;; Transmit/Receive Control and Status Register
-  20: =$1            TRCSR_WU_bm:    EQU   %00000001       ; Wake-up on idle line
-  20: =$2            TRCSR_TE_bm:    EQU   %00000010       ; Transmit Enable; if set, P24 is output
-  20: =$4            TRCSR_TIE_bm:   EQU   %00000100       ; Transmit Interrupt Enable for IRQ2
-  20: =$8            TRCSR_RE_bm:    EQU   %00001000       ; Receiver Enable; if set, P23 is input
-  20: =$10           TRCSR_RIE_bm:   EQU   %00010000       ; Receiver Interrupt Enable for IRQ2
-  20: =$20           TRCSR_TDRE_bm:  EQU   %00100000       ; Transmit Data Register Empty
-  20: =$40           TRCSR_ORFE_bm:  EQU   %01000000       ; Overrun Framing Error
-  20: =$80           TRCSR_RDRF_bm:  EQU   %10000000       ; Receive Data Register Full
-  20:
-  20:                ;;; Vector
-FFF0:                                ORG   $FFF0
-FFF0:                VEC_SCI:        RMB   2               ; $FFF0: SCI Interrupt (TDRE+RDRF+ORFE)
-FFF2:                VEC_TOF:        RMB   2               ; $FFF2: Timer Overflow Interrupt
-FFF4:                VEC_OCF:        RMB   2               ; $FFF4: Output Compare Interrupt
-FFF6:                VEC_ICF:        RMB   2               ; $FFF6: Input Capture Interrupt
-FFF8:                VEC_IRQ1:       RMB   2               ; $FFF8: Maskable Interrupt Request 1
-FFFA:                VEC_SWI:        RMB   2               ; $FFFA: Software Interrupt
-FFFC:                VEC_NMI:        RMB   2               ; $FFFC: Non Maskable Interrupt
-FFFE:                VEC_RESET:      RMB   2               ; $FFFE: Reset
+   0: =$0            DDR1:           EQU   $00             ; $00: Port 1 Data Direction Register
+   0: =$1            DDR2:           EQU   $01             ; $01: Port 2 Data Direction Register
+   0: =$2            PORT1:          EQU   $02             ; $02: Port 1 Data Register
+   0: =$3            PORT2:          EQU   $03             ; $03: Port 2 Data Register
+   0: =$4            DDR3:           EQU   $04             ; $04: Port 3 Data Direction Register
+   0: =$5            DDR4:           EQU   $05             ; $05: Port 4 Data Direction Register
+   0: =$6            PORT3:          EQU   $06             ; $06: Port 3 Data Register
+   0: =$7            PORT4:          EQU   $07             ; $07: Port 4 Data Register
+   0: =$8            TCSR:           EQU   $08             ; $08: Timer Control and Status Register
+   0: =$9            TCNT:           EQU   $09             ; $09: Timer Counter
+   0: =$B            TOCR:           EQU   $0B             ; $0B: Output Compare Register
+   0: =$D            TCAP:           EQU   $0D             ; $0D: Input Capture Register
+   0: =$F            P3CSR:          EQU   $0F             ; $0F: Port 3 Control and Status Register
+   0: =$10           RMCR:           EQU   $10             ; $10: Rate and Mode Control Registers
+   0: =$11           TRCSR:          EQU   $11             ; $11: Transmit Receive Control and Status Register
+   0: =$12           SCRDR:          EQU   $12             ; $12: Receiver Data Register
+   0: =$13           SCTDR:          EQU   $13             ; $13: Transmit Data Register
+   0: =$14           RAMCR:          EQU   $14             ; $14: RAM Control Register
+   0:
+   0:                ;;; Port 2 Data Register
+   0: =$E0           PC_gm:          EQU   %11100000       ; PC group mask
+   0: =$5            PC_gp:          EQU   5               ; PC group position
+   0: =$20           PC0_bm:         EQU   %00100000       ; PC0
+   0: =$40           PC1_bm:         EQU   %01000000       ; PC1
+   0: =$80           PC2_bm:         EQU   %10000000       ; PC2
+   0:
+   0:                ;;; Port 3 Control and Status Register
+   0: =$8            P3_LATCH_bm:    EQU   %00001000       ; Latch Enable
+   0: =$10           P3_OSS_bm:      EQU   %00010000       ; Output Strobe Select
+   0: =$40           P3_IS3IE_bm:    EQU   %01000000       ; IS3 IRQ1 Enable
+   0: =$80           P3_IS3F_bm:     EQU   %10000000       ; IS3 Flag
+   0:
+   0:                ;;; RAM Control Register
+   0: =$40           RAME_bm:        EQU   %01000000       ; RAM Enable
+   0: =$80           STBY_PWR_bm:    EQU   %10000000       ; Standby Power status
+   0:
+   0:                ;;; Timer Control and Status Register
+   0: =$1            TCSR_OLVL_bm:   EQU   %00000001       ; Output Level
+   0: =$2            TCSR_IEDG_bm:   EQU   %00000010       ; Input Edge. 0=negative/1=positive
+   0: =$4            TCSR_ETOI_bm:   EQU   %00000100       ; Enable Timer Overflow Interrupt for IRQ2
+   0: =$8            TCSR_EOCI_bm:   EQU   %00001000       ; Enable Output Compare Interrupt for IRQ2
+   0: =$10           TCSR_EICI_bm:   EQU   %00010000       ; Enable Input Capture Interrupt for IRQ2
+   0: =$20           TCSR_TOF_bm:    EQU   %00100000       ; Timer Overflow Flag
+   0: =$40           TCSR_OCF_bm:    EQU   %01000000       ; Output Compare Flag
+   0: =$80           TCSR_ICF_bm:    EQU   %10000000       ; Input Capture Flag
+   0:
+   0:                ;;; Serial Communication Interface
+   0:                ;;; Rate and Mode Control Registers
+   0:                ;; Speed Select
+   0: =$3            SS_gm:          EQU   %00000011       ; Group mask
+   0: =$0            SS_DIV16_gc:    EQU   %00000000       ; E/16
+   0: =$1            SS_DIV128_gc:   EQU   %00000001       ; E/128
+   0: =$2            SS_DIV1024_gc:  EQU   %00000010       ; E/1024
+   0: =$3            SS_DIV4096_gc:  EQU   %00000011       ; E/4096
+   0:                ;; Clock Control and Format Select
+   0: =$C            CCFS_gm:        EQU   %00001100       ; Group mask
+   0: =$0            CCFS_BIPH_gc:   EQU   %00000000       ; Bi-Phase
+   0: =$4            CCFS_NRZ_gc:    EQU   %00000100       ; NRZ
+   0: =$8            CCFS_NRZO_gc:   EQU   %00001000       ; NRZ P22=Clock Output
+   0: =$C            CCFS_NRZI_gc:   EQU   %00001100       ; NRZ P22=Clock Input
+   0:                ;;; Transmit/Receive Control and Status Register
+   0: =$1            TRCSR_WU_bm:    EQU   %00000001       ; Wake-up on idle line
+   0: =$2            TRCSR_TE_bm:    EQU   %00000010       ; Transmit Enable; if set, P24 is output
+   0: =$4            TRCSR_TIE_bm:   EQU   %00000100       ; Transmit Interrupt Enable for IRQ2
+   0: =$8            TRCSR_RE_bm:    EQU   %00001000       ; Receiver Enable; if set, P23 is input
+   0: =$10           TRCSR_RIE_bm:   EQU   %00010000       ; Receiver Interrupt Enable for IRQ2
+   0: =$20           TRCSR_TDRE_bm:  EQU   %00100000       ; Transmit Data Register Empty
+   0: =$40           TRCSR_ORFE_bm:  EQU   %01000000       ; Overrun Framing Error
+   0: =$80           TRCSR_RDRF_bm:  EQU   %10000000       ; Receive Data Register Full
+   0:
+   0:                ;;; Vector
+   0: =$FFF0         VEC_SCI:        EQU   $FFF0           ; $FFF0: SCI Interrupt (TDRE+RDRF+ORFE)
+   0: =$FFF2         VEC_TOF:        EQU   $FFF2           ; $FFF2: Timer Overflow Interrupt
+   0: =$FFF4         VEC_OCF:        EQU   $FFF4           ; $FFF4: Output Compare Interrupt
+   0: =$FFF6         VEC_ICF:        EQU   $FFF6           ; $FFF6: Input Capture Interrupt
+   0: =$FFF8         VEC_IRQ1:       EQU   $FFF8           ; $FFF8: Maskable Interrupt Request 1
+   0: =$FFFA         VEC_SWI:        EQU   $FFFA           ; $FFFA: Software Interrupt
+   0: =$FFFC         VEC_NMI:        EQU   $FFFC           ; $FFFC: Non Maskable Interrupt
+   0: =$FFFE         VEC_RESET:      EQU   $FFFE           ; $FFFE: Reset
    0:
    0:                ;;; SCI: Emable Rx and Tx
    0: =$A            RX_ON_TX_ON:    EQU   TRCSR_TE_bm|TRCSR_RE_bm

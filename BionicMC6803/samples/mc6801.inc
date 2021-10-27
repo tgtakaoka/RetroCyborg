@@ -10,27 +10,24 @@ CC_IRQ        equ  %00010000   ; if 1, IRQ is masked
 CC_HALF_CARRY equ  %00100000   ; if 1, decimal carry from least digit occurred
 
 ;;; Internal Register Area
-        org     $00
-DDR1:   rmb     1               ; $00: Port 1 Data Direction Register
-DDR2:   rmb     1               ; $01: Port 2 Data Direction Register
-PORT1:  rmb     1               ; $02: Port 1 Data Register
-PORT2:  rmb     1               ; $03: Port 2 Data Register
-DDR3:   rmb     1               ; $04: Port 3 Data Direction Register
-DDR4:   rmb     1               ; $05: Port 4 Data Direction Register
-PORT3:  rmb     1               ; $06: Port 3 Data Register
-PORT4:  rmb     1               ; $07: Port 4 Data Register
-TCSR:   rmb     1               ; $08: Timer Control and Status Register
-TCNT:   rmb     2               ; $09: Timer Counter
-TOCR:   rmb     2               ; $0B: Output Compare Register
-TCAP:   rmb     2               ; $0D: Input Capture Register
-P3CSR:  rmb     1               ; $0F: Port 3 Control and Status Register
-RMCR:   rmb     1               ; $10: Rate and Mode Control Registers
-TRCSR:  rmb     1               ; $11: Transmit Receive Control and Status Register
-SCRDR:  rmb     1               ; $12: Receiver Data Register
-SCTDR:  rmb     1               ; $13: Transmit Data Register
-RAMCR:  rmb     1               ; $14: RAM Control Register
-        rmb     11              ; $15-$1F: Reserved
-end_IRA:        equ     *       ; end of internal register area
+DDR1:   equ     $00          ; $00: Port 1 Data Direction Register
+DDR2:   equ     $01          ; $01: Port 2 Data Direction Register
+PORT1:  equ     $02          ; $02: Port 1 Data Register
+PORT2:  equ     $03          ; $03: Port 2 Data Register
+DDR3:   equ     $04          ; $04: Port 3 Data Direction Register
+DDR4:   equ     $05          ; $05: Port 4 Data Direction Register
+PORT3:  equ     $06          ; $06: Port 3 Data Register
+PORT4:  equ     $07          ; $07: Port 4 Data Register
+TCSR:   equ     $08          ; $08: Timer Control and Status Register
+TCNT:   equ     $09          ; $09: Timer Counter
+TOCR:   equ     $0B          ; $0B: Output Compare Register
+TCAP:   equ     $0D          ; $0D: Input Capture Register
+P3CSR:  equ     $0F          ; $0F: Port 3 Control and Status Register
+RMCR:   equ     $10          ; $10: Rate and Mode Control Registers
+TRCSR:  equ     $11          ; $11: Transmit Receive Control and Status Register
+SCRDR:  equ     $12          ; $12: Receiver Data Register
+SCTDR:  equ     $13          ; $13: Transmit Data Register
+RAMCR:  equ     $14          ; $14: RAM Control Register
 
 ;;; Port 2 Data Register
 PC_gm:  equ     %11100000       ; PC group mask
@@ -84,12 +81,11 @@ TRCSR_ORFE_bm:  equ     %01000000 ; Overrun Framing Error
 TRCSR_RDRF_bm:  equ     %10000000 ; Receive Data Register Full
 
 ;;; Vector
-        org     $FFF0
-VEC_SCI:        rmb     2       ; $FFF0: SCI Interrupt (TDRE+RDRF+ORFE)
-VEC_TOF:        rmb     2       ; $FFF2: Timer Overflow Interrupt
-VEC_OCF:        rmb     2       ; $FFF4: Output Compare Interrupt
-VEC_ICF:        rmb     2       ; $FFF6: Input Capture Interrupt
-VEC_IRQ1:       rmb     2       ; $FFF8: Maskable Interrupt Request 1
-VEC_SWI:        rmb     2       ; $FFFA: Software Interrupt
-VEC_NMI:        rmb     2       ; $FFFC: Non Maskable Interrupt
-VEC_RESET:      rmb     2       ; $FFFE: Reset
+VEC_SCI:        equ     $FFF0  ; $FFF0: SCI Interrupt (TDRE+RDRF+ORFE)
+VEC_TOF:        equ     $FFF2  ; $FFF2: Timer Overflow Interrupt
+VEC_OCF:        equ     $FFF4  ; $FFF4: Output Compare Interrupt
+VEC_ICF:        equ     $FFF6  ; $FFF6: Input Capture Interrupt
+VEC_IRQ1:       equ     $FFF8  ; $FFF8: Maskable Interrupt Request 1
+VEC_SWI:        equ     $FFFA  ; $FFFA: Software Interrupt
+VEC_NMI:        equ     $FFFC  ; $FFFC: Non Maskable Interrupt
+VEC_RESET:      equ     $FFFE  ; $FFFE: Reset
