@@ -180,8 +180,6 @@ Signals &Pins::cycle() {
     DO_DEBUG_CYCLE(char rw; char state);
     if (signals.rw == HIGH) {
         DO_DEBUG_CYCLE(rw = 'R');
-        // change data bus to output
-        busMode(DB, OUTPUT);
         if (SciH.isSelected(signals.addr)) {
             signals.data = SciH.read(signals.addr);
             DO_DEBUG_CYCLE(state = 'S');
@@ -196,6 +194,8 @@ Signals &Pins::cycle() {
             DO_DEBUG_CYCLE(state = 'I');
         }
         busWrite(DB, signals.data);
+        // change data bus to output
+        busMode(DB, OUTPUT);
     } else {
         DO_DEBUG_CYCLE(rw = 'W');
         signals.readData().debug('W');
@@ -213,6 +213,10 @@ Signals &Pins::cycle() {
             DO_DEBUG_CYCLE(state = 'C');
         }
     }
+    // Set clock low to handle hold times and tristate data bus.
+    clock_lo();
+    busMode(DB, INPUT);
+
     DO_DEBUG_CYCLE(do {
         if (debug_cycle) {
             cli.printDec(count++, 6);
@@ -224,10 +228,6 @@ Signals &Pins::cycle() {
             cli.println();
         }
     } while (0));
-
-    // Set clock low to handle hold times and tristate data bus.
-    clock_lo();
-    busMode(DB, INPUT);
     Signals::nextCycle();
     return signals;
 }
