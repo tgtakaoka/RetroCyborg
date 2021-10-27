@@ -149,7 +149,7 @@ static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
         print(insn);
         if (disassembler.getError()) {
             cli.print(F("Error: "));
-            cli.println(disassembler.getError());
+            cli.println(disassembler.errorText(disassembler.getError()));
             continue;
         }
         print(insn.name(), 6);
@@ -239,7 +239,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
     Insn insn(last_addr);
     if (assembler.encode(line, insn)) {
         cli.print(F("Error: "));
-        cli.println(assembler.getError());
+        cli.println(assembler.errorText(assembler.getError()));
     } else {
         print(insn);
         cli.println();

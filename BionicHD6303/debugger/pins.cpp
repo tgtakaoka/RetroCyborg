@@ -13,14 +13,6 @@
 extern libcli::Cli &cli;
 class Pins Pins;
 
-//#define DEBUG_CYCLE
-#if defined(DEBUG_CYCLE)
-#define DO_DEBUG_CYCLE(s) s
-#else
-#define DO_DEBUG_CYCLE(s)
-#endif
-DO_DEBUG_CYCLE(bool debug_cycle; uint32_t count);
-
 uint8_t RAM[0x10000];
 
 Mc6850 Acia(Console);
@@ -174,60 +166,40 @@ Signals &Pins::cycle() {
     //
     clock_lo();
     clock_hi();
-    signals.get().debug('R');
+    signals.get();
 
     // DO the transaction here
-    DO_DEBUG_CYCLE(char rw; char state);
     if (signals.rw == HIGH) {
-        DO_DEBUG_CYCLE(rw = 'R');
         if (SciH.isSelected(signals.addr)) {
-            signals.data = SciH.read(signals.addr);
-            DO_DEBUG_CYCLE(state = 'S');
+            signals.debug('s').data = SciH.read(signals.addr);
         } else if (Acia.isSelected(signals.addr)) {
-            signals.data = Acia.read(signals.addr);
-            DO_DEBUG_CYCLE(state = 'A');
+            signals.debug('a').data = Acia.read(signals.addr);
         } else if (signals.readRam()) {
-            signals.data = RAM[signals.addr];
-            DO_DEBUG_CYCLE(state = 'M');
+            signals.debug('m').data = RAM[signals.addr];
         } else {
             ;  // inject data from signals.data
-            DO_DEBUG_CYCLE(state = 'I');
+            signals.debug('i');
         }
         busWrite(DB, signals.data);
         // change data bus to output
         busMode(DB, OUTPUT);
     } else {
-        DO_DEBUG_CYCLE(rw = 'W');
-        signals.readData().debug('W');
+        signals.readData();
         if (SciH.isSelected(signals.addr)) {
-            SciH.write(signals.data, signals.addr);
-            DO_DEBUG_CYCLE(state = 'S');
+            SciH.write(signals.debug('S').data, signals.addr);
         } else if (Acia.isSelected(signals.addr)) {
-            Acia.write(signals.data, signals.addr);
-            DO_DEBUG_CYCLE(state = 'A');
+            Acia.write(signals.debug('A').data, signals.addr);
         } else if (signals.writeRam()) {
-            RAM[signals.addr] = signals.data;
-            DO_DEBUG_CYCLE(state = 'M');
+            RAM[signals.addr] = signals.debug('M').data;
         } else {
             ;  // capture data to signals.data
-            DO_DEBUG_CYCLE(state = 'C');
+            signals.debug('C');
         }
     }
     // Set clock low to handle hold times and tristate data bus.
     clock_lo();
     busMode(DB, INPUT);
 
-    DO_DEBUG_CYCLE(do {
-        if (debug_cycle) {
-            cli.printDec(count++, 6);
-            cli.print('@');
-            cli.printHex(signals.addr, 4);
-            cli.print(rw);
-            cli.print(state);
-            cli.printHex(signals.data, 2);
-            cli.println();
-        }
-    } while (0));
     Signals::nextCycle();
     return signals;
 }
@@ -296,7 +268,6 @@ void Pins::loop() {
         if (user_sw() == LOW)
             Commands.halt();
     } else {
-        DO_DEBUG_CYCLE(debug_cycle = false);
         Signals::resetCycles();
         // Inject "BRA *"
         Signals::currCycle().inject(0x20);
@@ -305,7 +276,6 @@ void Pins::loop() {
         cycle();
         Signals::currCycle().inject(0);
         cycle();
-        DO_DEBUG_CYCLE(debug_cycle = false);
     }
 }
 
