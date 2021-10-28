@@ -6,6 +6,8 @@
 #include "pins.h"
 #include "string_util.h"
 
+extern libcli::Cli &cli;
+
 uint8_t Signals::_cycles;
 Signals Signals::_signals[MAX_CYCLES + 1];
 
@@ -42,33 +44,38 @@ uint8_t Signals::flushCycles(uint8_t start) {
     return _cycles;
 }
 
+Signals &Signals::clear() {
+    addr = 0;
+    data = 0;
+    vma = rw = ba = e = reset = halt = 0;
+#ifdef DEBUG_SIGNALS
+    _debug = 0;
+#endif
+    _inject = _capture = false;
+    return *this;
+}
+
 Signals &Signals::get() {
     rw = digitalReadFast(PIN_RW);
-    reset = digitalReadFast(PIN_RESET);
+    ba = digitalReadFast(PIN_BA);
     e = digitalReadFast(PIN_E);
+    reset = digitalReadFast(PIN_RESET);
+    halt = digitalReadFast(PIN_HALT);
     return *this;
 }
 
 Signals &Signals::readAddr() {
-    as = digitalReadFast(PIN_AS);
-    if (as == HIGH) {
-        addr = busRead(AH);
-        addr <<= 8;
-        addr |= busRead(DB);
+    vma = digitalReadFast(PIN_VMA);
+    if (vma == HIGH) {
+        const uint16_t al = busRead(AL);
+        const uint16_t ah = busRead(AH);
+        addr = al | ah;
     }
     return *this;
 }
 
 Signals &Signals::readData() {
     data = busRead(DB);
-    return *this;
-}
-
-Signals &Signals::clear() {
-    addr = 0;
-    data = 0;
-    as = rw = reset = e = 0;
-    _inject = _capture = false;
     return *this;
 }
 
@@ -93,22 +100,24 @@ static char *outPin(char *p, bool value, const char *name) {
 }
 
 void Signals::print() const {
-    // text=17 hex=(1+2)*2 eos=1
-    char buffer[24];
+    // text=22 hex=(1+2)*2 eos=1
+    char buffer[22 + (1 + 2) * 2 + 1];
     char *p = buffer;
 #ifdef DEBUG_SIGNALS
     *p++ = _debug ? _debug : ' ';
 #endif
     p = outPin(p, reset == LOW, " R");
+    p = outPin(p, halt == LOW, " H");
+    p = outPin(p, ba == LOW, " BA");
     p = outPin(p, e == HIGH, " E");
-    p = outPin(p, as == HIGH, " AS");
+    p = outPin(p, vma == HIGH, " VMA");
     p = outText(p, rw == HIGH ? " RD" : " WR");
     p = outText(p, " A=");
     p = outHex16(p, addr);
     p = outText(p, " D=");
     p = outHex8(p, data);
     *p = 0;
-    libcli::Cli::instance().println(buffer);
+    cli.println(buffer);
 }
 
 Signals &Signals::debug(char c) {

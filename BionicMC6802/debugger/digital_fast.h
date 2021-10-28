@@ -26,7 +26,7 @@
             PDDR(name) |= (BUS_gm(name) << BUS_gp(name));  \
         }                                                  \
     } while (0)
-#define busRead(name) (PIN(name) & BUS_gm(name))
+#define busRead(name) ((PIN(name) & BUS_gm(name)) << BUS_gp(name))
 #define busWrite(name, val)                                                   \
     do {                                                                      \
         const uint32_t v = static_cast<uint32_t>(val & 0xFF) << BUS_gp(name); \

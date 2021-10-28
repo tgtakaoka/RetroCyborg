@@ -13,11 +13,6 @@ struct Regs {
     uint8_t a;
     uint8_t b;
     uint8_t cc;
-    uint16_t getD() const { return (static_cast<uint16_t>(a) << 8) | b; }
-    void setD(uint16_t d) {
-        b = d;
-        a = d >> 8;
-    }
 
     void print() const;
     void save(bool show = false);

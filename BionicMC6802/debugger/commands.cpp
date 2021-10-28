@@ -375,8 +375,6 @@ static void printIoDevice(State state) {
     uint16_t baseAddr;
     if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
         cli.print(F("ACIA (MC6850) at $"));
-    } else {
-        cli.print(F("SCI (" MPU_NAME ") at $"));
     }
     cli.printHex(baseAddr, 4);
     cli.println();
@@ -410,9 +408,7 @@ static void handleIo(char *line, uintptr_t extra, State state) {
         cli.readHex(handleAciaAddr, 0, UINT16_MAX);
         return;
     }
-    if (strcasecmp_P(str_buffer, PSTR("sci")) == 0) {
-        Pins.setIoDevice(Pins::SerialDevice::DEV_SCI, 0);
-    } else if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
+    if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
         Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, Pins.ioBaseAddress());
     }
     printIoDevice(state);
