@@ -36,9 +36,9 @@ using namespace libasm;
 typedef libcli::Cli::State State;
 extern libcli::Cli &cli;
 
-#define USAGE                                                          \
-    "R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep c:ont G:o " \
-    "h/H:alt F:iles L:oad I:o"
+#define USAGE                                                              \
+    F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep c/C:ont G:o " \
+      "h/H:alt F:iles L:oad I:o")
 
 class Commands Commands;
 
@@ -419,7 +419,7 @@ cancel:
 void Commands::exec(char c) {
     switch (c) {
     case 'R':
-        cli.println("RESET");
+        cli.println(F("RESET"));
         Pins.reset(true);
         Regs.print();
         disassemble(Regs.pc, 1);
@@ -455,7 +455,7 @@ void Commands::exec(char c) {
             halt(c == 'S');
             return;
         }
-        cli.println("STEP");
+        cli.println(F("STEP"));
         Pins.step(c == 'S');
         Regs.print();
         disassemble(Regs.pc, 1);
@@ -468,12 +468,16 @@ void Commands::exec(char c) {
         }
         break;
     case 'c':
+    case 'C':
+        cli.println(F("Continue"));
         _target = STEP;
+        _showRegs = (c == 'C');
         return;
     case 'G':
         if (_target != RUN) {
             cli.println(F("GO"));
             _target = RUN;
+            _showRegs = false;
             Pins.run();
         }
         return;
@@ -506,7 +510,8 @@ void Commands::exec(char c) {
 void Commands::halt(bool show) {
     _target = HALT;
     Pins.halt(show);
-    Regs.print();
+    if (!_showRegs)
+        Regs.print();
     disassemble(Regs.pc, 1);
     printPrompt();
 }
@@ -519,7 +524,8 @@ void Commands::begin() {
 void Commands::loop() {
     if (_target == STEP) {
         Pins.step();
-        Regs.print();
+        if (_showRegs)
+            Regs.print();
     } else {
         Pins.loop();
     }

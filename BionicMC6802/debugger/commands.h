@@ -15,6 +15,7 @@ private:
         STEP,
         RUN,
     } _target = HALT;
+    bool _showRegs;
 };
 
 extern Commands Commands;
