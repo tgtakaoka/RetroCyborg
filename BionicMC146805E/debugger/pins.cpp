@@ -7,16 +7,14 @@
 #include "digital_fast.h"
 #include "mc6850.h"
 #include "regs.h"
-#include "sci_handler.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
 class Pins Pins;
 
-uint8_t RAM[0x10000];
+uint8_t RAM[0x2000];
 
 Mc6850 Acia(Console);
-SciHandler<PIN_SCIRXD, PIN_SCITXD> SciH(Console);
 
 static inline void clock_hi() {
     digitalWriteFast(PIN_CLOCK, HIGH);
@@ -33,57 +31,22 @@ static void clock_cycle() {
     clock_lo();
 }
 
-static uint8_t clock_e() {
-    return digitalReadFast(PIN_E);
+static void assert_irq() {
+    digitalWriteFast(PIN_IRQ, LOW);
 }
 
-static void assert_nmi() {
-    digitalWriteFast(PIN_NMI, LOW);
-}
-
-static void negate_nmi() {
-    digitalWriteFast(PIN_NMI, HIGH);
-}
-
-static void assert_irq1() {
-    digitalWriteFast(PIN_IRQ1, LOW);
-}
-
-static void negate_irq1() {
-    digitalWriteFast(PIN_IRQ1, HIGH);
+static void negate_irq() {
+    digitalWriteFast(PIN_IRQ, HIGH);
 }
 
 static void assert_reset() {
     // Drive RESET condition
     digitalWriteFast(PIN_RESET, LOW);
-    negate_nmi();
-    negate_irq1();
-
-    // Toggle reset to put MC6803 in reset
-    clock_cycle();
-    clock_cycle();
-    clock_cycle();
-    clock_cycle();
-}
-
-static void inject_mode(uint8_t mode) {
-    pinMode(PIN_PC2, OUTPUT);
-    digitalWriteFast(PIN_PC2, (mode & 4) ? HIGH : LOW);
-    pinMode(PIN_PC1, OUTPUT);
-    digitalWriteFast(PIN_PC1, (mode & 2) ? HIGH : LOW);
-    pinMode(PIN_PC0, OUTPUT);
-    digitalWriteFast(PIN_PC0, (mode & 1) ? HIGH : LOW);
+    negate_irq();
 }
 
 static void negate_reset() {
-    // Release RESET conditions
     digitalWriteFast(PIN_RESET, HIGH);
-}
-
-static void release_mode() {
-    pinMode(PIN_PC2, INPUT_PULLUP);
-    pinMode(PIN_PC1, INPUT_PULLUP);
-    pinMode(PIN_PC0, INPUT_PULLUP);
 }
 
 static void turn_on_led() {
@@ -104,22 +67,19 @@ static uint8_t user_sw() {
 }
 
 static const uint8_t BUS_PINS[] = {
-        PIN_DB0,
-        PIN_DB1,
-        PIN_DB2,
-        PIN_DB3,
-        PIN_DB4,
-        PIN_DB5,
-        PIN_DB6,
-        PIN_DB7,
+        PIN_B0,
+        PIN_B1,
+        PIN_B2,
+        PIN_B3,
+        PIN_B4,
+        PIN_B5,
+        PIN_B6,
+        PIN_B7,
         PIN_AH8,
         PIN_AH9,
         PIN_AH10,
         PIN_AH11,
         PIN_AH12,
-        PIN_AH13,
-        PIN_AH14,
-        PIN_AH15,
 };
 
 void Pins::begin() {
@@ -131,48 +91,45 @@ void Pins::begin() {
 
     pinMode(PIN_RESET, OUTPUT);
     pinMode(PIN_CLOCK, OUTPUT);
-    pinMode(PIN_E, INPUT);
     pinMode(PIN_AS, INPUT);
+    pinMode(PIN_DS, INPUT);
     pinMode(PIN_RW, INPUT);
-    pinMode(PIN_IRQ1, OUTPUT);
-    pinMode(PIN_PC0, INPUT_PULLUP);
-    pinMode(PIN_PC1, INPUT_PULLUP);
-    pinMode(PIN_PC2, INPUT_PULLUP);
-    // #NMI is connected to P21/PC1 for LILBUG trace.
-    pinMode(PIN_NMI, OUTPUT_OPENDRAIN);
+    pinMode(PIN_LI, INPUT);
+    pinMode(PIN_IRQ, OUTPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
     turn_off_led();
 
-    assert_reset();
     clock_lo();
+    assert_reset();
+    // Toggle clock to put MC146805E in reset
+    for (int i = 0; i < 1920; i++)
+        clock_cycle();
     _freeRunning = false;
 
-    setIoDevice(SerialDevice::DEV_SCI, 0x10);
+    setIoDevice(SerialDevice::DEV_ACIA, ioBaseAddress());
 }
 
 Signals &Pins::cycle() {
     Signals &signals = Signals::currCycle();
-    // MC6803 clock E is CLK/4, so we toggle CLK 4 times
-    clock_lo();
+    // MC146805E bus cycle is CLK/5, so we toggle CLK 5 times
     clock_hi();
-    //
     clock_lo();
+    //
+    clock_hi();
     signals.readAddr();
-    clock_hi();
-    //
     clock_lo();
-    clock_hi();
     //
+    clock_hi();
     clock_lo();
+    //
     clock_hi();
     signals.get();
+    clock_lo();
 
     // DO the transaction here
     if (signals.rw == HIGH) {
-        if (SciH.isSelected(signals.addr)) {
-            signals.debug('s').data = SciH.read(signals.addr);
-        } else if (Acia.isSelected(signals.addr)) {
+        if (Acia.isSelected(signals.addr)) {
             signals.debug('a').data = Acia.read(signals.addr);
         } else if (signals.readRam()) {
             signals.debug('m').data = RAM[signals.addr];
@@ -185,9 +142,7 @@ Signals &Pins::cycle() {
         busMode(DB, OUTPUT);
     } else {
         signals.readData();
-        if (SciH.isSelected(signals.addr)) {
-            SciH.write(signals.debug('S').data, signals.addr);
-        } else if (Acia.isSelected(signals.addr)) {
+        if (Acia.isSelected(signals.addr)) {
             Acia.write(signals.debug('A').data, signals.addr);
         } else if (signals.writeRam()) {
             RAM[signals.addr] = signals.debug('M').data;
@@ -196,7 +151,8 @@ Signals &Pins::cycle() {
             signals.debug('C');
         }
     }
-    // Set clock low to handle hold times and tristate data bus.
+    //
+    clock_hi();
     clock_lo();
     busMode(DB, INPUT);
 
@@ -234,76 +190,54 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 void Pins::reset(bool show) {
     assert_reset();
-    inject_mode(MPU_MODE);
-    // Synchronize clock output and E clock input.
-    while (clock_e() == LOW)
+    // Synchronize clock output to DS.
+    while (digitalReadFast(PIN_DS) == LOW)
         clock_cycle();
-    while (clock_e() == HIGH)
+    while (digitalReadFast(PIN_DS) == HIGH)
         clock_cycle();
-    for (int i = 0; i < 24; i++)
-        cycle();
+    cycle();
     Signals::resetCycles();
     cycle().debug('R');
     negate_reset();
     cycle().debug('r');
-    release_mode();
+    cycle().debug('r');
     // Read Reset vector
     cycle().debug('V');
     cycle().debug('v');
+    cycle().debug('d');
     if (show)
         Signals::printCycles();
     Regs.save(show);
-
-    SciH.reset();
 }
 
 void Pins::loop() {
     if (_freeRunning) {
         Acia.loop();
-        SciH.loop();
         cycle();
         if (user_sw() == LOW)
             Commands.halt();
-    } else {
-        Signals::resetCycles();
-        // Inject "BRA *"
-        Signals::currCycle().inject(0x20);
-        cycle();
-        Signals::currCycle().inject(0xFE);
-        cycle();
-        Signals::currCycle().inject(0);
-        cycle();
     }
 }
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
+        _freeRunning = false;
         Signals::resetCycles();
-        uint8_t needFlush = 0;
-        uint8_t writes = 0;
-        assert_nmi();
-        while (writes < 7) {
-            Signals signals = Signals::currCycle().capture();
-            if (cycle().rw == LOW) {
-                writes++;
-            } else {
-                needFlush = Signals::flushCycles(needFlush);
-                writes = 0;
+        while (true) {
+            Signals &signals = cycle();
+            if (signals.li == HIGH) {
+                const uint8_t insn = RAM[signals.debug('0').addr];
+                const uint8_t cycles = Regs.cycles(insn);
+                for (uint8_t c = 1; c < cycles; c++) {
+                    cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
+                }
+                break;
             }
-            signals.debug('0' + writes);
         }
-        negate_nmi();
-        Regs.set(&Signals::currCycle() - writes);
-        cycle().debug('n');
-        // Inject the current PC as NMI vector.
-        Signals::currCycle().inject(Regs.pc >> 8);
-        cycle().debug('V');
-        Signals::currCycle().inject(Regs.pc);
-        cycle().debug('v');
         if (show)
             Signals::printCycles();
-        _freeRunning = false;
         turn_off_led();
+        Regs.save(show);
     }
 }
 
@@ -319,7 +253,6 @@ void Pins::step(bool show) {
     Regs.restore(show);
     Signals::resetCycles();
     for (uint8_t c = 0; c < cycles; c++) {
-        SciH.loop();
         cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
     }
     if (show)
@@ -335,33 +268,23 @@ uint8_t Pins::allocateIrq() {
 void Pins::assertIrq(uint8_t irq) {
     _irq |= (1 << irq);
     if (_irq)
-        assert_irq1();
+        assert_irq();
 }
 
 void Pins::negateIrq(uint8_t irq) {
     _irq &= ~(1 << irq);
     if (_irq == 0)
-        negate_irq1();
+        negate_irq();
 }
 
 Pins::SerialDevice Pins::getIoDevice(uint16_t &baseAddr) {
-    if (_ioDevice == SerialDevice::DEV_SCI) {
-        baseAddr = 0x10;
-    } else {
-        baseAddr = Acia.baseAddr();
-    }
+    baseAddr = Acia.baseAddr();
     return _ioDevice;
 }
 
 void Pins::setIoDevice(SerialDevice device, uint16_t baseAddr) {
     _ioDevice = device;
-    if (device == SerialDevice::DEV_SCI) {
-        Acia.enable(false, 0);
-        SciH.enable(true);
-    } else {
-        SciH.enable(false);
-        Acia.enable(true, baseAddr);
-    }
+    Acia.enable(true, baseAddr);
 }
 
 // Local Variables:

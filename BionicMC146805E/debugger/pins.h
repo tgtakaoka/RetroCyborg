@@ -29,8 +29,7 @@ public:
     void negateIrq(const uint8_t irq);
 
     enum SerialDevice : uint8_t {
-        DEV_SCI = 0,   // MC6801 SCI
-        DEV_ACIA = 1,  // MC6850 ACIA
+        DEV_ACIA = 0,  // MC6850 ACIA
     };
     SerialDevice getIoDevice(uint16_t &baseAddr);
     void setIoDevice(SerialDevice device, uint16_t addr);

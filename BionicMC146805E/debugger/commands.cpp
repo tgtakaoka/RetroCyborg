@@ -22,8 +22,8 @@
 #include "commands.h"
 
 #include <SD.h>
-#include <asm_mc6800.h>
-#include <dis_mc6800.h>
+#include <asm_mc6805.h>
+#include <dis_mc6805.h>
 #include <libcli.h>
 #include <string.h>
 
@@ -134,8 +134,8 @@ static void print(const Insn &insn) {
 }
 
 static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
-    mc6800::DisMc6800 dis6800;
-    Disassembler &disassembler = dis6800;
+    mc6805::DisMc6805 dis6805;
+    Disassembler &disassembler = dis6805;
     disassembler.setCpu(Regs.cpu());
     disassembler.setUppercase(true);
     uint16_t num = 0;
@@ -233,8 +233,8 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
         return;
     }
     cli.println();
-    mc6800::AsmMc6800 as6800;
-    Assembler &assembler(as6800);
+    mc6805::AsmMc6805 as6805;
+    Assembler &assembler(as6805);
     assembler.setCpu(Regs.cpu());
     Insn insn(last_addr);
     if (assembler.encode(line, insn)) {
@@ -375,11 +375,8 @@ static void printIoDevice(State state) {
     uint16_t baseAddr;
     if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
         cli.print(F("ACIA (MC6850) at $"));
-    } else {
-        cli.print(F("SCI (" MPU_NAME ") at $"));
+        cli.printlnHex(baseAddr, 4);
     }
-    cli.printHex(baseAddr, 4);
-    cli.println();
 }
 
 static void handleAciaAddr(uint32_t val, uintptr_t extra, State state) {
@@ -410,9 +407,7 @@ static void handleIo(char *line, uintptr_t extra, State state) {
         cli.readHex(handleAciaAddr, 0, UINT16_MAX);
         return;
     }
-    if (strcasecmp_P(str_buffer, PSTR("sci")) == 0) {
-        Pins.setIoDevice(Pins::SerialDevice::DEV_SCI, 0);
-    } else if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
+    if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
         Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, Pins.ioBaseAddress());
     }
     printIoDevice(state);

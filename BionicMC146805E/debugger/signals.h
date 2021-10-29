@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-//#define DEBUG_SIGNALS
+#define DEBUG_SIGNALS
 
 struct Signals {
     Signals &get();
@@ -18,9 +18,10 @@ struct Signals {
     uint16_t addr;
     uint8_t data;
     uint8_t as;
+    uint8_t ds;
     uint8_t rw;
+    uint8_t li;
     uint8_t reset;
-    uint8_t e;
 
     bool readRam() const { return _inject == false; }
     bool writeRam() const { return _capture == false; }
@@ -29,7 +30,6 @@ struct Signals {
     static Signals &currCycle();
     static Signals &resetCycles();
     static Signals &nextCycle();
-    static uint8_t flushCycles(uint8_t start);
 
 private:
     bool _inject;

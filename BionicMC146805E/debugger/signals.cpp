@@ -32,20 +32,11 @@ Signals &Signals::nextCycle() {
 
 extern uint8_t RAM[0x10000];
 
-uint8_t Signals::flushCycles(uint8_t start) {
-    for (uint8_t c = start; c < _cycles; c++) {
-        const Signals &signals = _signals[c];
-        if (signals.rw == LOW) {
-            RAM[signals.data] = signals.data;
-        }
-    }
-    return _cycles;
-}
-
 Signals &Signals::get() {
     rw = digitalReadFast(PIN_RW);
+    ds = digitalReadFast(PIN_DS);
+    li = digitalReadFast(PIN_LI);
     reset = digitalReadFast(PIN_RESET);
-    e = digitalReadFast(PIN_E);
     return *this;
 }
 
@@ -67,7 +58,7 @@ Signals &Signals::readData() {
 Signals &Signals::clear() {
     addr = 0;
     data = 0;
-    as = rw = reset = e = 0;
+    rw = as = li = ds = reset = 0;
     _inject = _capture = false;
     return *this;
 }
@@ -93,15 +84,16 @@ static char *outPin(char *p, bool value, const char *name) {
 }
 
 void Signals::print() const {
-    // text=17 hex=(1+2)*2 eos=1
-    char buffer[24];
+    // text=21 hex=(1+2)*2 eos=1
+    char buffer[28];
     char *p = buffer;
 #ifdef DEBUG_SIGNALS
     *p++ = _debug ? _debug : ' ';
 #endif
     p = outPin(p, reset == LOW, " R");
-    p = outPin(p, e == HIGH, " E");
+    p = outPin(p, li == HIGH, " LI");
     p = outPin(p, as == HIGH, " AS");
+    p = outPin(p, ds == HIGH, " DS");
     p = outText(p, rw == HIGH ? " RD" : " WR");
     p = outText(p, " A=");
     p = outHex16(p, addr);
