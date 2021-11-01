@@ -45,18 +45,18 @@
 #define PIN_AH13 4    /* PTA13 */
 #define PIN_AH14 26   /* PTA14 */
 #define PIN_AH15 27   /* PTA15 */
-#define PIN_HALT 28   /* PTA16 */
-#define PIN_RW 39     /* PTA17 */
-#define PIN_RESET 25  /* PTA05 */
-#define PIN_VMA 17    /* PTB01 */
-#define PIN_IRQ 31    /* PTB10 */
-#define PIN_NMI 32    /* PTB11 */
+#define PIN_HALT 16   /* PTB00 */
+#define PIN_RW 18     /* PTB01 */
+#define PIN_IRQ 19    /* PTB02 */
+#define PIN_NMI 18    /* PTB03 */
 #define PIN_CLOCK 29  /* PTB18 */
 #define PIN_E 30      /* PTB19 */
 #define PIN_BA 33     /* PTE24 */
 #define PIN_MR 24     /* PTE26 */
-#define PIN_USRLED 18 /* PTB03 */
-#define PIN_USRSW 19  /* PTB02 */
+#define PIN_RESET 25  /* PTA05 */
+#define PIN_VMA 39    /* PTA17 */
+#define PIN_USRLED 31 /* PTB10 */
+#define PIN_USRSW 32  /* PTB11 */
 
 #endif
 

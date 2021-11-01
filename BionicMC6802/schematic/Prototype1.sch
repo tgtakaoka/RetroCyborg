@@ -267,13 +267,13 @@ Wire Wire Line
 	2150 3700 1850 3700
 Text Label 4150 2900 2    50   ~ 0
 CLK
-Text Label 5600 2300 2    50   ~ 0
+Text Label 5600 2600 2    50   ~ 0
 ~USR_SW~
-Text Label 5600 2400 2    50   ~ 0
+Text Label 5600 2700 2    50   ~ 0
 ~USR_LED~
-Text Label 5600 3900 2    50   ~ 0
+Text Label 5600 2100 2    50   ~ 0
 ~HALT~
-Text Label 5600 4000 2    50   ~ 0
+Text Label 5600 2200 2    50   ~ 0
 R~W~
 $Comp
 L power:VCC #PWR03
@@ -321,14 +321,14 @@ Connection ~ 4300 4000
 Wire Wire Line
 	4150 2900 4400 2900
 Wire Wire Line
-	5600 3900 5850 3900
+	5600 2100 5850 2100
 Wire Wire Line
-	5600 4000 5850 4000
+	5600 2200 5850 2200
 Wire Wire Line
 	2150 3200 1850 3200
 Text Label 1850 3200 2    50   ~ 0
 ~IRQ~
-Text Label 5600 2600 2    50   ~ 0
+Text Label 5600 2300 2    50   ~ 0
 ~IRQ~
 Wire Wire Line
 	5000 2900 5400 2900
@@ -722,18 +722,17 @@ Wire Wire Line
 Wire Wire Line
 	5100 3100 5100 3200
 Connection ~ 5100 3200
-NoConn ~ 5850 2100
 Wire Wire Line
-	5600 2200 5850 2200
-Text Label 5600 2200 2    50   ~ 0
-VMA
+	5600 4000 5850 4000
+Text Label 5600 4000 2    50   ~ 0
+BA
 Wire Wire Line
 	5300 3800 5850 3800
 Wire Wire Line
 	5300 3000 5300 3800
 Wire Wire Line
 	5600 2700 5850 2700
-Text Label 5600 2700 2    50   ~ 0
+Text Label 5600 2400 2    50   ~ 0
 ~NMI~
 Wire Wire Line
 	5850 3200 5600 3200
@@ -742,16 +741,16 @@ CLK_E
 Wire Wire Line
 	5850 3400 5600 3400
 Text Label 5600 3400 2    50   ~ 0
-BA
+VMA
 Wire Wire Line
 	5600 3600 5850 3600
 Text Label 5600 3600 2    50   ~ 0
 MR
 $Comp
-L 0-LocalLibrary:Teensy3.5 B?
+L 0-LocalLibrary:Teensy3.5 B1
 U 1 1 61858745
 P 6350 3200
-F 0 "B?" H 6350 4567 50  0000 C CNN
+F 0 "B1" H 6350 4567 50  0000 C CNN
 F 1 "Teensy3.5" H 6350 4476 50  0000 C CNN
 F 2 "Package_DIP:DIP-48_W15.24mm" H 6350 1400 50  0001 C CIN
 F 3 "https://www.pjrc.com/store/teensy35.html" H 6300 4550 50  0001 C CNN
@@ -759,21 +758,21 @@ F 3 "https://www.pjrc.com/store/teensy35.html" H 6300 4550 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L 0-LocalLibrary:74HCT541 U?
+L 0-LocalLibrary:74HCT541 U2
 U 1 1 61859B02
 P 4700 3400
-F 0 "U?" H 4700 4167 50  0000 C CNN
+F 0 "U2" H 4700 4167 50  0000 C CNN
 F 1 "74HCT541" H 4700 4076 50  0000 C CNN
-F 2 "" H 4700 3400 50  0001 C CNN
+F 2 "Package_DIP:DIP-20_W7.62mm" H 4700 3400 50  0001 C CNN
 F 3 "http://www.ti.com/lit/gpn/sn74HCT541" H 4700 3400 50  0001 C CNN
 	1    4700 3400
 	-1   0    0    -1  
 $EndComp
 $Comp
-L 0-LocalLibrary:MC6802P U?
+L 0-LocalLibrary:MC6802P U1
 U 1 1 6185BE36
 P 2600 3200
-F 0 "U?" H 2600 4567 50  0000 C CNN
+F 0 "U1" H 2600 4567 50  0000 C CNN
 F 1 "MC6802P" H 2600 4476 50  0000 C CNN
 F 2 "Package_DIP:DIP-40_W15.24mm" H 2650 1850 50  0001 C CIN
 F 3 "https://datasheetspdf.com/pdf-file/544765/Motorola/MC6802/1" H 2600 3200 50  0001 C CNN
@@ -782,6 +781,7 @@ F 3 "https://datasheetspdf.com/pdf-file/544765/Motorola/MC6802/1" H 2600 3200 50
 $EndComp
 Connection ~ 2150 4400
 Connection ~ 2150 4200
+NoConn ~ 5850 3900
 Wire Bus Line
 	1900 1600 1900 2700
 Wire Bus Line
