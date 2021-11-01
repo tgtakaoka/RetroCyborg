@@ -1,0 +1,27 @@
+              BionicBase/Teensy 4.1 (Bottom Side)
+            _________                      _________
+    GND  48|        *|1   GND          VIN|        *|GND
+    P20  47|         |2   P10         AGND|         |PTB16 P44
+    P21  46|         |3   P11         3.3V|         |PTB17 P45
+    P22  45|    B    |4   P12    P22  PTC2|         |PTD0  P10
+    P23  44|    i    |5   P13    P21  PTC1|         |PTA12 P34
+    P24  43|    o    |6   P14    P16  PTD6|         |PTA13 P35
+    P25  42|    n    |7   P15    P15  PTD5|         |PTD7  P17
+    P26  41|    i    |8   P16    P42  PTB2|    T    |PTD4  P14
+    P27  40|    c    |9   P17    P43  PTB3|    e    |PTD2  P12
+     E1  39|         |10  E0     P41  PTB1|    e    |PTD3  P13
+    P40  38|    Z    |11  P30    P40  PTB0|    n    |PTC3  P23
+    P41  37|    I    |12  P31    P20  PTC0|    s    |PTC4  P24
+    P42  36|    F    |13  P32    P11  PTD1|    y    |PTC6  P26
+    P43  35|         |14  P33    P25  PTC5|         |PTC7  P27
+    P44  34|    s    |15  P34          GND|    3    |3.3V
+    P45  33|    o    |16  P35             |    .    |PTE26 P52
+    P46  32|    c    |17  P36             |    5    |PTA5  P53
+    P47  31|    k    |18  P37    P55 PTA17|         |PTA14 P36
+     E3  30|    e    |19  E2     P33 PTC11|         |PTA15 P37
+    P54  29|    t    |20  P50    P32 PTC10|         |PTA16 P54
+    P55  28|         |21  P51    P31  PTC9|         |PTB18 P46
+    P56  27|         |22  P52    P30  PTC8|         |PTB19 P47
+    P57  26|         |23  P53    P51 PTE25|         |PTB10 P56
+    VCC  25|_________|24  VCC    P50 PTE24|_________|PTB11 P57
+        Bionic ZIF socket

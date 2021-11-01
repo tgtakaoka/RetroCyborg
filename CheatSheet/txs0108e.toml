@@ -1,0 +1,26 @@
+# Octal Level Shifter
+# https://github.com/tgtakaoka/dip
+name = "TXS0108E"
+title = "TXS0108E module"
+dip = 20
+width = 500
+1 = "VccA"
+2 = "A1"
+3 = "A2"
+4 = "A3"
+5 = "A4"
+6 = "A5"
+7 = "A6"
+8 = "A7"
+9 = "A8"
+10 = "#OE"
+11 = "GND"
+12 = "B8"
+13 = "B7"
+14 = "B6"
+15 = "B5"
+16 = "B4"
+17 = "B3"
+18 = "B2"
+19 = "B1"
+20 = "VccB"
