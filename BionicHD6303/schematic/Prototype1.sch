@@ -256,17 +256,6 @@ Wire Wire Line
 	3200 2200 3050 2200
 Wire Wire Line
 	3200 2100 3050 2100
-$Comp
-L Prototype1-rescue:Teensy3.5-0-LocalLibrary B1
-U 1 1 600CD57D
-P 6350 3200
-F 0 "B1" H 6350 4567 50  0000 C CNN
-F 1 "Teensy3.5" H 6350 4476 50  0000 C CNN
-F 2 "Package_DIP:DIP-48_W15.24mm" H 6350 1400 50  0001 C CIN
-F 3 "https://www.pjrc.com/store/teensy35.html" H 6300 4550 50  0001 C CNN
-	1    6350 3200
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	5650 4300 5650 4200
 Wire Wire Line
@@ -384,10 +373,6 @@ Wire Wire Line
 	2150 3900 1850 3900
 Text Label 4150 2900 2    50   ~ 0
 CLK
-Text Label 5600 2300 2    50   ~ 0
-~USR_SW~
-Text Label 5600 2400 2    50   ~ 0
-~USR_LED~
 Wire Wire Line
 	2150 3500 1850 3500
 Text Label 1850 3500 2    50   ~ 0
@@ -398,9 +383,9 @@ Wire Wire Line
 	2150 3600 1850 3600
 Text Label 1850 3600 2    50   ~ 0
 AS
-Text Label 5600 3900 2    50   ~ 0
+Text Label 5600 2100 2    50   ~ 0
 AS
-Text Label 5600 4000 2    50   ~ 0
+Text Label 5600 2200 2    50   ~ 0
 RW
 Wire Wire Line
 	2150 3700 1850 3700
@@ -485,9 +470,7 @@ PC1
 Text Label 5550 3700 2    50   ~ 0
 PC2
 Wire Wire Line
-	5600 3900 5850 3900
-Wire Wire Line
-	5600 4000 5850 4000
+	5600 2200 5850 2200
 Wire Wire Line
 	2150 3200 1850 3200
 Wire Wire Line
@@ -500,10 +483,6 @@ Wire Wire Line
 	5850 3500 5550 3500
 Wire Wire Line
 	5550 3600 5850 3600
-Text Label 5600 2700 2    50   ~ 0
-~NMI~
-Text Label 5600 2600 2    50   ~ 0
-~IRQ1~
 NoConn ~ 2150 2100
 NoConn ~ 2150 2200
 NoConn ~ 2150 2300
@@ -513,8 +492,6 @@ NoConn ~ 2150 2600
 NoConn ~ 2150 2700
 NoConn ~ 2150 2800
 NoConn ~ 2150 4000
-NoConn ~ 5850 2100
-NoConn ~ 5850 2200
 Wire Bus Line
 	7100 1400 3300 1400
 Wire Wire Line
@@ -561,10 +538,6 @@ Wire Wire Line
 	5650 4800 5650 4850
 Wire Wire Line
 	5550 3700 5850 3700
-Wire Wire Line
-	5600 2600 5850 2600
-Wire Wire Line
-	5600 2700 5850 2700
 NoConn ~ 6850 4400
 NoConn ~ 6850 4500
 NoConn ~ 6850 4600
@@ -698,13 +671,40 @@ SCI_RXD
 Text Label 3250 4200 0    50   ~ 0
 SCI_TXD
 Wire Wire Line
-	5600 2300 5850 2300
+	5600 2600 5850 2600
 Wire Wire Line
-	5600 2400 5850 2400
+	5600 2700 5850 2700
 Text Label 5750 2900 2    50   ~ 0
 SCI_TXD
 Text Label 5750 3000 2    50   ~ 0
 SCI_RXD
+$Comp
+L 0-LocalLibrary:Teensy3.5 B1
+U 1 1 6BFF85F2
+P 6350 3200
+F 0 "B1" H 6350 4567 50  0000 C CNN
+F 1 "Teensy3.5" H 6350 4476 50  0000 C CNN
+F 2 "Package_DIP:DIP-48_W15.24mm" H 6350 1400 50  0001 C CIN
+F 3 "https://www.pjrc.com/store/teensy35.html" H 6300 4550 50  0001 C CNN
+	1    6350 3200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5850 2100 5600 2100
+Wire Wire Line
+	5600 2400 5850 2400
+Wire Wire Line
+	5600 2300 5850 2300
+Text Label 5600 2300 2    50   ~ 0
+~IRQ1~
+Text Label 5600 2400 2    50   ~ 0
+~NMI~
+Text Label 5600 2700 2    50   ~ 0
+~USR_LED~
+Text Label 5600 2600 2    50   ~ 0
+~USR_SW~
+NoConn ~ 5850 3900
+NoConn ~ 5850 4000
 Wire Bus Line
 	7100 1400 7100 3600
 Wire Bus Line
