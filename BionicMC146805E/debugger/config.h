@@ -30,15 +30,15 @@
 #define PIN_AH10 23   /* PTC02 */
 #define PIN_AH11 9    /* PTC03 */
 #define PIN_AH12 10   /* PTC04 */
-#define PIN_DS 33     /* PTE24 */
-#define PIN_AS 28     /* PTA16 */
-#define PIN_RW 39     /* PTA17 */
-#define PIN_LI 34     /* PTE25 */
-#define PIN_RESET 25  /* PTA05 */
+#define PIN_AS 16     /* PTB00 */
+#define PIN_RW 17     /* PTB01 */
 #define PIN_IRQ 31    /* PTB10 */
 #define PIN_CLOCK 29  /* PTB18 */
-#define PIN_USRLED 18 /* PTB03 */
-#define PIN_USRSW 19  /* PTB02 */
+#define PIN_DS 33     /* PTE24 */
+#define PIN_LI 34     /* PTE25 */
+#define PIN_RESET 25  /* PTA05 */
+#define PIN_USRLED 31 /* PTB10 */
+#define PIN_USRSW 32  /* PTB11 */
 
 #endif
 

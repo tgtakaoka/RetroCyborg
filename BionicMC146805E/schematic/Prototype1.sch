@@ -337,9 +337,9 @@ Wire Wire Line
 	2150 3900 1850 3900
 Text Label 4150 2900 2    50   ~ 0
 CLK
-Text Label 5600 2300 2    50   ~ 0
+Text Label 5600 2600 2    50   ~ 0
 ~USR_SW~
-Text Label 5600 2400 2    50   ~ 0
+Text Label 5600 2700 2    50   ~ 0
 ~USR_LED~
 Wire Wire Line
 	2150 3500 1850 3500
@@ -349,9 +349,9 @@ Wire Wire Line
 	2150 3600 1850 3600
 Text Label 1850 3600 2    50   ~ 0
 AS
-Text Label 5600 3900 2    50   ~ 0
+Text Label 5600 2100 2    50   ~ 0
 AS
-Text Label 5600 4000 2    50   ~ 0
+Text Label 5600 2200 2    50   ~ 0
 RW
 Wire Wire Line
 	2150 3700 1850 3700
@@ -363,7 +363,7 @@ U 1 1 600523D8
 P 4700 3400
 F 0 "U2" H 4700 4167 50  0000 C CNN
 F 1 "74HCT541" H 4700 4076 50  0000 C CNN
-F 2 "" H 4700 3400 50  0001 C CNN
+F 2 "Package_DIP:DIP-20_W7.62mm" H 4700 3400 50  0001 C CNN
 F 3 "" H 4700 3400 50  0001 C CNN
 	1    4700 3400
 	-1   0    0    -1  
@@ -414,9 +414,9 @@ Connection ~ 4300 4000
 Wire Wire Line
 	4150 2900 4400 2900
 Wire Wire Line
-	5600 3900 5850 3900
+	5600 2100 5850 2100
 Wire Wire Line
-	5600 4000 5850 4000
+	5600 2200 5850 2200
 Wire Wire Line
 	2150 3200 1850 3200
 Text Label 1850 3200 2    50   ~ 0
@@ -430,8 +430,6 @@ NoConn ~ 2150 2400
 NoConn ~ 2150 2500
 NoConn ~ 2150 2600
 NoConn ~ 2150 4000
-NoConn ~ 5850 2100
-NoConn ~ 5850 2200
 Wire Bus Line
 	7100 1400 3300 1400
 Wire Wire Line
@@ -542,9 +540,9 @@ NoConn ~ 4400 3400
 NoConn ~ 4400 3500
 NoConn ~ 4400 3600
 Wire Wire Line
-	5600 2300 5850 2300
+	5600 2600 5850 2600
 Wire Wire Line
-	5600 2400 5850 2400
+	5600 2700 5850 2700
 Text Label 1850 3100 2    50   ~ 0
 ~RESET~
 Text Label 4150 3000 2    50   ~ 0
@@ -594,15 +592,10 @@ Wire Wire Line
 	6850 4500 7100 4500
 Text Label 7100 4500 0    50   ~ 0
 LI
-NoConn ~ 5850 2700
 Wire Wire Line
 	4150 3100 4400 3100
 Wire Wire Line
 	5000 3100 5200 3100
-Wire Wire Line
-	5200 3100 5200 2600
-Wire Wire Line
-	5200 2600 5850 2600
 NoConn ~ 5850 3500
 NoConn ~ 5850 3600
 NoConn ~ 5850 3200
@@ -622,6 +615,13 @@ F 3 "https://www.pjrc.com/store/teensy35.html" H 6300 4550 50  0001 C CNN
 	1    6350 3200
 	1    0    0    -1  
 $EndComp
+Wire Wire Line
+	5850 2300 5200 2300
+Wire Wire Line
+	5200 2300 5200 3100
+NoConn ~ 5850 3900
+NoConn ~ 5850 4000
+NoConn ~ 5850 2400
 Wire Bus Line
 	3300 1400 3300 3200
 Wire Bus Line
