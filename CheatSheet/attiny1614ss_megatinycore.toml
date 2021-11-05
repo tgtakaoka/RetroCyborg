@@ -1,0 +1,19 @@
+# https://github.com/tgtakaoka/dip
+name = "1614"
+title = "ATtiny1614SS/megaTinyCore"
+dip = 14
+width = 300
+1 = "VCC"
+2 = "PA4, D0"
+3 = "PA5, D1"
+4 = "PA6, D2"
+5 = "PA7, D3"
+6 = "PB3, D4, RXD"
+7 = "PB2, D5,TXD"
+8 = "PB1, D6"
+9 = "PB0, D7"
+10 = "UPDI, D11"
+11 = "PA1,  D8"
+12 = "PA2,  D9"
+13 = "PA3,  D10"
+14 = "GND"

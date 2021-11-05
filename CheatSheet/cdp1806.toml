@@ -1,7 +1,7 @@
-# CDP1802 DIP definition
+# CDP1806 DIP definition
 # https://github.com/tgtakaoka/dip
-name = "CDP1802"
-title = "CDP1802"
+name = "CDP1806"
+title = "CDP1806"
 dip = 40
 width = 600
 1 = "CLOCK"

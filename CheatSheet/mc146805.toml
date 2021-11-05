@@ -1,7 +1,7 @@
 # MC146805 DIP definition
 # https://github.com/tgtakaoka/dip
 name = "MC146805"
-title = "MC6805/MC146805"
+title = "MC146805E2"
 dip = 40
 width = 600
 1 = "#RESET"

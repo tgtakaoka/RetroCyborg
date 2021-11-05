@@ -1,7 +1,7 @@
-# HD6301 DIP definition
+# HD6301V1P DIP definition
 # https://github.com/tgtakaoka/dip
 name = "HD6301V1P"
-title = "HD6301V1P/HD6303R1P Mode1"
+title = "HD6301V1P Mode1"
 dip = 40
 width = 600
 1 = "VSS"
@@ -14,8 +14,8 @@ width = 600
 8 = "P20, PC0"
 9 = "P21, PC1"
 10 = "P22, PC2"
-11 = "P23"
-12 = "P24"
+11 = "P23, RXD"
+12 = "P24, TXD"
 13 = "A0"
 14 = "A1"
 15 = "A2"
@@ -42,5 +42,5 @@ width = 600
 36 = "D1"
 37 = "D0"
 38 = "R/W"
-39 = "AS"
+39 = "NC"
 40 = "E"

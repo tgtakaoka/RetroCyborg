@@ -1,7 +1,7 @@
-# HD6301 DIP definition
+# MC6801 DIP definition
 # https://github.com/tgtakaoka/dip
-name = "HD6301V1P"
-title = "HD6301V1P/HD6303R1P Mode2"
+name = "MC6801"
+title = "MC6801 Mode2"
 dip = 40
 width = 600
 1 = "VSS"
@@ -10,12 +10,12 @@ width = 600
 4 = "#NMI"
 5 = "#IRQ1"
 6 = "#RESET"
-7 = "#STBY"
+7 = "VCC"
 8 = "P20, PC0"
 9 = "P21, PC1"
 10 = "P22, PC2"
-11 = "P23"
-12 = "P24"
+11 = "P23, RXD"
+12 = "P24, TXD"
 13 = "P10"
 14 = "P11"
 15 = "P12"
