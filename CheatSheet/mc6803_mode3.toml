@@ -1,7 +1,7 @@
-# MC6801 DIP definition
+# MC6803 DIP definition
 # https://github.com/tgtakaoka/dip
-name = "MC6801"
-title = "MC6801 Mode2"
+name = "MC6803"
+title = "MC6801 Mode3"
 dip = 40
 width = 600
 1 = "VSS"
