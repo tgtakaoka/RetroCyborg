@@ -1,11 +1,13 @@
 #include "regs.h"
 
+#include "config.h"
 #include "pins.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
 
 struct Regs Regs;
+struct Memory Memory;
 
 static constexpr uint8_t cycles_table[256] = {
 #if defined(BIONIC_HD6303)
@@ -291,7 +293,7 @@ static constexpr uint8_t cycles_table[256] = {
         0,   // 14:0 -    -
         0,   // 15:0 -    -
         2,   // 16:1 TAB  INH
-        2,   // 17:1 TAB  INH
+        2,   // 17:1 TBA  INH
         0,   // 18:0 -    -
         2,   // 19:1 DAA  INH
         0,   // 1A:0 -    -
@@ -439,7 +441,7 @@ static constexpr uint8_t cycles_table[256] = {
         4,   // A8:2 EORA IDX
         4,   // A9:2 ADCA IDX
         4,   // AA:2 ORAA IDX
-        4,   // AB:2 ADCA IDX
+        4,   // AB:2 ADDA IDX
         6,   // AC:2 CPX  IDX
         6,   // AD:2 JSR  IDX
         5,   // AE:2 LDS  IDX
@@ -503,7 +505,7 @@ static constexpr uint8_t cycles_table[256] = {
         4,   // E8:2 EORB IDX
         4,   // E9:2 ADCB IDX
         4,   // EA:2 ORAB IDX
-        4,   // EB:2 ADCB IDX
+        4,   // EB:2 ADDB IDX
         5,   // EC:2 LDD  IDX
         5,   // ED:2 STD  IDX
         5,   // EE:2 LDX  IDX
@@ -640,8 +642,8 @@ void Regs::save(bool show, bool undoPrefetch) {
 }
 
 void Regs::restore(bool show) {
-    static uint8_t LDS[3] = {0x8E}; // LDS #sp
-    static uint8_t RTI[10] = {0x3B, 0xFF, 0xFF}; // RTI
+    static uint8_t LDS[3] = {0x8E};               // LDS #sp
+    static uint8_t RTI[10] = {0x3B, 0xFF, 0xFF};  // RTI
     const uint16_t s = sp - 7;
     LDS[1] = hi(s);
     LDS[2] = lo(s);
@@ -660,7 +662,7 @@ void Regs::restore(bool show) {
         Signals::printCycles();
 }
 
-void Regs::set(const Signals *stack) {
+void Regs::capture(const Signals *stack) {
     sp = stack[0].addr;
     pc = uint16(stack[1].data, stack[0].data);
     x = uint16(stack[3].data, stack[2].data);
@@ -728,6 +730,64 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
     }
     print();
     return true;
+}
+
+uint8_t Memory::internal_read(uint8_t addr) const {
+    static uint8_t LDAA_STAA[] = {
+            0x96, 0, 0, 0x97, 0x20};  // LDAA dir[addr], STAA $20
+    LDAA_STAA[1] = addr;
+    Pins.captureWrites(LDAA_STAA, sizeof(LDAA_STAA), nullptr, &LDAA_STAA[2], 1);
+    return LDAA_STAA[2];
+}
+
+void Memory::internal_write(uint8_t addr, uint8_t data) const {
+    static uint8_t LDAA_STAA[] = {
+            0x86, 0, 0x97, 0, 0};  // LDAA #val, STA dir[addr]
+    LDAA_STAA[1] = data;
+    LDAA_STAA[3] = addr;
+    Pins.execInst(LDAA_STAA, sizeof(LDAA_STAA));
+}
+
+bool Memory::is_internal(uint16_t addr) {
+    if (addr < 0x20)  // Internal Peripherals
+        return true;
+#if MPU_MODE == 2
+    // Internal RAM is enabled in Mode 2.
+    if (addr < 0x80)  // External Memory Space
+        return false;
+    if (addr < 0x100)  // Internal RAM
+        return true;
+#endif
+    return false;  // External Memory Space
+}
+
+uint8_t Memory::read(uint16_t addr) const {
+    return is_internal(addr) ? internal_read(addr) : raw_read(addr);
+}
+
+void Memory::write(uint16_t addr, uint8_t data) {
+    if (is_internal(addr)) {
+        internal_write(addr, data);
+    } else {
+        raw_write(addr, data);
+    }
+}
+
+uint8_t Memory::raw_read(uint16_t addr) const {
+    return memory[addr];
+}
+
+void Memory::raw_write(uint16_t addr, uint8_t data) {
+    memory[addr] = data;
+}
+
+uint16_t Memory::raw_read_uint16(uint16_t addr) const {
+    return (static_cast<uint16_t>(raw_read(addr)) << 8) | raw_read(addr + 1);
+}
+
+void Memory::raw_write_uint16(uint16_t addr, uint16_t data) {
+    raw_write(addr, data >> 8);
+    raw_write(addr + 1, data);
 }
 
 // Local Variables:

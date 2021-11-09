@@ -1,7 +1,7 @@
 # HD6303R1P DIP definition
 # https://github.com/tgtakaoka/dip
 name = "HD6303R1P"
-title = "HD6303V1P Mode2"
+title = "HD6303R1P Mode2"
 dip = 40
 width = 600
 1 = "VSS"

@@ -13,8 +13,6 @@
 extern libcli::Cli &cli;
 class Pins Pins;
 
-uint8_t RAM[0x10000];
-
 Mc6850 Acia(Console);
 SciHandler<PIN_SCIRXD, PIN_SCITXD> SciH(Console);
 
@@ -39,10 +37,14 @@ static uint8_t clock_e() {
 
 static void assert_nmi() {
     digitalWriteFast(PIN_NMI, LOW);
+    // #NMI is connected to P21/PC1 for LILBUG trace.
+    pinMode(PIN_NMI, OUTPUT_OPENDRAIN);
 }
 
 static void negate_nmi() {
     digitalWriteFast(PIN_NMI, HIGH);
+    // #NMI is connected to P21/PC1 for LILBUG trace.
+    pinMode(PIN_NMI, INPUT_PULLUP);
 }
 
 static void assert_irq1() {
@@ -66,24 +68,9 @@ static void assert_reset() {
     clock_cycle();
 }
 
-static void inject_mode(uint8_t mode) {
-    pinMode(PIN_PC2, OUTPUT);
-    digitalWriteFast(PIN_PC2, (mode & 4) ? HIGH : LOW);
-    pinMode(PIN_PC1, OUTPUT);
-    digitalWriteFast(PIN_PC1, (mode & 2) ? HIGH : LOW);
-    pinMode(PIN_PC0, OUTPUT);
-    digitalWriteFast(PIN_PC0, (mode & 1) ? HIGH : LOW);
-}
-
 static void negate_reset() {
     // Release RESET conditions
     digitalWriteFast(PIN_RESET, HIGH);
-}
-
-static void release_mode() {
-    pinMode(PIN_PC2, INPUT_PULLUP);
-    pinMode(PIN_PC1, INPUT_PULLUP);
-    pinMode(PIN_PC0, INPUT_PULLUP);
 }
 
 static void turn_on_led() {
@@ -104,14 +91,14 @@ static uint8_t user_sw() {
 }
 
 static const uint8_t BUS_PINS[] = {
-        PIN_DB0,
-        PIN_DB1,
-        PIN_DB2,
-        PIN_DB3,
-        PIN_DB4,
-        PIN_DB5,
-        PIN_DB6,
-        PIN_DB7,
+        PIN_AD0,
+        PIN_AD1,
+        PIN_AD2,
+        PIN_AD3,
+        PIN_AD4,
+        PIN_AD5,
+        PIN_AD6,
+        PIN_AD7,
         PIN_AH8,
         PIN_AH9,
         PIN_AH10,
@@ -126,20 +113,20 @@ void Pins::begin() {
     // Set directions.
     for (uint8_t i = 0; i < sizeof(BUS_PINS); i++)
         pinMode(BUS_PINS[i], INPUT);
-    busMode(DB, INPUT);
+    busMode(AD, INPUT);
     busMode(AH, INPUT);
 
-    pinMode(PIN_RESET, OUTPUT);
-    pinMode(PIN_CLOCK, OUTPUT);
-    pinMode(PIN_E, INPUT);
-    pinMode(PIN_AS, INPUT);
-    pinMode(PIN_RW, INPUT);
-    pinMode(PIN_IRQ1, OUTPUT);
     pinMode(PIN_PC0, INPUT_PULLUP);
     pinMode(PIN_PC1, INPUT_PULLUP);
     pinMode(PIN_PC2, INPUT_PULLUP);
+    pinMode(PIN_AS, INPUT);
+    pinMode(PIN_RW, INPUT);
+    pinMode(PIN_IRQ1, OUTPUT);
     // #NMI is connected to P21/PC1 for LILBUG trace.
     pinMode(PIN_NMI, OUTPUT_OPENDRAIN);
+    pinMode(PIN_CLOCK, OUTPUT);
+    pinMode(PIN_E, INPUT);
+    pinMode(PIN_RESET, OUTPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
     turn_off_led();
@@ -175,30 +162,30 @@ Signals &Pins::cycle() {
         } else if (Acia.isSelected(signals.addr)) {
             signals.debug('a').data = Acia.read(signals.addr);
         } else if (signals.readRam()) {
-            signals.debug('m').data = RAM[signals.addr];
+            signals.debug('m').data = Memory.raw_read(signals.addr);
         } else {
             ;  // inject data from signals.data
             signals.debug('i');
         }
-        busWrite(DB, signals.data);
+        busWrite(AD, signals.data);
         // change data bus to output
-        busMode(DB, OUTPUT);
+        busMode(AD, OUTPUT);
     } else {
         signals.readData();
         if (SciH.isSelected(signals.addr)) {
-            SciH.write(signals.debug('S').data, signals.addr);
+            SciH.write(signals.debug('s').data, signals.addr);
         } else if (Acia.isSelected(signals.addr)) {
-            Acia.write(signals.debug('A').data, signals.addr);
+            Acia.write(signals.debug('a').data, signals.addr);
         } else if (signals.writeRam()) {
-            RAM[signals.addr] = signals.debug('M').data;
+            Memory.raw_write(signals.addr, signals.debug('m').data);
         } else {
             ;  // capture data to signals.data
-            signals.debug('C');
+            signals.debug('c');
         }
     }
     // Set clock low to handle hold times and tristate data bus.
     clock_lo();
-    busMode(DB, INPUT);
+    busMode(AD, INPUT);
 
     Signals::nextCycle();
     return signals;
@@ -216,13 +203,13 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
     for (uint8_t i = 0; i < len; i++) {
-        Signals::currCycle().inject(inst[i]).debug('i');
+        Signals::inject(inst[i]).debug('i');
         cycle();
     }
     uint8_t cap = 0;
     if (buf) {
         while (cap < max) {
-            Signals::currCycle().capture().debug('c');
+            Signals::capture().debug('c');
             const Signals &signals = cycle();
             if (cap == 0 && addr)
                 *addr = signals.addr;
@@ -232,30 +219,65 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
     return cap;
 }
 
+static inline void inject_mode_pin(uint8_t pin, uint8_t val) {
+    if (val) {
+        pinMode(pin, INPUT_PULLUP);
+    } else {
+        digitalWriteFast(pin, LOW);
+        pinMode(pin, OUTPUT);
+    }
+}
+
+static void inject_mode(uint8_t mode) {
+    inject_mode_pin(PIN_PC2, mode & 4);
+    inject_mode_pin(PIN_PC1, mode & 2);
+    inject_mode_pin(PIN_PC0, mode & 1);
+}
+
+static void release_mode() {
+    // #NMI is connected to P21/PC1 for LILBUG trace.
+    pinMode(PIN_PC2, INPUT_PULLUP);
+    pinMode(PIN_PC1, INPUT_PULLUP);
+    pinMode(PIN_PC0, INPUT_PULLUP);
+}
+
 void Pins::reset(bool show) {
+    // Reset vector should not point internal registers.
+    const uint16_t reset_vec = Memory.raw_read_uint16(Memory::reset_vector);
+    if (Memory::is_internal(reset_vec))
+        Memory.raw_write_uint16(Memory::reset_vector, 0x0020);
+
     assert_reset();
-    inject_mode(MPU_MODE);
     // Synchronize clock output and E clock input.
     while (clock_e() == LOW)
         clock_cycle();
     while (clock_e() == HIGH)
         clock_cycle();
-    for (int i = 0; i < 24; i++)
-        cycle();
     Signals::resetCycles();
+    // #RESET Low Pulse Width: min 3 E cycles
+    cycle().debug('R');
+    // Mode Programming Setup Time: min 2 E cycles
+    inject_mode(MPU_MODE);
+    cycle().debug('R');
     cycle().debug('R');
     negate_reset();
     cycle().debug('r');
+    // Mode Programming Hold Time: min MC6803:100ns HD6303:150ns
     release_mode();
 #if defined(BIONIC_HD6303)
-    cycle().debug('E');
+    cycle().debug('e');
 #endif
     // Read Reset vector
-    cycle().debug('V');
+    cycle().debug('v');
     cycle().debug('v');
     if (show)
         Signals::printCycles();
+    // The first instruction will be saving registers, and certainly can be injected.
     Regs.save(show);
+    if (Memory::is_internal(reset_vec)) {
+        Memory.raw_write_uint16(Memory::reset_vector, reset_vec);
+        Regs.pc = reset_vec;
+    }
 
     SciH.reset();
 }
@@ -266,47 +288,48 @@ void Pins::loop() {
         SciH.loop();
         cycle();
         if (user_sw() == LOW)
-            Commands.halt();
+            Commands.halt(true);
     } else {
         Signals::resetCycles();
         // Inject "BRA *"
-        Signals::currCycle().inject(0x20);
+        Signals::inject(0x20);
         cycle();
-        Signals::currCycle().inject(0xFE);
+        Signals::inject(0xFE);
         cycle();
-        Signals::currCycle().inject(0);
+        Signals::inject(0);
         cycle();
     }
 }
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        Signals::resetCycles();
-        uint8_t needFlush = 0;
+        Signals::resetCycles().debug('N');
         uint8_t writes = 0;
         assert_nmi();
+        // Wait for consequtive 7 writes which means registers saved onto stack.
         while (writes < 7) {
-            Signals signals = Signals::currCycle().capture();
+            Signals signals = Signals::capture();
             if (cycle().rw == LOW) {
                 writes++;
             } else {
-                needFlush = Signals::flushCycles(needFlush);
                 writes = 0;
             }
             signals.debug('0' + writes);
         }
         negate_nmi();
-        Regs.set(&Signals::currCycle() - writes);
+        // Capture registers pushed onto stack.
+        Regs.capture(&Signals::currCycle() - writes);
 #if defined(BIONIC_HD6303)
         ;  // No irrelevant bus cycle is necessary.
 #else
         cycle().debug('n');
 #endif
         // Inject the current PC as NMI vector.
-        Signals::currCycle().inject(Regs.pc >> 8);
-        cycle().debug('V');
-        Signals::currCycle().inject(Regs.pc);
+        Signals::inject(Regs.pc >> 8);
         cycle().debug('v');
+        Signals::inject(Regs.pc);
+        cycle().debug('v');
+        Signals::flushWrites(&Signals::currCycle() - writes);
         if (show)
             Signals::printCycles();
         _freeRunning = false;
@@ -321,15 +344,16 @@ void Pins::run() {
 }
 
 void Pins::step(bool show) {
-    const uint8_t insn = RAM[Regs.pc];
+    const bool debug = false;
+    const uint8_t insn = Memory.read(Regs.pc);
     const uint8_t info = Regs.cycles(insn);
     const uint8_t cycles = info & ~0x80;
-    Regs.restore(show);
+    Regs.restore(debug);
     Signals::resetCycles();
     for (uint8_t c = 0; c < cycles; c++) {
         SciH.loop();
         if (c == 1 && (info & 0x80)) {
-            Signals::currCycle().inject(0x01);  // prefetch next instruction NOP
+            Signals::inject(0x01);  // prefetch next instruction NOP
             cycle().debug('-');
         } else {
             cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
@@ -337,7 +361,7 @@ void Pins::step(bool show) {
     }
     if (show)
         Signals::printCycles();
-    Regs.save(show, info & 0x80);
+    Regs.save(debug, info & 0x80);
 }
 
 uint8_t Pins::allocateIrq() {

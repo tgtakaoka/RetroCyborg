@@ -6,6 +6,8 @@
 #include "pins.h"
 #include "string_util.h"
 
+extern libcli::Cli &cli;
+
 uint8_t Signals::_cycles;
 Signals Signals::_signals[MAX_CYCLES + 1];
 
@@ -100,7 +102,7 @@ void Signals::print() const {
     p = outText(p, " D=");
     p = outHex8(p, data);
     *p = 0;
-    libcli::Cli::instance().println(buffer);
+    cli.println(buffer);
 }
 
 Signals &Signals::debug(char c) {

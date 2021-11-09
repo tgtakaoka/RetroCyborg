@@ -4,10 +4,21 @@
 
 #include "digital_fast.h"
 #include "pins.h"
+#include "regs.h"
 #include "string_util.h"
+
+extern libcli::Cli &cli;
 
 uint8_t Signals::_cycles;
 Signals Signals::_signals[MAX_CYCLES + 1];
+
+Signals &Signals::clear() {
+    addr = 0;
+    data = 0;
+    rw = 0;
+    _inject = _capture = false;
+    return *this;
+}
 
 void Signals::printCycles() {
     for (uint8_t i = 0; i < _cycles; i++) {
@@ -30,59 +41,47 @@ Signals &Signals::nextCycle() {
     return _signals[_cycles].clear();
 }
 
-extern uint8_t RAM[0x10000];
-
-uint8_t Signals::flushCycles(uint8_t start) {
-    for (uint8_t c = start; c < _cycles; c++) {
-        const Signals &signals = _signals[c];
-        if (signals.rw == LOW) {
-            RAM[signals.data] = signals.data;
-        }
+void Signals::flushWrites(const Signals *end) {
+    for (const auto *signals = _signals; signals < end; signals++) {
+        if (signals->rw == LOW)
+            Memory.write(signals->addr, signals->data);
     }
-    return _cycles;
 }
 
 Signals &Signals::get() {
     rw = digitalReadFast(PIN_RW);
-    reset = digitalReadFast(PIN_RESET);
-    e = digitalReadFast(PIN_E);
     return *this;
 }
 
 Signals &Signals::readAddr() {
-    as = digitalReadFast(PIN_AS);
+    const auto as = digitalReadFast(PIN_AS);
     if (as == HIGH) {
         addr = busRead(AH);
-        addr <<= 8;
-        addr |= busRead(DB);
+        addr |= busRead(AD);
     }
     return *this;
 }
 
 Signals &Signals::readData() {
-    data = busRead(DB);
-    return *this;
-}
-
-Signals &Signals::clear() {
-    addr = 0;
-    data = 0;
-    as = rw = reset = e = 0;
-    _inject = _capture = false;
+    data = busRead(AD);
     return *this;
 }
 
 Signals &Signals::inject(uint8_t val) {
-    _inject = true;
-    data = val;
-    return *this;
+    Signals &curr = currCycle();
+    curr._inject = true;
+    curr.data = val;
+    return curr;
 }
 
 Signals &Signals::capture() {
-    _capture = true;
-    return *this;
+    Signals &curr = currCycle();
+    curr._capture = true;
+    return curr;
 }
 
+static char *outPin(char *p, bool value, const char *name)
+        __attribute__((unused));
 static char *outPin(char *p, bool value, const char *name) {
     if (value)
         return outText(p, name);
@@ -93,22 +92,22 @@ static char *outPin(char *p, bool value, const char *name) {
 }
 
 void Signals::print() const {
-    // text=17 hex=(1+2)*2 eos=1
-    char buffer[24];
+    const auto debug = 1;
+    const auto text = 8;
+    const auto hex = (1 + 2) * 2;
+    const auto eos = 1;
+    static char buffer[debug + text + hex + eos];
     char *p = buffer;
 #ifdef DEBUG_SIGNALS
     *p++ = _debug ? _debug : ' ';
 #endif
-    p = outPin(p, reset == LOW, " R");
-    p = outPin(p, e == HIGH, " E");
-    p = outPin(p, as == HIGH, " AS");
-    p = outText(p, rw == HIGH ? " RD" : " WR");
+    p = outText(p, rw == HIGH ? " R" : " W");
     p = outText(p, " A=");
     p = outHex16(p, addr);
     p = outText(p, " D=");
     p = outHex8(p, data);
     *p = 0;
-    libcli::Cli::instance().println(buffer);
+    cli.println(buffer);
 }
 
 Signals &Signals::debug(char c) {
