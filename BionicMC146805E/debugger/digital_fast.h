@@ -3,6 +3,7 @@
 
 #define __concat2__(a, b) a##b
 
+#if defined(ARDUINO_TEENSY35)
 #define __GPIO__(port) __concat2__(GPIO, port)
 #define __DDR__(port) __concat2__(port, _PDDR)
 #define __OUT__(port) __concat2__(port, _PDOR)
@@ -15,23 +16,53 @@
 #define PSET(name) __SET__(GPIO(name))
 #define PCLR(name) __CLR__(GPIO(name))
 #define PIN(name) __IN__(GPIO(name))
+#endif
+#if defined(ARDUINO_TEENSY41)
+#define __GPIO__(port) __concat2__(GPIO, port)
+#define __DDR__(port) __concat2__(port, _GDIR)
+#define __OUT__(port) __concat2__(port, _DR)
+#define __SET__(port) __concat2__(port, _DR_SET)
+#define __CLR__(port) __concat2__(port, _DR_CLEAR)
+#define __IN__(port) __concat2__(port, _PSR)
+#define GPIO(name) __GPIO__(PORT_##name)
+#define PDDR(name) __DDR__(GPIO(name))
+#define POUT(name) __OUT__(GPIO(name))
+#define PSET(name) __SET__(GPIO(name))
+#define PCLR(name) __CLR__(GPIO(name))
+#define PIN(name) __IN__(GPIO(name))
+#endif
+
+/**
+ * BUS_gp: least significant bit position in PORT.
+ * BUS_gm: bit mask in PORT starting from BUS_gp.
+ * BUS_vp: least significant bit position in Value.
+ */
 #define BUS_gp(name) (name##_gp)
 #define BUS_gm(name) (name##_gm)
+#define BUS_vp(name) (name##_vp)
+#define PORT_gm(name) (BUS_gm(name) << BUS_gp(name))
+#define VALUE_gm(name) (BUS_gm(name) << BUS_vp(name))
 
-#define busMode(name, mode)                                \
-    do {                                                   \
-        if ((mode) == INPUT) {                             \
-            PDDR(name) &= ~(BUS_gm(name) << BUS_gp(name)); \
-        } else {                                           \
-            PDDR(name) |= (BUS_gm(name) << BUS_gp(name));  \
-        }                                                  \
+#define busMode(name, mode)               \
+    do {                                  \
+        if ((mode) == INPUT) {            \
+            PDDR(name) &= ~PORT_gm(name); \
+        } else {                          \
+            PDDR(name) |= PORT_gm(name);  \
+        }                                 \
     } while (0)
-#define busRead(name) (PIN(name) & BUS_gm(name))
-#define busWrite(name, val)                                                   \
-    do {                                                                      \
-        const uint32_t v = static_cast<uint32_t>(val & 0xFF) << BUS_gp(name); \
-        const uint32_t o = POUT(name) & ~(BUS_gm(name) << BUS_gp(name));      \
-        POUT(name) = o | v;                                                   \
+#define readPort(name, val)                                                  \
+    (BUS_gp(name) >= BUS_vp(name) ? ((val) >> (BUS_gp(name) - BUS_vp(name))) \
+                                  : ((val) << (BUS_vp(name) - BUS_gp(name))))
+#define writePort(name, val)                                                 \
+    (BUS_gp(name) >= BUS_vp(name) ? ((val) << (BUS_gp(name) - BUS_vp(name))) \
+                                  : ((val) >> (BUS_vp(name) - BUS_gp(name))))
+#define busRead(name) (readPort(name, PIN(name)) & VALUE_gm(name))
+#define busWrite(name, val)                                    \
+    do {                                                       \
+        const uint32_t v = static_cast<uint32_t>(val);         \
+        const uint32_t o = POUT(name) & ~PORT_gm(name);        \
+        POUT(name) = o | (writePort(name, v) & PORT_gm(name)); \
     } while (0)
 
 #endif

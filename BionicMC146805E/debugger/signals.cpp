@@ -11,6 +11,14 @@ extern libcli::Cli &cli;
 uint8_t Signals::_cycles;
 Signals Signals::_signals[MAX_CYCLES + 1];
 
+Signals &Signals::clear() {
+    addr = 0;
+    data = 0;
+    rw = li = 0;
+    _inject = _capture = false;
+    return *this;
+}
+
 void Signals::printCycles() {
     for (uint8_t i = 0; i < _cycles; i++) {
         _signals[i].print();
@@ -36,46 +44,39 @@ extern uint8_t RAM[0x10000];
 
 Signals &Signals::get() {
     rw = digitalReadFast(PIN_RW);
-    ds = digitalReadFast(PIN_DS);
     li = digitalReadFast(PIN_LI);
-    reset = digitalReadFast(PIN_RESET);
     return *this;
 }
 
 Signals &Signals::readAddr() {
-    as = digitalReadFast(PIN_AS);
+    const auto as = digitalReadFast(PIN_AS);
     if (as == HIGH) {
         addr = busRead(AH);
-        addr <<= 8;
-        addr |= busRead(DB);
+        addr |= busRead(B);
     }
     return *this;
 }
 
 Signals &Signals::readData() {
-    data = busRead(DB);
-    return *this;
-}
-
-Signals &Signals::clear() {
-    addr = 0;
-    data = 0;
-    rw = as = li = ds = reset = 0;
-    _inject = _capture = false;
+    data = busRead(B);
     return *this;
 }
 
 Signals &Signals::inject(uint8_t val) {
-    _inject = true;
-    data = val;
-    return *this;
+    Signals &curr = currCycle();
+    curr._inject = true;
+    curr.data = val;
+    return curr;
 }
 
 Signals &Signals::capture() {
-    _capture = true;
-    return *this;
+    Signals &curr = currCycle();
+    curr._capture = true;
+    return curr;
 }
 
+static char *outPin(char *p, bool value, const char *name)
+        __attribute__((unused));
 static char *outPin(char *p, bool value, const char *name) {
     if (value)
         return outText(p, name);
@@ -86,17 +87,18 @@ static char *outPin(char *p, bool value, const char *name) {
 }
 
 void Signals::print() const {
-    // text=21 hex=(1+2)*2 eos=1
-    char buffer[28];
+    const auto debug = 2;
+    const auto text = 8;
+    const auto hex = (1 + 2) * 2;
+    const auto eos = 1;
+    static char buffer[debug + text + hex + eos];
     char *p = buffer;
 #ifdef DEBUG_SIGNALS
     *p++ = _debug ? _debug : ' ';
+    *p++ = ' ';
 #endif
-    p = outPin(p, reset == LOW, " R");
-    p = outPin(p, li == HIGH, " LI");
-    p = outPin(p, as == HIGH, " AS");
-    p = outPin(p, ds == HIGH, " DS");
-    p = outText(p, rw == HIGH ? " RD" : " WR");
+    *p++ = li == LOW ? ' ' : 'L';
+    *p++ = rw == LOW ? 'W' : 'R';
     p = outText(p, " A=");
     p = outHex16(p, addr);
     p = outText(p, " D=");

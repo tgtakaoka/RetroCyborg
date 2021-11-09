@@ -10,18 +10,15 @@ struct Signals {
     Signals &readAddr();
     Signals &readData();
     Signals &clear();
-    Signals &inject(uint8_t data);
-    Signals &capture();
+    static Signals &inject(uint8_t data);
+    static Signals &capture();
     void print() const;
     Signals &debug(char c);
 
     uint16_t addr;
     uint8_t data;
-    uint8_t as;
-    uint8_t ds;
     uint8_t rw;
     uint8_t li;
-    uint8_t reset;
 
     bool readRam() const { return _inject == false; }
     bool writeRam() const { return _capture == false; }

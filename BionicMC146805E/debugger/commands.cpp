@@ -64,19 +64,9 @@ static uint8_t mem_buffer[16];
 
 static char str_buffer[40];
 
-extern uint8_t RAM[0x10000];
-
-static void writeMemory(uint16_t addr, uint8_t data) {
-    RAM[addr] = data;
-}
-
-static uint8_t readMemory(uint16_t addr) {
-    return RAM[addr];
-}
-
 static void memoryDump(uint16_t addr, uint16_t len) {
     for (uint16_t i = 0; i < len; i++, addr++) {
-        const uint8_t data = readMemory(addr);
+        const uint8_t data = Memory.read(addr);
         if (i % 16 == 0) {
             if (i)
                 cli.println();
@@ -140,10 +130,10 @@ static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
     disassembler.setUppercase(true);
     uint16_t num = 0;
     while (num < numInsn) {
-        ArrayMemory memory(addr, &RAM[addr], disassembler.config().codeMax());
         char operands[20];
         Insn insn(addr);
-        disassembler.decode(memory, insn, operands, sizeof(operands));
+        Memory.setAddress(addr);
+        disassembler.decode(Memory, insn, operands, sizeof(operands));
         addr += insn.length();
         num++;
         print(insn);
@@ -187,7 +177,7 @@ cancel:
 static void memoryWrite(
         uint16_t addr, const uint8_t values[], const uint8_t len) {
     for (uint8_t i = 0; i < len; i++, addr++) {
-        writeMemory(addr, values[i]);
+        Memory.write(addr, values[i]);
     }
 }
 
@@ -263,20 +253,30 @@ static void handleAssembler(uint32_t value, uintptr_t extra, State state) {
     cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));
 }
 
-static void handleFileListing() {
-    SD.begin(BUILTIN_SDCARD);
-    File root = SD.open("/");
+static void listDirectory(File dir, const char *parent = nullptr) {
     while (true) {
-        File entry = root.openNextFile();
+        File entry = dir.openNextFile();
         if (!entry)
             break;
-        if (!entry.isDirectory()) {
+        if (entry.isDirectory()) {
+            listDirectory(entry, entry.name());
+        } else {
+            if (parent) {
+                cli.print(parent);
+                cli.print('/');
+            }
             cli.print(entry.name());
             cli.print('\t');
-            cli.println(entry.size());
+            cli.printlnDec(entry.size(), 6);
         }
         entry.close();
     }
+}
+
+static void handleFileListing() {
+    SD.begin(BUILTIN_SDCARD);
+    File root = SD.open("/");
+    listDirectory(root);
     root.close();
 }
 
@@ -312,8 +312,8 @@ static int loadS19Record(const char *line) {
 
 static void handleLoadFile(char *line, uintptr_t extra, State state) {
     (void)extra;
+    cli.println();
     if (state != State::CLI_CANCEL && *line) {
-        cli.println();
         SD.begin(BUILTIN_SDCARD);
         File file = SD.open(line);
         if (!file) {

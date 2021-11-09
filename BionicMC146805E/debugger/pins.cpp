@@ -12,8 +12,6 @@
 extern libcli::Cli &cli;
 class Pins Pins;
 
-uint8_t RAM[0x2000];
-
 Mc6850 Acia(Console);
 
 static inline void clock_hi() {
@@ -86,16 +84,17 @@ void Pins::begin() {
     // Set directions.
     for (uint8_t i = 0; i < sizeof(BUS_PINS); i++)
         pinMode(BUS_PINS[i], INPUT);
-    busMode(DB, INPUT);
+    busMode(B, INPUT);
     busMode(AH, INPUT);
 
-    pinMode(PIN_RESET, OUTPUT);
-    pinMode(PIN_CLOCK, OUTPUT);
     pinMode(PIN_AS, INPUT);
-    pinMode(PIN_DS, INPUT);
     pinMode(PIN_RW, INPUT);
-    pinMode(PIN_LI, INPUT);
     pinMode(PIN_IRQ, OUTPUT);
+    pinMode(PIN_TIMER, OUTPUT);
+    pinMode(PIN_CLOCK, OUTPUT);
+    pinMode(PIN_DS, INPUT);
+    pinMode(PIN_LI, INPUT);
+    pinMode(PIN_RESET, OUTPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
     turn_off_led();
@@ -132,29 +131,29 @@ Signals &Pins::cycle() {
         if (Acia.isSelected(signals.addr)) {
             signals.debug('a').data = Acia.read(signals.addr);
         } else if (signals.readRam()) {
-            signals.debug('m').data = RAM[signals.addr];
+            signals.debug('m').data = Memory.raw_read(signals.addr);
         } else {
             ;  // inject data from signals.data
             signals.debug('i');
         }
-        busWrite(DB, signals.data);
+        busWrite(B, signals.data);
         // change data bus to output
-        busMode(DB, OUTPUT);
+        busMode(B, OUTPUT);
     } else {
         signals.readData();
         if (Acia.isSelected(signals.addr)) {
-            Acia.write(signals.debug('A').data, signals.addr);
+            Acia.write(signals.debug('a').data, signals.addr);
         } else if (signals.writeRam()) {
-            RAM[signals.addr] = signals.debug('M').data;
+            Memory.raw_write(signals.addr, signals.debug('m').data);
         } else {
             ;  // capture data to signals.data
-            signals.debug('C');
+            signals.debug('c');
         }
     }
     //
     clock_hi();
     clock_lo();
-    busMode(DB, INPUT);
+    busMode(B, INPUT);
 
     Signals::nextCycle();
     return signals;
@@ -189,25 +188,37 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 }
 
 void Pins::reset(bool show) {
+    // Reset vector pointing internal memory, we can't save register by SWI.
+    const uint16_t reset_vec = Memory.raw_read_uint16(Memory::reset_vector);
+    if (Memory::is_internal(reset_vec))
+        Memory.raw_write_uint16(Memory::reset_vector, 0x0100);
+
     assert_reset();
     // Synchronize clock output to DS.
     while (digitalReadFast(PIN_DS) == LOW)
         clock_cycle();
     while (digitalReadFast(PIN_DS) == HIGH)
         clock_cycle();
-    cycle();
     Signals::resetCycles();
+    cycle().debug('R');
     cycle().debug('R');
     negate_reset();
     cycle().debug('r');
     cycle().debug('r');
     // Read Reset vector
-    cycle().debug('V');
     cycle().debug('v');
-    cycle().debug('d');
+    cycle().debug('v');
+    cycle().debug('-');
     if (show)
         Signals::printCycles();
+
+    // We should certainly inject SWI by pointing external address here.
     Regs.save(show);
+    // Restore reset vector points to internal
+    if (Memory::is_internal(reset_vec)) {
+        Memory.raw_write_uint16(Memory::reset_vector, reset_vec);
+        Regs.pc = reset_vec;
+    }
 }
 
 void Pins::loop() {
@@ -215,19 +226,22 @@ void Pins::loop() {
         Acia.loop();
         cycle();
         if (user_sw() == LOW)
-            Commands.halt();
+            Commands.halt(true);
     }
+    // MC146805E is fully static, so we can stop clock safely.
 }
 
 void Pins::halt(bool show) {
+    const auto debug = false;
     if (_freeRunning) {
         _freeRunning = false;
         Signals::resetCycles();
         while (true) {
             Signals &signals = cycle();
+            // Wait until Load Instruction signal asserted
             if (signals.li == HIGH) {
-                const uint8_t insn = RAM[signals.debug('0').addr];
-                const uint8_t cycles = Regs.cycles(insn);
+                const uint8_t cycles = Regs.cycles(signals.data);
+                // Execute the instruction until its end cycle.
                 for (uint8_t c = 1; c < cycles; c++) {
                     cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
                 }
@@ -237,7 +251,7 @@ void Pins::halt(bool show) {
         if (show)
             Signals::printCycles();
         turn_off_led();
-        Regs.save(show);
+        Regs.save(debug);
     }
 }
 
@@ -248,16 +262,17 @@ void Pins::run() {
 }
 
 void Pins::step(bool show) {
-    const uint8_t insn = RAM[Regs.pc];
+    const bool debug = false;
+    const uint8_t insn = Memory.read(Regs.pc);
     const uint8_t cycles = Regs.cycles(insn);
-    Regs.restore(show);
+    Regs.restore(debug);
     Signals::resetCycles();
     for (uint8_t c = 0; c < cycles; c++) {
         cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
     }
     if (show)
         Signals::printCycles();
-    Regs.save(show);
+    Regs.save(debug);
 }
 
 uint8_t Pins::allocateIrq() {

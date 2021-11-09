@@ -6,40 +6,41 @@
 extern libcli::Cli &cli;
 
 struct Regs Regs;
+struct Memory Memory;
 
 static constexpr uint8_t cycles_table[256] = {
-        0,   // 00:0 -    -
-        2,   // 01:1 NOP  INH
-        0,   // 02:0 -    -
-        0,   // 03:0 -    -
-        3,   // 04:1 LSRD INH
-        3,   // 05:1 ASLD INH
-        2,   // 06:1 TAP  INH
-        2,   // 07:1 TPA  INH
-        3,   // 08:1 INX  INH
-        3,   // 09:1 DEX  INH
-        2,   // 0A:1 CLV  INH
-        2,   // 0B:1 SEV  INH
-        2,   // 0C:1 CLC  INH
-        2,   // 0D:1 SEC  INH
-        2,   // 0E:1 CLI  INH
-        2,   // 0F:1 SEI  INH
-        2,   // 10:1 SBA  INH
-        2,   // 11:1 CBA  INH
-        0,   // 12:0 -    -
-        0,   // 13:0 -    -
-        0,   // 14:0 -    -
-        0,   // 15:0 -    -
-        2,   // 16:1 TAB  INH
-        2,   // 17:1 TBA  INH
-        0,   // 18:0 -    -
-        2,   // 19:1 DAA  INH
-        0,   // 1A:0 -    -
-        2,   // 1B:1 ABA  INH
-        0,   // 1C:0 -    -
-        0,   // 1D:0 -    -
-        0,   // 1E:0 -    -
-        0,   // 1F:0 -    -
+        5,   // 00:3 BRSET BTB
+        5,   // 01:3 BRCLR BTB
+        5,   // 02:3 BRSET BTB
+        5,   // 03:3 BRCLR BTB
+        5,   // 04:3 BRSET BTB
+        5,   // 05:3 BRCLR BTB
+        5,   // 06:3 BRSET BTB
+        5,   // 07:3 BRCLR BTB
+        5,   // 08:3 BRSET BTB
+        5,   // 09:3 BRCLR BTB
+        5,   // 0A:3 BRSET BTB
+        5,   // 0B:3 BRCLR BTB
+        5,   // 0C:3 BRSET BTB
+        5,   // 0D:3 BRCLR BTB
+        5,   // 0E:3 BRSET BTB
+        5,   // 0F:3 BRCLR BTB
+        5,   // 10:2 BSET BSC
+        5,   // 11:2 BCLR BSC
+        5,   // 12:2 BSET BSC
+        5,   // 13:2 BCLR BSC
+        5,   // 14:2 BSET BSC
+        5,   // 15:2 BCLR BSC
+        5,   // 16:2 BSET BSC
+        5,   // 17:2 BCLR BSC
+        5,   // 18:2 BSET BSC
+        5,   // 19:2 BCLR BSC
+        5,   // 1A:2 BSET BSC
+        5,   // 1B:2 BCLR BSC
+        5,   // 1C:2 BSET BSC
+        5,   // 1D:2 BCLR BSC
+        5,   // 1E:2 BSET BSC
+        5,   // 1F:2 BCLR BSC
         3,   // 20:2 BRA  REL
         3,   // 21:2 BRN  REL
         3,   // 22:2 BHI  REL
@@ -48,222 +49,222 @@ static constexpr uint8_t cycles_table[256] = {
         3,   // 25:2 BCS  REL
         3,   // 26:2 BNE  REL
         3,   // 27:2 BEQ  REL
-        3,   // 28:2 BVC  REL
-        3,   // 29:2 BVS  REL
+        3,   // 28:2 BHCC REL
+        3,   // 29:2 BHCS REL
         3,   // 2A:2 BPL  REL
         3,   // 2B:2 BMI  REL
-        3,   // 2C:2 BGE  REL
-        3,   // 2D:2 BLT  REL
-        3,   // 2E:2 BGT  REL
-        3,   // 2F:2 BLE  REL
-        3,   // 30:1 TSX  INH
-        3,   // 31:1 INS  INH
-        4,   // 32:1 PULA INH
-        4,   // 33:1 PULB INH
-        3,   // 34:1 DES  INH
-        3,   // 35:1 TXS  INH
-        3,   // 36:1 PSHA INH
-        3,   // 37:1 PSHB INH
-        5,   // 38:1 PULX INH
-        5,   // 39:1 RTS  INH
-        3,   // 3A:1 ABX  INH
-        10,  // 3B:1 RTI  INH
-        4,   // 3C:1 PSHX INH
-        10,  // 3D:1 MUL  INH
-        9,   // 3E:1 WAI  INH
-        12,  // 3F:1 SWI  INH
-        2,   // 40:1 NEGA INH
+        3,   // 2C:2 BMC  REL
+        3,   // 2D:2 BMS  REL
+        3,   // 2E:2 BIL  REL
+        3,   // 2F:2 BIH  REL
+        5,   // 30:2 NEG  DIR
+        0,   // 31:0 -    -
+        0,   // 32:0 -    -
+        5,   // 33:2 COM  DIR
+        5,   // 34:2 LSR  DIR
+        0,   // 35:0 -    -
+        5,   // 36:2 ROR  DIR
+        5,   // 37:2 ASR  DIR
+        5,   // 38:2 LSL  DIR
+        5,   // 39:2 ROL  DIR
+        5,   // 3A:2 DEC  DIR
+        0,   // 3B:0 -    -
+        5,   // 3C:2 INC  DIR
+        4,   // 3D:2 TST  DIR
+        0,   // 3E:0 -    -
+        5,   // 3F:2 CLR  DIR
+        3,   // 40:1 NEGA INH
         0,   // 41:0 -    -
         0,   // 42:0 -    -
-        2,   // 43:1 COMA INH
-        2,   // 44:1 LSRA INH
+        3,   // 43:1 COMA INH
+        3,   // 44:1 LSRA INH
         0,   // 45:0 -    -
-        2,   // 46:1 RORA INH
-        2,   // 47:1 ASRA INH
-        2,   // 48:1 ASLA INH
-        2,   // 49:1 ROLA INH
-        2,   // 4A:1 DECA INH
+        3,   // 46:1 RORA INH
+        3,   // 47:1 ASRA INH
+        3,   // 48:1 LSLA INH
+        3,   // 49:1 ROLA INH
+        3,   // 4A:1 DECA INH
         0,   // 4B:0 -    -
-        2,   // 4C:1 INCA INH
-        2,   // 4D:1 TSTA INH
+        3,   // 4C:1 INCA INH
+        3,   // 4D:1 TSTA INH
         0,   // 4E:0 -    -
-        2,   // 4F:1 CLRA INH
-        2,   // 50:1 NEGB INH
+        3,   // 4F:1 CLRA INH
+        3,   // 50:1 NEGX INH
         0,   // 51:0 -    -
         0,   // 52:0 -    -
-        2,   // 53:1 COMB INH
-        2,   // 54:1 LSRB INH
+        3,   // 53:1 COMX INH
+        3,   // 54:1 LSRX INH
         0,   // 55:0 -    -
-        2,   // 56:1 RORB INH
-        2,   // 57:1 ASRB INH
-        2,   // 58:1 ASLB INH
-        2,   // 59:1 ROLB INH
-        2,   // 5A:1 DECB INH
-        0,   // 5B:0 -    -
-        2,   // 5C:1 INCB INH
-        2,   // 5D:1 TSTB INH
+        3,   // 56:1 RORX INH
+        3,   // 57:1 ASRX INH
+        3,   // 58:1 LSLX INH
+        3,   // 59:1 ROLX INH
+        3,   // 5X:1 DECX INH
+        0,   // 5X:0 -    -
+        3,   // 5C:1 INCX INH
+        3,   // 5D:1 TSTX INH
         0,   // 5E:0 -    -
-        2,   // 5F:1 CLRB INH
-        6,   // 60:2 NEG  IDX
+        3,   // 5F:1 CLRX INH
+        6,   // 60:2 NEG  IX1
         0,   // 61:0 -    -
         0,   // 62:0 -    -
-        6,   // 63:2 COM  IDX
-        6,   // 64:2 LSR  IDX
+        6,   // 63:2 COM  IX1
+        6,   // 64:2 LSR  IX1
         0,   // 65:0 -    -
-        6,   // 66:2 ROR  IDX
-        6,   // 67:2 ASR  IDX
-        6,   // 68:2 ASL  IDX
-        6,   // 69:2 ROL  IDX
-        6,   // 6A:2 DEC  IDX
+        6,   // 66:2 ROR  IX1
+        6,   // 67:2 ASR  IX1
+        6,   // 68:2 LSL  IX1
+        6,   // 69:2 ROL  IX1
+        6,   // 6A:2 DEC  IX1
         0,   // 6B:0 -    -
-        6,   // 6C:2 INC  IDX
-        6,   // 6D:2 TST  IDX
-        3,   // 6E:2 JMP  IDX
-        6,   // 6F:2 CLR  IDX
-        6,   // 70:3 NEG  EXT
+        6,   // 6C:2 INC  IX1
+        5,   // 6D:2 TST  IX1
+        0,   // 6E:0 -    -
+        6,   // 6F:2 CLR  IX1
+        5,   // 70:1 NEG  IX
         0,   // 71:0 -    -
         0,   // 72:0 -    -
-        6,   // 73:3 COM  EXT
-        6,   // 74:3 LSR  EXT
+        5,   // 73:1 COM  IX
+        5,   // 74:1 LSR  IX
         0,   // 75:0 -    -
-        6,   // 76:3 ROR  EXT
-        6,   // 77:3 ASR  EXT
-        6,   // 78:3 ASL  EXT
-        6,   // 79:3 ROL  EXT
-        6,   // 7A:3 DEC  EXT
+        5,   // 76:1 ROR  IX
+        5,   // 77:1 ASR  IX
+        5,   // 78:1 LSL  IX
+        5,   // 79:1 ROL  IX
+        5,   // 7A:1 DEC  IX
         0,   // 7B:0 -    -
-        6,   // 7C:3 INC  EXT
-        6,   // 7D:3 TST  EXT
-        3,   // 7E:3 JMP  EXT
-        6,   // 7F:3 CLR  EXT
-        2,   // 80:2 SUBA IMM
-        2,   // 81:2 CMPA IMM
-        2,   // 82:2 SBCA IMM
-        4,   // 83:3 SUBD IMM
-        2,   // 84:2 ANDA IMM
-        2,   // 85:2 BITA IMM
-        2,   // 86:2 LDAA IMM
+        5,   // 7C:1 INC  IX
+        4,   // 7D:1 TST  IX
+        0,   // 7E:0 -    -
+        5,   // 7F:1 CLR  IX
+        9,   // 80:1 RTI  INH
+        6,   // 81:1 RTS  INH
+        0,   // 82:0 -    -
+        10,  // 83:1 SWI  ING
+        0,   // 84:0 -    -
+        0,   // 85:0 -    -
+        0,   // 86:0 -    -
         0,   // 87:0 -    -
-        2,   // 88:2 EORA IMM
-        2,   // 89:2 ADCA IMM
-        2,   // 8A:2 ORAA IMM
-        2,   // 8B:2 ADDA IMM
-        4,   // 8C:3 CPX  IMM
-        6,   // 8D:2 BSR  REL
-        3,   // 8E:3 LDS  IMM
-        0,   // 8F:0 -    -
-        3,   // 90:2 SUBA DIR
-        3,   // 91:2 CMPA DIR
-        3,   // 92:2 SBCA DIR
-        5,   // 93:2 SUBD DIR
-        3,   // 94:2 ANDA DIR
-        3,   // 95:2 BITA DIR
-        3,   // 96:2 LDAA DIR
-        3,   // 97:2 STAA DIR
-        3,   // 98:2 EORA DIR
-        3,   // 99:2 ADCA DIR
-        3,   // 9A:2 ORAA DIR
-        3,   // 9B:2 ADDA DIR
-        5,   // 9C:2 CPX  DIR
-        5,   // 9D:2 JSR  DIR
-        4,   // 9E:2 LDS  DIR
-        4,   // 9F:2 STS  DIR
-        4,   // A0:2 SUBA IDX
-        4,   // A1:2 CMPA IDX
-        4,   // A2:2 SBCA IDX
-        6,   // A3:2 SUBD IDX
-        4,   // A4:2 ANDA IDX
-        4,   // A5:2 BITA IDX
-        4,   // A6:2 LDAA IDX
-        4,   // A7:2 STAA IDX
-        4,   // A8:2 EORA IDX
-        4,   // A9:2 ADCA IDX
-        4,   // AA:2 ORAA IDX
-        4,   // AB:2 ADDA IDX
-        6,   // AC:2 CPX  IDX
-        6,   // AD:2 JSR  IDX
-        5,   // AE:2 LDS  IDX
-        5,   // AF:2 STS  IDX
-        4,   // B0:3 SUBA EXT
-        4,   // B1:3 CMPA EXT
-        4,   // B2:3 SBCA EXT
-        6,   // B3:3 SUBD EXT
-        4,   // B4:3 ANDA EXT
-        4,   // B5:3 BITA EXT
-        4,   // B6:3 LDAA EXT
-        4,   // B7:3 STAA EXT
-        4,   // B8:3 EORA EXT
-        4,   // B9:3 ADCA EXT
-        4,   // BA:3 ORAA EXT
-        4,   // BB:3 ADDA EXT
-        6,   // BC:3 CPX  EXT
-        6,   // BD:3 JSR  EXT
-        5,   // BE:3 LDS  EXT
-        5,   // BF:3 STS  EXT
-        2,   // C0:2 SUBB IMM
-        2,   // C1:2 CMPB IMM
-        2,   // C2:2 SBCB IMM
-        4,   // C3:3 ADDD IMM
-        2,   // C4:2 ANDB IMM
-        2,   // C5:2 BITB IMM
-        2,   // C6:2 LDAB IMM
-        0,   // C7:0 -    -
-        2,   // C8:2 EORB IMM
-        2,   // C9:2 ADCB IMM
-        2,   // CA:2 ORAB IMM
-        2,   // CB:2 ADDB IMM
-        3,   // CC:3 LDD  IMM
-        0,   // CD:0 -    -
-        3,   // CE:3 LDX  IMM
-        0,   // CF:0 -    -
-        3,   // D0:2 SUBB DIR
-        3,   // D1:2 CMPB DIR
-        3,   // D2:2 SBCB DIR
-        5,   // D3:2 ADDD DIR
-        3,   // D4:2 ANDB DIR
-        3,   // D5:2 BITB DIR
-        3,   // D6:2 LDAB DIR
-        3,   // D7:2 STAB DIR
-        3,   // D8:2 EORB DIR
-        3,   // D9:2 ADCB DIR
-        3,   // DA:2 ORAB DIR
-        3,   // DB:2 ADDB DIR
-        4,   // DC:2 LDD  DIR
-        4,   // DD:2 STD  DIR
-        4,   // DE:2 LDX  DIR
-        4,   // DF:2 STX  DIR
-        4,   // E0:2 SUBB IDX
-        4,   // E1:2 CMPB IDX
-        4,   // E2:2 SBCB IDX
-        6,   // E3:2 ADDD IDX
-        4,   // E4:2 ANDB IDX
-        4,   // E5:2 BITB IDX
-        4,   // E6:2 LDAB IDX
-        4,   // E7:2 STAB IDX
-        4,   // E8:2 EORB IDX
-        4,   // E9:2 ADCB IDX
-        4,   // EA:2 ORAB IDX
-        4,   // EB:2 ADDB IDX
-        5,   // EC:2 LDD  IDX
-        5,   // ED:2 STD  IDX
-        5,   // EE:2 LDX  IDX
-        5,   // EF:2 STX  IDX
-        4,   // F0:3 SUBB EXT
-        4,   // F1:3 CMPB EXT
-        4,   // F2:3 SBCB EXT
-        6,   // F3:3 ADDD EXT
-        4,   // F4:3 ANDB EXT
-        4,   // F5:3 BITB EXT
-        4,   // F6:3 LDAB EXT
-        4,   // F7:3 STAB EXT
-        4,   // F8:3 EORB EXT
-        4,   // F9:3 ADCB EXT
-        4,   // FA:3 ORAB EXT
-        4,   // FB:3 ADDB EXT
-        5,   // FC:3 LDD  EXT
-        5,   // FD:3 STD  EXT
-        5,   // FE:3 LDX  EXT
-        5,   // FF:3 STX  EXT
+        0,   // 88:0 -    -
+        0,   // 89:0 -    -
+        0,   // 8A:0 -    -
+        0,   // 8B:0 -    -
+        0,   // 8C:0 -    -
+        0,   // 8D:0 -    -
+        2,   // 8E:1 STOP INH
+        2,   // 8F:1 WAI  INH
+        0,   // 90:0 -    -
+        0,   // 91:0 -    -
+        0,   // 92:0 -    -
+        0,   // 93:0 -    -
+        0,   // 94:0 -    -
+        0,   // 95:0 -    -
+        0,   // 96:0 -    -
+        2,   // 97:1 TAX  INH
+        2,   // 98:1 CLC  INH
+        2,   // 99:1 SEC  INH
+        2,   // 9A:1 CLI  INH
+        2,   // 9B:1 SEI  INH
+        2,   // 9C:1 RSP  INH
+        2,   // 9D:1 NOP  INH
+        0,   // 9E:0 -    -
+        2,   // 9F:1 TXA  INH
+        2,   // A0:2 SUB  IMM
+        2,   // A1:2 CMP  IMM
+        2,   // A2:2 SBC  IMM
+        2,   // A3:2 CPX  IMM
+        2,   // A4:2 AND  IMM
+        2,   // A5:2 BIT  IMM
+        2,   // A6:2 LDA  IMM
+        0,   // A7:0 -    -
+        2,   // A8:2 EOR  IMM
+        2,   // A9:2 ADC  IMM
+        2,   // AA:2 ORA  IMM
+        2,   // AB:2 ADD  IMM
+        0,   // AC:0 -    -
+        6,   // AD:2 BSR  REL
+        2,   // AE:2 LDX  IMM
+        0,   // AF:0 -    -
+        3,   // B0:2 SUB  DIR
+        3,   // B1:2 CMP  DIR
+        3,   // B2:2 SBC  DIR
+        3,   // B3:2 CPX  DIR
+        3,   // B4:2 AND  DIR
+        3,   // B5:2 BIT  DIR
+        3,   // B6:2 LDA  DIR
+        4,   // B7:2 STA  DIR
+        3,   // B8:2 EOR  DIR
+        3,   // B9:2 ADC  DIR
+        3,   // BA:2 ORA  DIR
+        3,   // BB:2 ADD  DIR
+        5,   // BC:2 JMP  DIR
+        5,   // BD:2 JSR  DIR
+        3,   // BE:2 LDX  DIR
+        4,   // BF:2 STX  DIR
+        4,   // C0:3 SUB  EXT
+        4,   // C1:3 CMP  EXT
+        4,   // C2:3 SBC  EXT
+        4,   // C3:3 CPX  EXT
+        4,   // C4:3 AND  EXT
+        4,   // C5:3 BIT  EXT
+        4,   // C6:3 LDA  EXT
+        5,   // C7:3 STA  EXT
+        4,   // C8:3 EOR  EXT
+        4,   // C9:3 ADC  EXT
+        4,   // CA:3 ORA  EXT
+        4,   // CB:3 ADD  EXT
+        3,   // CC:3 JMP  EXT
+        6,   // CD:3 JSR  EXT
+        4,   // CE:3 LDX  EXT
+        5,   // CF:3 STX  EXT
+        5,   // D0:3 SUB  IX2
+        5,   // D1:3 CMP  IX2
+        5,   // D2:3 SBC  IX2
+        5,   // D3:3 CPX  IX2
+        5,   // D4:3 AND  IX2
+        5,   // D5:3 BIT  IX2
+        5,   // D6:3 LDA  IX2
+        6,   // D7:3 STA  IX2
+        5,   // D8:3 EOR  IX2
+        5,   // D9:3 ADC  IX2
+        5,   // DA:3 ORA  IX2
+        5,   // DB:3 ADD  IX2
+        4,   // DC:3 JMP  IX2
+        7,   // DD:3 JSR  IX2
+        5,   // DE:3 LDX  IX2
+        6,   // DF:3 STX  IX2
+        4,   // E0:2 SUB  IX1
+        4,   // E1:2 CMP  IX1
+        4,   // E2:2 SBC  IX1
+        4,   // E3:2 CPX  IX1
+        4,   // E4:2 AND  IX1
+        4,   // E5:2 BIT  IX1
+        4,   // E6:2 LDA  IX1
+        5,   // E7:2 STA  IX1
+        4,   // E8:2 EOR  IX1
+        4,   // E9:2 ADC  IX1
+        4,   // EA:2 ORA  IX1
+        4,   // EB:2 ADD  IX1
+        3,   // EC:2 JMP  IX1
+        6,   // ED:2 JSR  IX1
+        4,   // EE:2 LDX  IX1
+        5,   // EF:2 STX  IX1
+        3,   // F0:1 SUB  IX
+        3,   // F1:1 CMP  IX
+        3,   // F2:1 SBC  IX
+        3,   // F3:1 CPX  IX
+        3,   // F4:1 AND  IX
+        3,   // F5:1 BIT  IX
+        3,   // F6:1 LDA  IX
+        4,   // F7:1 STA  IX
+        3,   // F8:1 EOR  IX
+        3,   // F9:1 ADC  IX
+        3,   // FA:1 ORA  IX
+        3,   // FB:1 ADD  IX
+        2,   // FC:1 JMP  IX
+        5,   // FD:1 JSR  IX
+        3,   // FE:1 LDX  IX
+        4,   // FF:1 STX  IX
 };
 
 uint8_t Regs::cycles(uint8_t insn) const {
@@ -296,7 +297,6 @@ void Regs::print() const {
     cli.println(buffer);
 }
 
-
 static constexpr uint16_t uint16(const uint8_t hi, const uint8_t lo) {
     return (static_cast<uint16_t>(hi) << 8) | lo;
 }
@@ -317,7 +317,8 @@ void Regs::save(bool show) {
     static const uint8_t SWI[2] = {0x83, 0xFF};  // SWI
 
     uint8_t bytes[8];
-    Signals::resetCycles();
+    if (show)
+        Signals::resetCycles();
     Pins.captureWrites(SWI, sizeof(SWI), &sp, bytes, 5);
     // Capturing writes to stack in little endian order.
     pc = le16(bytes) - 1;  //  offset SWI instruction.
@@ -334,22 +335,16 @@ void Regs::save(bool show) {
     cc = bytes[4];
 }
 
-static void move_onto_stack(uint8_t val, uint8_t sp) {
-    static uint8_t LDA_STA[6] = {0xA6, 0, 0xB7, 0, 0, 0}; // LDA #val, STA dir[sp]
-    LDA_STA[1] = val;
-    LDA_STA[3] = sp;
-    Pins.execInst(LDA_STA, sizeof(LDA_STA));
-}
-
- void Regs::restore(bool show) {
+void Regs::restore(bool show) {
     // Store registers into stack on internal RAM.
     sp -= 4;
-    Signals::resetCycles();
-    move_onto_stack(cc, sp++);
-    move_onto_stack(a, sp++);
-    move_onto_stack(x, sp++);
-    move_onto_stack(hi(pc), sp++);
-    move_onto_stack(lo(pc), sp);
+    if (show)
+        Signals::resetCycles();
+    Memory.internal_write(sp++, cc);
+    Memory.internal_write(sp++, a);
+    Memory.internal_write(sp++, x);
+    Memory.internal_write(sp++, hi(pc));
+    Memory.internal_write(sp, lo(pc));
     // Restore registers
     static const uint8_t rti[9] = {0x80};
     Pins.execInst(rti, sizeof(rti));
@@ -404,6 +399,62 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
     }
     print();
     return true;
+}
+
+bool Memory::is_internal(uint16_t addr) {
+    if (addr < 0x0A)  // Internal Peripherals
+        return true;
+    if (addr < 0x10)  // External Memory Space
+        return false;
+    if (addr < 0x80)  // Internal RAM
+        return true;
+    return false;  // External Memory Space
+}
+
+uint8_t Memory::read(uint16_t addr) const {
+    return is_internal(addr) ? internal_read(addr) : raw_read(addr);
+}
+
+void Memory::write(uint16_t addr, uint8_t data) {
+    if (is_internal(addr)) {
+        internal_write(addr, data);
+    } else {
+        raw_write(addr, data);
+    }
+}
+
+uint8_t Memory::internal_read(uint8_t addr) const {
+    static uint8_t LDA_STA[6] = {
+            0xB6, 0, 0, 0xB7, 0x10, 0};  // LDA dir[addr], STA $10
+    LDA_STA[1] = addr;
+    Pins.captureWrites(LDA_STA, sizeof(LDA_STA), nullptr, &LDA_STA[2], 1);
+    return LDA_STA[2];
+}
+
+void Memory::internal_write(uint8_t addr, uint8_t data) const {
+    static uint8_t LDA_STA[6] = {
+            0xA6, 0, 0xB7, 0, 0, 0};  // LDA #val, STA dir[addr]
+    LDA_STA[1] = data;
+    LDA_STA[3] = addr;
+    Pins.execInst(LDA_STA, sizeof(LDA_STA));
+}
+
+uint8_t Memory::raw_read(uint16_t addr) const {
+    return addr < memory_size ? memory[addr] : 0;
+}
+
+void Memory::raw_write(uint16_t addr, uint8_t data) {
+    if (addr < memory_size)
+        memory[addr] = data;
+}
+
+uint16_t Memory::raw_read_uint16(uint16_t addr) const {
+    return (static_cast<uint16_t>(raw_read(addr)) << 8) | raw_read(addr + 1);
+}
+
+void Memory::raw_write_uint16(uint16_t addr, uint16_t data) {
+    raw_write(addr, data >> 8);
+    raw_write(addr + 1, data);
 }
 
 // Local Variables:
