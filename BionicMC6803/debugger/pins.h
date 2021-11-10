@@ -17,6 +17,7 @@ public:
     void step(bool show = false);
     void halt(bool show = false);
     void run();
+    void idle();
 
     void execInst(const uint8_t *inst, uint8_t len);
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
@@ -29,7 +30,7 @@ public:
     void negateIrq(const uint8_t irq);
 
     enum SerialDevice : uint8_t {
-        DEV_SCI = 0,   // MC6801 SCI
+        DEV_SCI = 0,   // MC6803/HD6303 SCI
         DEV_ACIA = 1,  // MC6850 ACIA
     };
     SerialDevice getIoDevice(uint16_t &baseAddr);
@@ -43,6 +44,7 @@ private:
     Signals &cycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
+    void suspend(bool show = false);
 };
 
 extern Pins Pins;

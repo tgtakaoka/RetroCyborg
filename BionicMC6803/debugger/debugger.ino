@@ -1,7 +1,7 @@
 /**
- *  BionicMC6803 controller
+ *  BionicMC6803/HD6303 controller
  *
- * This sketch is designed to controll and debug MC6803 MPU.
+ * This sketch is designed to controll and debug MC6803/HD6303 MPU.
  */
 
 #include <libcli.h>

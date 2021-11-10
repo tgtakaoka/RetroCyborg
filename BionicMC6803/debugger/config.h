@@ -4,9 +4,17 @@
 #include <Arduino.h>
 #include <stdint.h>
 
+//#define BIONIC_MC6803
+#define BIONIC_HD6303
+
+#if defined(BIONIC_HD6303)
+#define MPU_NAME "HD6303"
+#define MPU_MODE 2  // Non-Multiplexed Mode (Internal RAM enabled)
+#else
 #define MPU_NAME "MC6803"
 //#define MPU_MODE 2  // Non-Multiplexed Mode (Internal RAM enabled)
 #define MPU_MODE 3  // Non-Multiplexed Mode (Internal RAM disabled)
+#endif
 
 #define VERSION_TEXT "* Bionic" MPU_NAME " 0.1"
 #define Console Serial

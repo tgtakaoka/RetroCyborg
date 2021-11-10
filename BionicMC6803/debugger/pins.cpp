@@ -11,10 +11,12 @@
 #include "string_util.h"
 
 extern libcli::Cli &cli;
-class Pins Pins;
 
+class Pins Pins;
 Mc6850 Acia(Console);
 SciHandler<PIN_SCIRXD, PIN_SCITXD> SciH(Console);
+
+static constexpr bool debug_cycles = false;
 
 static inline void clock_hi() {
     digitalWriteFast(PIN_CLOCK, HIGH);
@@ -61,7 +63,7 @@ static void assert_reset() {
     negate_nmi();
     negate_irq1();
 
-    // Toggle reset to put MC6803 in reset
+    // Toggle reset to put MC6803/HD6303 in reset
     clock_cycle();
     clock_cycle();
     clock_cycle();
@@ -116,17 +118,17 @@ void Pins::begin() {
     busMode(AD, INPUT);
     busMode(AH, INPUT);
 
-    pinMode(PIN_RESET, OUTPUT);
-    pinMode(PIN_CLOCK, OUTPUT);
-    pinMode(PIN_E, INPUT);
-    pinMode(PIN_AS, INPUT);
-    pinMode(PIN_RW, INPUT);
-    pinMode(PIN_IRQ1, OUTPUT);
     pinMode(PIN_PC0, INPUT_PULLUP);
     pinMode(PIN_PC1, INPUT_PULLUP);
     pinMode(PIN_PC2, INPUT_PULLUP);
+    pinMode(PIN_AS, INPUT);
+    pinMode(PIN_RW, INPUT);
+    pinMode(PIN_IRQ1, OUTPUT);
     // #NMI is connected to P21/PC1 for LILBUG trace.
     pinMode(PIN_NMI, OUTPUT_OPENDRAIN);
+    pinMode(PIN_CLOCK, OUTPUT);
+    pinMode(PIN_E, INPUT);
+    pinMode(PIN_RESET, OUTPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
     turn_off_led();
@@ -140,7 +142,7 @@ void Pins::begin() {
 
 Signals &Pins::cycle() {
     Signals &signals = Signals::currCycle();
-    // MC6803 clock E is CLK/4, so we toggle CLK 4 times
+    // MC6803/HD6303 clock E is CLK/4, so we toggle CLK 4 times
     clock_lo();
     clock_hi();
     //
@@ -245,7 +247,7 @@ void Pins::reset(bool show) {
     // Reset vector should not point internal registers.
     const uint16_t reset_vec = Memory.raw_read_uint16(Memory::reset_vector);
     if (Memory::is_internal(reset_vec))
-        Memory.raw_write(Memory::reset_vector, 0x0020);
+        Memory.raw_write_uint16(Memory::reset_vector, 0x0020);
 
     assert_reset();
     // Synchronize clock output and E clock input.
@@ -262,21 +264,35 @@ void Pins::reset(bool show) {
     cycle().debug('R');
     negate_reset();
     cycle().debug('r');
-    // Mode Programming Hold Time: min 100ns
+    // Mode Programming Hold Time: min MC6803:100ns HD6303:150ns
     release_mode();
+#if defined(BIONIC_HD6303)
+    cycle().debug('e');
+#endif
     // Read Reset vector
     cycle().debug('v');
     cycle().debug('v');
     if (show)
         Signals::printCycles();
-    // The first instruction will be saving registers, and certainly can be injected.
+    // The first instruction will be saving registers, and certainly can be
+    // injected.
     Regs.save(show);
     if (Memory::is_internal(reset_vec)) {
-        Memory.raw_write(Memory::reset_vector, reset_vec);
+        Memory.raw_write_uint16(Memory::reset_vector, reset_vec);
         Regs.pc = reset_vec;
     }
 
     SciH.reset();
+}
+
+void Pins::idle() {
+    // Inject "BRA *"
+    Signals::inject(0x20);
+    cycle();
+    Signals::inject(0xFE);
+    cycle();
+    Signals::inject(0);
+    cycle();
 }
 
 void Pins::loop() {
@@ -287,68 +303,65 @@ void Pins::loop() {
         if (user_sw() == LOW)
             Commands.halt(true);
     } else {
-        Signals::resetCycles();
-        // Inject "BRA *"
-        Signals::inject(0x20);
-        cycle();
-        Signals::inject(0xFE);
-        cycle();
-        Signals::inject(0);
-        cycle();
+        idle();
+    }
+}
+
+void Pins::suspend(bool show) {
+    uint8_t writes = 0;
+    assert_nmi();
+    // Wait for consequtive 7 writes which means registers saved onto stack.
+    while (writes < 7) {
+        Signals &signals = Signals::capture();
+        if (cycle().rw == LOW) {
+            writes++;
+        } else {
+            writes = 0;
+        }
+        if (writes)
+            signals.debug('0' + writes);
+    }
+    negate_nmi();
+    // Capture registers pushed onto stack.
+    const Signals *end = &Signals::currCycle() - writes;
+    Regs.capture(end);
+#if defined(BIONIC_HD6303)
+    ;  // No irrelevant bus cycle is necessary.
+#else
+    cycle().debug('n');
+#endif
+    // Inject the current PC as NMI vector.
+    Signals::inject(Regs.pc >> 8);
+    cycle().debug('v');
+    Signals::inject(Regs.pc);
+    cycle().debug('v');
+    Signals::flushWrites(end);
+    if (debug_cycles) {
+        Signals::printCycles();
+    } else if (show) {
+        Signals::printCycles(end);
     }
 }
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        Signals::resetCycles();
-        uint8_t writes = 0;
-        assert_nmi();
-        // Wait for consequtive 7 writes which means registers saved onto stack.
-        while (writes < 7) {
-            Signals signals = Signals::capture();
-            if (cycle().rw == LOW) {
-                writes++;
-            } else {
-                writes = 0;
-            }
-            signals.debug('0' + writes);
-        }
-        negate_nmi();
-        // Capture registers pushed onto stack.
-        Regs.capture(&Signals::currCycle() - writes);
-        cycle().debug('n');
-        // Inject the current PC as NMI vector.
-        Signals::inject(Regs.pc >> 8);
-        cycle().debug('v');
-        Signals::inject(Regs.pc);
-        cycle().debug('v');
-        Signals::flushWrites(&Signals::currCycle() - writes);
-        if (show)
-            Signals::printCycles();
+        Signals::resetCycles().debug('N');
+        suspend(show);
         _freeRunning = false;
         turn_off_led();
     }
 }
 
 void Pins::run() {
-    Regs.restore();
+    Regs.restore(debug_cycles);
     _freeRunning = true;
     turn_on_led();
 }
 
 void Pins::step(bool show) {
-    const bool debug = false;
-    const uint8_t insn = Memory.read(Regs.pc);
-    const uint8_t cycles = Regs.cycles(insn);
-    Regs.restore(debug);
-    Signals::resetCycles();
-    for (uint8_t c = 0; c < cycles; c++) {
-        SciH.loop();
-        cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
-    }
-    if (show)
-        Signals::printCycles();
-    Regs.save(debug);
+    Regs.restore(debug_cycles);
+    Signals::resetCycles().debug('s');
+    suspend(show);
 }
 
 uint8_t Pins::allocateIrq() {
