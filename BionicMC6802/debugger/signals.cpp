@@ -4,6 +4,7 @@
 
 #include "digital_fast.h"
 #include "pins.h"
+#include "regs.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
@@ -11,9 +12,23 @@ extern libcli::Cli &cli;
 uint8_t Signals::_cycles;
 Signals Signals::_signals[MAX_CYCLES + 1];
 
-void Signals::printCycles() {
-    for (uint8_t i = 0; i < _cycles; i++) {
-        _signals[i].print();
+Signals &Signals::clear() {
+    addr = 0;
+    data = 0;
+    vma = rw = ba = halt = 0;
+#ifdef DEBUG_SIGNALS
+    _debug = 0;
+#endif
+    _inject = _capture = false;
+    return *this;
+}
+
+void Signals::printCycles(const Signals *end) {
+    if (end == nullptr)
+        end = &currCycle();
+    for (const auto *signals = _signals; signals < end; signals++) {
+        signals->print();
+        Pins.idle();
     }
 }
 
@@ -32,34 +47,16 @@ Signals &Signals::nextCycle() {
     return _signals[_cycles].clear();
 }
 
-extern uint8_t RAM[0x10000];
-
-uint8_t Signals::flushCycles(uint8_t start) {
-    for (uint8_t c = start; c < _cycles; c++) {
-        const Signals &signals = _signals[c];
-        if (signals.rw == LOW) {
-            RAM[signals.data] = signals.data;
-        }
+void Signals::flushWrites(const Signals *end) {
+    for (const auto *signals = _signals; signals < end; signals++) {
+        if (signals->rw == LOW)
+            Memory.write(signals->addr, signals->data);
     }
-    return _cycles;
-}
-
-Signals &Signals::clear() {
-    addr = 0;
-    data = 0;
-    vma = rw = ba = e = reset = halt = 0;
-#ifdef DEBUG_SIGNALS
-    _debug = 0;
-#endif
-    _inject = _capture = false;
-    return *this;
 }
 
 Signals &Signals::get() {
     rw = digitalReadFast(PIN_RW);
     ba = digitalReadFast(PIN_BA);
-    e = digitalReadFast(PIN_E);
-    reset = digitalReadFast(PIN_RESET);
     halt = digitalReadFast(PIN_HALT);
     return *this;
 }
@@ -67,29 +64,35 @@ Signals &Signals::get() {
 Signals &Signals::readAddr() {
     vma = digitalReadFast(PIN_VMA);
     if (vma == HIGH) {
-        const uint16_t al = busRead(AL);
-        const uint16_t ah = busRead(AH);
-        addr = al | ah;
+        addr = busRead(AL);
+#if defined(AM_vp)
+        addr |= busRead(AM);
+#endif
+        addr |= busRead(AH);
     }
     return *this;
 }
 
 Signals &Signals::readData() {
-    data = busRead(DB);
+    data = busRead(D);
     return *this;
 }
 
 Signals &Signals::inject(uint8_t val) {
-    _inject = true;
-    data = val;
-    return *this;
+    Signals &curr = currCycle();
+    curr._inject = true;
+    curr.data = val;
+    return curr;
 }
 
 Signals &Signals::capture() {
-    _capture = true;
-    return *this;
+    Signals &curr = currCycle();
+    curr._capture = true;
+    return curr;
 }
 
+static char *outPin(char *p, bool value, const char *name)
+        __attribute((unused));
 static char *outPin(char *p, bool value, const char *name) {
     if (value)
         return outText(p, name);
@@ -100,18 +103,20 @@ static char *outPin(char *p, bool value, const char *name) {
 }
 
 void Signals::print() const {
-    // text=22 hex=(1+2)*2 eos=1
-    char buffer[22 + (1 + 2) * 2 + 1];
+    const auto debug = 2;
+    const auto text = 13;
+    const auto hex = (1 + 2) * 2;
+    const auto eos = 1;
+    static char buffer[debug + text + hex + eos];
     char *p = buffer;
 #ifdef DEBUG_SIGNALS
     *p++ = _debug ? _debug : ' ';
+    *p++ = ' ';
 #endif
-    p = outPin(p, reset == LOW, " R");
-    p = outPin(p, halt == LOW, " H");
-    p = outPin(p, ba == LOW, " BA");
-    p = outPin(p, e == HIGH, " E");
-    p = outPin(p, vma == HIGH, " VMA");
-    p = outText(p, rw == HIGH ? " RD" : " WR");
+    *p++ = halt == LOW ? 'H' : ' ';
+    p = outPin(p, ba == HIGH, " BA ");
+    *p++ = vma == LOW ? ' ' : 'V';
+    *p++ = rw == LOW ? 'W' : 'R';
     p = outText(p, " A=");
     p = outHex16(p, addr);
     p = outText(p, " D=");
