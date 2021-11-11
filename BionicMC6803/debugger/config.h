@@ -4,8 +4,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-//#define BIONIC_MC6803
-#define BIONIC_HD6303
+#define BIONIC_MC6803
+//#define BIONIC_HD6303
 
 #if defined(BIONIC_HD6303)
 #define MPU_NAME "HD6303"
