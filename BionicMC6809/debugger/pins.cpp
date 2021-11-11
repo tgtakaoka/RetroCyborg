@@ -27,8 +27,8 @@ static inline void clock_lo() {
 }
 
 static void clock_cycle() {
-    clock_lo();
     clock_hi();
+    clock_lo();
 }
 
 static uint8_t clock_e() {
@@ -51,28 +51,41 @@ static void negate_irq() {
     digitalWriteFast(PIN_IRQ, HIGH);
 }
 
-// TODO: Utilize #HALT to Pins.step()
+static void assert_firq() __attribute__((unused));
+static void assert_firq() {
+    digitalWriteFast(PIN_FIRQ, LOW);
+}
+
+static void negate_firq() {
+    digitalWriteFast(PIN_FIRQ, HIGH);
+}
+
 static void assert_halt() __attribute__((unused));
 static void assert_halt() {
     digitalWriteFast(PIN_HALT, LOW);
 }
 
+static void negate_halt() __attribute__((unused));
 static void negate_halt() {
     digitalWriteFast(PIN_HALT, HIGH);
 }
 
-static void negate_mr() {
-    digitalWriteFast(PIN_MR, HIGH);
+static void assert_mrdy() __attribute__((unused));
+static void assert_mrdy() {
+    digitalWriteFast(PIN_MRDY, LOW);
 }
 
-static void negate_re() __attribute__((unused));
-static void negate_re() {
-    digitalWriteFast(PIN_RE, LOW);
+static void negate_mrdy() {
+    digitalWriteFast(PIN_MRDY, HIGH);
 }
 
-static void assert_re() __attribute__((unused));
-static void assert_re() {
-    digitalWriteFast(PIN_RE, HIGH);
+static void assert_breq() __attribute__((unused));
+static void assert_breq() {
+    digitalWriteFast(PIN_BREQ, LOW);
+}
+
+static void negate_breq() {
+    digitalWriteFast(PIN_BREQ, HIGH);
 }
 
 static void assert_reset() {
@@ -81,13 +94,9 @@ static void assert_reset() {
     negate_halt();
     negate_nmi();
     negate_irq();
-    negate_mr();
-#if defined(BIONIC_MC6808)
-    negate_re();  // Internal RAM doesn't exist.
-#endif
-#if defined(BIONIC_MC6802)
-    assert_re();  // Enable internal RAM
-#endif
+    negate_firq();
+    negate_mrdy();
+    negate_breq();
 }
 
 static void negate_reset() {
@@ -162,12 +171,14 @@ void Pins::begin() {
     pinMode(PIN_RW, INPUT);
     pinMode(PIN_IRQ, OUTPUT);
     pinMode(PIN_NMI, OUTPUT);
+    pinMode(PIN_Q, INPUT);
+    pinMode(PIN_FIRQ, OUTPUT);
     pinMode(PIN_CLOCK, OUTPUT);
     pinMode(PIN_E, INPUT);
-    pinMode(PIN_VMA, INPUT);
-    pinMode(PIN_RE, OUTPUT);
-    pinMode(PIN_MR, OUTPUT);
+    pinMode(PIN_BS, INPUT);
+    pinMode(PIN_MRDY, OUTPUT);
     pinMode(PIN_RESET, OUTPUT);
+    pinMode(PIN_BREQ, OUTPUT);
     pinMode(PIN_BA, INPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
@@ -182,24 +193,22 @@ void Pins::begin() {
 
 Signals &Pins::cycle() {
     Signals &signals = Signals::currCycle();
-    // MC6802/MC6808 clock E is CLK/4, so we toggle CLK 4 times
-    clock_hi();
+    // MC6809 clock E is CLK/4, so we toggle CLK 4 times
     clock_lo();
-    //
     clock_hi();
+    //
+    clock_lo();
     signals.readAddr();
-    clock_lo();
-    //
     clock_hi();
-    clock_lo();
     //
-    clock_hi();
     clock_lo();
+    clock_hi();
+    //
+    clock_lo();
+    clock_hi();
     signals.get();
 
-    if (signals.vma == LOW) {
-        signals.debug('-');
-    } else if (signals.rw == HIGH) {
+    if (signals.rw == HIGH) {
         if (Acia.isSelected(signals.addr)) {
             signals.debug('a').data = Acia.read(signals.addr);
         } else if (signals.readRam()) {
@@ -223,7 +232,7 @@ Signals &Pins::cycle() {
         }
     }
     // Set clock low to handle hold times and tristate data bus.
-    clock_hi();
+    clock_lo();
     busMode(D, INPUT);
 
     Signals::nextCycle();
@@ -259,11 +268,6 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 }
 
 void Pins::reset(bool show) {
-    // Reset vector should not point internal registers.
-    const uint16_t reset_vec = Memory.raw_read_uint16(Memory::reset_vector);
-    if (Memory::is_internal(reset_vec))
-        Memory.raw_write_uint16(Memory::reset_vector, 0x0100);
-
     assert_reset();
     // Synchronize clock output and E clock input.
     while (clock_e() == LOW)
@@ -271,23 +275,22 @@ void Pins::reset(bool show) {
     while (clock_e() == HIGH)
         clock_cycle();
     for (auto i = 0; i < 3; i++)
-        cycle();
+        clock_cycle();
     Signals::resetCycles();
     cycle().debug('R');
     negate_reset();
+    // Three FFFE cycles.
+    cycle().debug('r');
+    cycle().debug('r');
     cycle().debug('r');
     // Read Reset vector
     cycle().debug('v');
     cycle().debug('v');
+    // non-VMA
+    cycle().debug('-');
+    Regs.save();
     if (show)
         Signals::printCycles();
-    // The first instruction will be saving registers, and certainly can be
-    // injected.
-    Regs.save(show);
-    if (Memory::is_internal(reset_vec)) {
-        Memory.raw_write_uint16(Memory::reset_vector, reset_vec);
-        Regs.pc = reset_vec;
-    }
 }
 
 void Pins::idle() {
@@ -295,8 +298,6 @@ void Pins::idle() {
     Signals::inject(0x20);
     cycle();
     Signals::inject(0xFE);
-    cycle();
-    Signals::inject(0);
     cycle();
     Signals::inject(0);
     cycle();
@@ -316,8 +317,8 @@ void Pins::loop() {
 void Pins::suspend(bool show) {
     uint8_t writes = 0;
     assert_nmi();
-    // Wait for consequtive 7 writes which means registers saved onto stack.
-    while (writes < 7) {
+    // Wait for consequtive 12 writes which means registers saved onto stack.
+    while (writes < 12) {
         Signals signals = Signals::capture();
         if (cycle().rw == LOW) {
             writes++;
@@ -357,6 +358,7 @@ void Pins::halt(bool show) {
 void Pins::run() {
     Regs.restore(debug_cycles);
     _freeRunning = true;
+    negate_halt();
     turn_on_led();
 }
 

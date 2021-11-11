@@ -16,10 +16,10 @@ struct Signals {
     Signals &debug(char c);
 
     uint16_t addr;
-    uint8_t vma;
     uint8_t data;
     uint8_t rw;
     uint8_t ba;
+    uint8_t bs;
     uint8_t halt;
 
     bool readRam() const { return _inject == false; }

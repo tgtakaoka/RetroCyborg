@@ -8,11 +8,19 @@
 #include "signals.h"
 
 struct Regs {
-    uint16_t sp;
+    uint16_t s;
     uint16_t pc;
+    uint16_t u;
+    uint16_t y;
     uint16_t x;
+    uint8_t dp;
     uint8_t a;
     uint8_t b;
+    uint16_t getD() const { return (static_cast<uint16_t>(a) << 8) | b; }
+    void setD(uint16_t d) {
+        b = d;
+        a = d >> 8;
+    }
     uint8_t cc;
 
     void print() const;
@@ -38,8 +46,6 @@ public:
 
     uint8_t read(uint16_t addr) const;
     void write(uint16_t addr, uint8_t data);
-    uint8_t internal_read(uint8_t addr) const;
-    void internal_write(uint8_t addr, uint8_t data) const;
     uint8_t raw_read(uint16_t addr) const;
     void raw_write(uint16_t addr, uint8_t data);
     uint16_t raw_read_uint16(uint16_t addr) const;

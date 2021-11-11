@@ -22,8 +22,8 @@
 #include "commands.h"
 
 #include <SD.h>
-#include <asm_mc6800.h>
-#include <dis_mc6800.h>
+#include <asm_mc6809.h>
+#include <dis_mc6809.h>
 #include <libcli.h>
 #include <string.h>
 
@@ -124,8 +124,8 @@ static void print(const Insn &insn) {
 }
 
 static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
-    mc6800::DisMc6800 dis6800;
-    Disassembler &disassembler = dis6800;
+    mc6809::DisMc6809 dis6809;
+    Disassembler &disassembler = dis6809;
     disassembler.setCpu(Regs.cpu());
     disassembler.setUppercase(true);
     uint16_t num = 0;
@@ -223,8 +223,8 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
         return;
     }
     cli.println();
-    mc6800::AsmMc6800 as6800;
-    Assembler &assembler(as6800);
+    mc6809::AsmMc6809 as6809;
+    Assembler &assembler(as6809);
     assembler.setCpu(Regs.cpu());
     Insn insn(last_addr);
     if (assembler.encode(line, insn)) {
