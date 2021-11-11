@@ -20,9 +20,12 @@ Signals &Signals::clear() {
     return *this;
 }
 
-void Signals::printCycles() {
-    for (uint8_t i = 0; i < _cycles; i++) {
-        _signals[i].print();
+void Signals::printCycles(const Signals *end) {
+    if (end == nullptr)
+        end = &currCycle();
+    for (const auto *signals = _signals; signals < end; signals++) {
+        signals->print();
+        Pins.idle();
     }
 }
 
@@ -92,16 +95,17 @@ static char *outPin(char *p, bool value, const char *name) {
 }
 
 void Signals::print() const {
-    const auto debug = 1;
-    const auto text = 8;
+    const auto debug = 2;
+    const auto text = 7;
     const auto hex = (1 + 2) * 2;
     const auto eos = 1;
     static char buffer[debug + text + hex + eos];
     char *p = buffer;
 #ifdef DEBUG_SIGNALS
     *p++ = _debug ? _debug : ' ';
+    *p++ = ' ';
 #endif
-    p = outText(p, rw == HIGH ? " R" : " W");
+    *p++ = rw == LOW ? 'W' : 'R';
     p = outText(p, " A=");
     p = outHex16(p, addr);
     p = outText(p, " D=");

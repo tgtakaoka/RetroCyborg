@@ -24,7 +24,6 @@ struct Regs {
     void save(bool show = false, bool undoPrefetch = false);
     void restore(bool show = false);
     void capture(const Signals *stack);
-    uint8_t cycles(uint8_t insn) const;
     const char *cpu() const;
 
     void printRegList() const;

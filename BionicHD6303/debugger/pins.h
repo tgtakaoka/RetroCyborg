@@ -17,6 +17,7 @@ public:
     void step(bool show = false);
     void halt(bool show = false);
     void run();
+    void idle();
 
     void execInst(const uint8_t *inst, uint8_t len);
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
@@ -43,6 +44,7 @@ private:
     Signals &cycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
+    void suspend(bool show = false);
 };
 
 extern Pins Pins;

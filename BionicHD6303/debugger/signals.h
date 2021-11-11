@@ -22,7 +22,7 @@ struct Signals {
     bool readRam() const { return _inject == false; }
     bool writeRam() const { return _capture == false; }
 
-    static void printCycles();
+    static void printCycles(const Signals *end = nullptr);
     static Signals &currCycle();
     static Signals &resetCycles();
     static Signals &nextCycle();

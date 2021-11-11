@@ -11,10 +11,12 @@
 #include "string_util.h"
 
 extern libcli::Cli &cli;
-class Pins Pins;
 
+class Pins Pins;
 Mc6850 Acia(Console);
 SciHandler<PIN_SCIRXD, PIN_SCITXD> SciH(Console);
+
+static constexpr bool debug_cycles = false;
 
 static inline void clock_hi() {
     digitalWriteFast(PIN_CLOCK, HIGH);
@@ -61,7 +63,7 @@ static void assert_reset() {
     negate_nmi();
     negate_irq1();
 
-    // Toggle reset to put MC68030/HD6303 in reset
+    // Toggle reset to put MC6803/HD6303 in reset
     clock_cycle();
     clock_cycle();
     clock_cycle();
@@ -272,7 +274,8 @@ void Pins::reset(bool show) {
     cycle().debug('v');
     if (show)
         Signals::printCycles();
-    // The first instruction will be saving registers, and certainly can be injected.
+    // The first instruction will be saving registers, and certainly can be
+    // injected.
     Regs.save(show);
     if (Memory::is_internal(reset_vec)) {
         Memory.raw_write_uint16(Memory::reset_vector, reset_vec);
@@ -280,6 +283,16 @@ void Pins::reset(bool show) {
     }
 
     SciH.reset();
+}
+
+void Pins::idle() {
+    // Inject "BRA *"
+    Signals::inject(0x20);
+    cycle();
+    Signals::inject(0xFE);
+    cycle();
+    Signals::inject(0);
+    cycle();
 }
 
 void Pins::loop() {
@@ -290,78 +303,65 @@ void Pins::loop() {
         if (user_sw() == LOW)
             Commands.halt(true);
     } else {
-        Signals::resetCycles();
-        // Inject "BRA *"
-        Signals::inject(0x20);
-        cycle();
-        Signals::inject(0xFE);
-        cycle();
-        Signals::inject(0);
-        cycle();
+        idle();
+    }
+}
+
+void Pins::suspend(bool show) {
+    uint8_t writes = 0;
+    assert_nmi();
+    // Wait for consequtive 7 writes which means registers saved onto stack.
+    while (writes < 7) {
+        Signals &signals = Signals::capture();
+        if (cycle().rw == LOW) {
+            writes++;
+        } else {
+            writes = 0;
+        }
+        if (writes)
+            signals.debug('0' + writes);
+    }
+    negate_nmi();
+    // Capture registers pushed onto stack.
+    const Signals *end = &Signals::currCycle() - writes;
+    Regs.capture(end);
+#if defined(BIONIC_HD6303)
+    ;  // No irrelevant bus cycle is necessary.
+#else
+    cycle().debug('n');
+#endif
+    // Inject the current PC as NMI vector.
+    Signals::inject(Regs.pc >> 8);
+    cycle().debug('v');
+    Signals::inject(Regs.pc);
+    cycle().debug('v');
+    Signals::flushWrites(end);
+    if (debug_cycles) {
+        Signals::printCycles();
+    } else if (show) {
+        Signals::printCycles(end);
     }
 }
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
         Signals::resetCycles().debug('N');
-        uint8_t writes = 0;
-        assert_nmi();
-        // Wait for consequtive 7 writes which means registers saved onto stack.
-        while (writes < 7) {
-            Signals signals = Signals::capture();
-            if (cycle().rw == LOW) {
-                writes++;
-            } else {
-                writes = 0;
-            }
-            signals.debug('0' + writes);
-        }
-        negate_nmi();
-        // Capture registers pushed onto stack.
-        Regs.capture(&Signals::currCycle() - writes);
-#if defined(BIONIC_HD6303)
-        ;  // No irrelevant bus cycle is necessary.
-#else
-        cycle().debug('n');
-#endif
-        // Inject the current PC as NMI vector.
-        Signals::inject(Regs.pc >> 8);
-        cycle().debug('v');
-        Signals::inject(Regs.pc);
-        cycle().debug('v');
-        Signals::flushWrites(&Signals::currCycle() - writes);
-        if (show)
-            Signals::printCycles();
+        suspend(show);
         _freeRunning = false;
         turn_off_led();
     }
 }
 
 void Pins::run() {
-    Regs.restore();
+    Regs.restore(debug_cycles);
     _freeRunning = true;
     turn_on_led();
 }
 
 void Pins::step(bool show) {
-    const bool debug = false;
-    const uint8_t insn = Memory.read(Regs.pc);
-    const uint8_t info = Regs.cycles(insn);
-    const uint8_t cycles = info & ~0x80;
-    Regs.restore(debug);
-    Signals::resetCycles();
-    for (uint8_t c = 0; c < cycles; c++) {
-        SciH.loop();
-        if (c == 1 && (info & 0x80)) {
-            Signals::inject(0x01);  // prefetch next instruction NOP
-            cycle().debug('-');
-        } else {
-            cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
-        }
-    }
-    if (show)
-        Signals::printCycles();
-    Regs.save(debug, info & 0x80);
+    Regs.restore(debug_cycles);
+    Signals::resetCycles().debug('s');
+    suspend(show);
 }
 
 uint8_t Pins::allocateIrq() {
