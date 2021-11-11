@@ -70,9 +70,28 @@ D 8-bit General Purpose Microprocessor, DIP-40
 K MC6801/6803 MPU
 $ENDCMP
 #
-$CMP HD6309P
+$CMP HD63B09EP
+D 8-Bit Microprocessing unit 2.0MHz, DIP-40
+K MCU
+F https://html.datasheetq.com/pdf-html/886901/Hitachi/1page/HD63C09E.html
+$ENDCMP
+#
+$CMP HD63B09P
 D 8-bit General Purpose Microprocessor, DIP-40
-F https://www.datasheetarchive.com/pdf/download.php?id=0584bd6405799cc7054ac3b8588cb8d284db2f&type=O&term=HD6309
+K MC6801/6803 MPU
+F https://pdf1.alldatasheet.jp/datasheet-pdf/view/4143/MOTOROLA/MC6809.html
+$ENDCMP
+#
+$CMP HD63C09EP
+D 8-Bit Microprocessing unit 3.0MHz, DIP-40
+K MCU
+F https://html.datasheetq.com/pdf-html/886901/Hitachi/1page/HD63C09E.html
+$ENDCMP
+#
+$CMP HD63C09P
+D 8-bit General Purpose Microprocessor, DIP-40
+K MC6801/6803 MPU
+F https://pdf1.alldatasheet.jp/datasheet-pdf/view/4143/MOTOROLA/MC6809.html
 $ENDCMP
 #
 $CMP MC146805E2P
@@ -92,15 +111,29 @@ D 8-bit General Purpose Microprocessor, DIP-40
 K MC6801/6803 MPU
 $ENDCMP
 #
+$CMP MC6809EP
+D 8-bit General Purpose Microprocessor, DIP-40
+K MC6809E/HD6309E
+F https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%208%20Bit%20Microprocessor%20(Motorola).pdf
+$ENDCMP
+#
 $CMP MC6809P
 D 8-bit General Purpose Microprocessor, DIP-40
-K MC6801/6803 MPU
+K MC6809/6309 MPU
 F https://pdf1.alldatasheet.jp/datasheet-pdf/view/4143/MOTOROLA/MC6809.html
+$ENDCMP
+#
+$CMP MC68A09EP
+F https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%208%20Bit%20Microprocessor%20(Motorola).pdf
 $ENDCMP
 #
 $CMP MC68A09P
 D 8-bit General Purpose Microprocessor, DIP-40
 F https://pdf1.alldatasheet.jp/datasheet-pdf/view/4143/MOTOROLA/MC6809.html
+$ENDCMP
+#
+$CMP MC68B09EP
+F https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%208%20Bit%20Microprocessor%20(Motorola).pdf
 $ENDCMP
 #
 $CMP MC68B09P

@@ -1,7 +1,7 @@
 /**
- *  BionicMC6809 controller
+ *  BionicMC6809E controller
  *
- * This sketch is designed to controll and debug MC6809 MPU.
+ * This sketch is designed to controll and debug MC6809E MPU.
  */
 
 #include <libcli.h>

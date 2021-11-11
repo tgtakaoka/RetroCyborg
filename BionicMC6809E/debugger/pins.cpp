@@ -16,23 +16,31 @@ Mc6850 Acia(Console);
 
 static constexpr bool debug_cycles = false;
 
-static inline void clock_hi() {
-    digitalWriteFast(PIN_CLOCK, HIGH);
+static inline void clock_q_hi() {
+    digitalWriteFast(PIN_Q, HIGH);
     delayMicroseconds(1);
 }
 
-static inline void clock_lo() {
-    digitalWriteFast(PIN_CLOCK, LOW);
+static inline void clock_e_hi() {
+    digitalWriteFast(PIN_E, HIGH);
+    delayMicroseconds(1);
+}
+
+static inline void clock_q_lo() {
+    digitalWriteFast(PIN_Q, LOW);
+    delayMicroseconds(1);
+}
+
+static inline void clock_e_lo() {
+    digitalWriteFast(PIN_E, LOW);
     delayMicroseconds(1);
 }
 
 static void clock_cycle() {
-    clock_hi();
-    clock_lo();
-}
-
-static uint8_t clock_e() {
-    return digitalReadFast(PIN_E);
+    clock_q_hi();
+    clock_e_hi();
+    clock_q_lo();
+    clock_e_lo();
 }
 
 static void assert_nmi() {
@@ -70,22 +78,8 @@ static void negate_halt() {
     digitalWriteFast(PIN_HALT, HIGH);
 }
 
-static void assert_mrdy() __attribute__((unused));
-static void assert_mrdy() {
-    digitalWriteFast(PIN_MRDY, LOW);
-}
-
-static void negate_mrdy() {
-    digitalWriteFast(PIN_MRDY, HIGH);
-}
-
-static void assert_breq() __attribute__((unused));
-static void assert_breq() {
-    digitalWriteFast(PIN_BREQ, LOW);
-}
-
-static void negate_breq() {
-    digitalWriteFast(PIN_BREQ, HIGH);
+static void negate_tsc() {
+    digitalWriteFast(PIN_TSC, LOW);
 }
 
 static void assert_reset() {
@@ -95,8 +89,7 @@ static void assert_reset() {
     negate_nmi();
     negate_irq();
     negate_firq();
-    negate_mrdy();
-    negate_breq();
+    negate_tsc();
 }
 
 static void negate_reset() {
@@ -171,44 +164,41 @@ void Pins::begin() {
     pinMode(PIN_RW, INPUT);
     pinMode(PIN_IRQ, OUTPUT);
     pinMode(PIN_NMI, OUTPUT);
-    pinMode(PIN_Q, INPUT);
+    pinMode(PIN_BUSY, INPUT);
     pinMode(PIN_FIRQ, OUTPUT);
-    pinMode(PIN_CLOCK, OUTPUT);
-    pinMode(PIN_E, INPUT);
+    pinMode(PIN_E, OUTPUT);
+    pinMode(PIN_Q, OUTPUT);
+    pinMode(PIN_AVMA, INPUT);
     pinMode(PIN_BS, INPUT);
-    pinMode(PIN_MRDY, OUTPUT);
+    pinMode(PIN_LIC, INPUT);
     pinMode(PIN_RESET, OUTPUT);
-    pinMode(PIN_BREQ, OUTPUT);
+    pinMode(PIN_TSC, OUTPUT);
     pinMode(PIN_BA, INPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
     turn_off_led();
 
     assert_reset();
-    clock_lo();
+    clock_q_lo();
+    clock_e_lo();
     _freeRunning = false;
 
     setIoDevice(SerialDevice::DEV_ACIA, ioBaseAddress());
 }
 
 Signals &Pins::cycle() {
-    Signals &signals = Signals::currCycle();
-    // MC6809 clock E is CLK/4, so we toggle CLK 4 times
-    clock_lo();
-    clock_hi();
-    //
-    clock_lo();
-    signals.readAddr();
-    clock_hi();
-    //
-    clock_lo();
-    clock_hi();
-    //
-    clock_lo();
-    clock_hi();
-    signals.get();
+    static uint8_t vma = LOW;
 
-    if (signals.rw == HIGH) {
+    Signals &signals = Signals::currCycle();
+    clock_q_hi();
+    signals.readAddr();
+    clock_e_hi();
+    signals.get();
+    clock_q_lo();
+
+    if (vma == LOW) {
+        signals.debug('-');
+    } else if (signals.rw == HIGH) {
         if (Acia.isSelected(signals.addr)) {
             signals.debug('a').data = Acia.read(signals.addr);
         } else if (signals.readRam()) {
@@ -231,9 +221,10 @@ Signals &Pins::cycle() {
             signals.debug('c');
         }
     }
-    // Set clock low to handle hold times and tristate data bus.
-    clock_lo();
+    // Set E clock low to handle hold times and tristate data bus.
+    clock_e_lo();
     busMode(D, INPUT);
+    vma = signals.avma;
 
     Signals::nextCycle();
     return signals;
@@ -269,11 +260,6 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 void Pins::reset(bool show) {
     assert_reset();
-    // Synchronize clock output and E clock input.
-    while (clock_e() == LOW)
-        clock_cycle();
-    while (clock_e() == HIGH)
-        clock_cycle();
     for (auto i = 0; i < 3; i++)
         clock_cycle();
     Signals::resetCycles();

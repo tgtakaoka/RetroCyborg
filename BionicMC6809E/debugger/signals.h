@@ -20,6 +20,9 @@ struct Signals {
     uint8_t rw;
     uint8_t ba;
     uint8_t bs;
+    uint8_t avma;
+    uint8_t lic;
+    uint8_t busy;
     uint8_t halt;
 
     bool readRam() const { return _inject == false; }

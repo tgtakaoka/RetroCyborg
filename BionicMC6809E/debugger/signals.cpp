@@ -15,7 +15,7 @@ Signals Signals::_signals[MAX_CYCLES + 1];
 Signals &Signals::clear() {
     addr = 0;
     data = 0;
-    rw = ba = bs = halt = 0;
+    rw = ba = bs = avma = lic = busy = halt = 0;
 #ifdef DEBUG_SIGNALS
     _debug = 0;
 #endif
@@ -58,6 +58,9 @@ Signals &Signals::get() {
     rw = digitalReadFast(PIN_RW);
     ba = digitalReadFast(PIN_BA);
     bs = digitalReadFast(PIN_BS);
+    avma = digitalReadFast(PIN_AVMA);
+    lic = digitalReadFast(PIN_LIC);
+    busy = digitalReadFast(PIN_BUSY);
     halt = digitalReadFast(PIN_HALT);
     return *this;
 }
@@ -102,7 +105,7 @@ static char *outPin(char *p, bool value, const char *name) {
 
 void Signals::print() const {
     const auto debug = 2;
-    const auto text = 11;
+    const auto text = 14;
     const auto hex = (1 + 2) * 2;
     const auto eos = 1;
     static char buffer[debug + text + hex + eos];
@@ -118,6 +121,9 @@ void Signals::print() const {
         *p++ = bs == LOW ? 'S' : 'H';
     }
     *p++ = ' ';
+    *p++ = avma == LOW ? ' ' : 'A';
+    *p++ = busy == LOW ? ' ' : 'B';
+    *p++ = lic == LOW ? ' ' : 'L';
     *p++ = rw == LOW ? 'W' : 'R';
     p = outText(p, " A=");
     p = outHex16(p, addr);
