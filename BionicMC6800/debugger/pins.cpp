@@ -16,23 +16,25 @@ Mc6850 Acia(Console);
 
 static constexpr bool debug_cycles = false;
 
-static inline void clock_hi() {
-    digitalWriteFast(PIN_CLOCK, HIGH);
+static inline void clock_phi1() {
+    digitalWriteFast(PIN_PHI1, HIGH);
+    delayMicroseconds(1);
+    digitalWriteFast(PIN_PHI1, LOW);
+}
+
+static inline void clock_phi2_hi() {
+    digitalWriteFast(PIN_PHI2, HIGH);
     delayMicroseconds(1);
 }
 
-static inline void clock_lo() {
-    digitalWriteFast(PIN_CLOCK, LOW);
-    delayMicroseconds(1);
+static inline void clock_phi2_lo() {
+    digitalWriteFast(PIN_PHI2, LOW);
 }
 
 static void clock_cycle() {
-    clock_lo();
-    clock_hi();
-}
-
-static uint8_t clock_e() {
-    return digitalReadFast(PIN_E);
+    clock_phi1();
+    clock_phi2_hi();
+    clock_phi2_lo();
 }
 
 static void assert_nmi() {
@@ -61,18 +63,12 @@ static void negate_halt() {
     digitalWriteFast(PIN_HALT, HIGH);
 }
 
-static void negate_mr() {
-    digitalWriteFast(PIN_MR, HIGH);
+static void negate_tsc() {
+    digitalWriteFast(PIN_TSC, LOW);
 }
 
-static void negate_re() __attribute__((unused));
-static void negate_re() {
-    digitalWriteFast(PIN_RE, LOW);
-}
-
-static void assert_re() __attribute__((unused));
-static void assert_re() {
-    digitalWriteFast(PIN_RE, HIGH);
+static void assert_dbe() {
+    digitalWriteFast(PIN_DBE, HIGH);
 }
 
 static void assert_reset() {
@@ -81,18 +77,8 @@ static void assert_reset() {
     negate_halt();
     negate_nmi();
     negate_irq();
-    negate_mr();
-#if defined(BIONIC_MC6808)
-    negate_re();  // Internal RAM doesn't exist.
-#endif
-#if defined(BIONIC_MC6802)
-    assert_re();  // Enable internal RAM
-#endif
-
-    // Toggle reset to put MC6802/MC6808 in reset
-    clock_cycle();
-    clock_cycle();
-    clock_cycle();
+    negate_tsc();
+    assert_dbe();
 }
 
 static void negate_reset() {
@@ -167,39 +153,28 @@ void Pins::begin() {
     pinMode(PIN_RW, INPUT);
     pinMode(PIN_IRQ, OUTPUT);
     pinMode(PIN_NMI, OUTPUT);
-    pinMode(PIN_CLOCK, OUTPUT);
-    pinMode(PIN_E, INPUT);
+    pinMode(PIN_PHI1, OUTPUT);
+    pinMode(PIN_PHI2, OUTPUT);
     pinMode(PIN_VMA, INPUT);
-    pinMode(PIN_RE, OUTPUT);
-    pinMode(PIN_MR, OUTPUT);
+    pinMode(PIN_DBE, OUTPUT);
     pinMode(PIN_RESET, OUTPUT);
+    pinMode(PIN_TSC, OUTPUT);
     pinMode(PIN_BA, INPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
-    turn_off_led();
-
     assert_reset();
-    clock_lo();
+
     _freeRunning = false;
+    turn_off_led();
 
     setIoDevice(SerialDevice::DEV_ACIA, ioBaseAddress());
 }
 
 Signals &Pins::cycle() {
     Signals &signals = Signals::currCycle();
-    // MC6802/MC6808 clock E is CLK/4, so we toggle CLK 4 times
-    clock_hi();
-    clock_lo();
-    //
-    clock_hi();
+    clock_phi1();
     signals.readAddr();
-    clock_lo();
-    //
-    clock_hi();
-    clock_lo();
-    //
-    clock_hi();
-    clock_lo();
+    clock_phi2_hi();
     signals.get();
 
     if (signals.vma == LOW) {
@@ -228,7 +203,7 @@ Signals &Pins::cycle() {
         }
     }
     // Set clock low to handle hold times and tristate data bus.
-    clock_hi();
+    clock_phi2_lo();
     busMode(D, INPUT);
 
     Signals::nextCycle();
@@ -264,35 +239,22 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 }
 
 void Pins::reset(bool show) {
-    // Reset vector should not point internal registers.
-    const uint16_t reset_vec = Memory.raw_read_uint16(Memory::reset_vector);
-    if (Memory::is_internal(reset_vec))
-        Memory.raw_write_uint16(Memory::reset_vector, 0x0100);
-
     assert_reset();
-    // Synchronize clock output and E clock input.
-    while (clock_e() == LOW)
-        clock_cycle();
-    while (clock_e() == HIGH)
-        clock_cycle();
-    for (auto i = 0; i < 3; i++)
-        cycle();
     Signals::resetCycles();
+    for (auto i = 0; i < 10; i++)
+        cycle();
+    //Signals::resetCycles();
     cycle().debug('R');
     negate_reset();
     cycle().debug('r');
     // Read Reset vector
     cycle().debug('v');
     cycle().debug('v');
+    Regs.save();
     if (show)
         Signals::printCycles();
     // The first instruction will be saving registers, and certainly can be
     // injected.
-    Regs.save(show);
-    if (Memory::is_internal(reset_vec)) {
-        Memory.raw_write_uint16(Memory::reset_vector, reset_vec);
-        Regs.pc = reset_vec;
-    }
 }
 
 void Pins::idle() {

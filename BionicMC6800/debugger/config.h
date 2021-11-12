@@ -4,14 +4,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define BIONIC_MC6802
-//#define BIONIC_MC6808
-
-#if defined(BIONIC_MC6802)
-#define MPU_NAME "MC6802"
-#else
-#define MPU_NAME "MC6808"
-#endif
+#define MPU_NAME "MC6800"
 
 #define VERSION_TEXT "* Bionic" MPU_NAME " 0.1"
 #define Console Serial
@@ -59,12 +52,12 @@
 #define PIN_RW 17     /* PTB01 */
 #define PIN_IRQ 19    /* PTB02 */
 #define PIN_NMI 18    /* PTB03 */
-#define PIN_CLOCK 29  /* PTB18 */
-#define PIN_E 30      /* PTB19 */
+#define PIN_PHI1 29   /* PTB18 */
+#define PIN_PHI2 30   /* PTB19 */
 #define PIN_VMA 33    /* PTE24 */
-#define PIN_RE 34     /* PTE25 */
-#define PIN_MR 24     /* PTE26 */
+#define PIN_DBE 24    /* PTE26 */
 #define PIN_RESET 25  /* PTA05 */
+#define PIN_TSC 28    /* PTA16 */
 #define PIN_BA 39     /* PTA17 */
 #define PIN_USRSW 31  /* PTB10 */
 #define PIN_USRLED 32 /* PTB11 */
@@ -115,12 +108,12 @@
 #define PIN_RW 3      /* P9.05 */
 #define PIN_IRQ 4     /* P9.06 */
 #define PIN_NMI 33    /* P9.07 */
-#define PIN_CLOCK 5   /* P9.08 */
-#define PIN_E 29      /* P9.31 */
+#define PIN_PHI1 5    /* P9.08 */
+#define PIN_PHI2 29   /* P9.31 */
 #define PIN_VMA 6     /* P7.10 */
-#define PIN_RE 9      /* P7.11 */
-#define PIN_MR 32     /* P7.12 */
+#define PIN_MR DBE    /* P7.12 */
 #define PIN_RESET 28  /* P8.18 */
+#define PIN_TSC 31    /* P8.22 */
 #define PIN_BA 30     /* P8.23 */
 #define PIN_USRSW 35  /* P7.28 */
 #define PIN_USRLED 34 /* P7.29 */

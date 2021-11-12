@@ -192,41 +192,16 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
     return true;
 }
 
-uint8_t Memory::internal_read(uint8_t addr) const {
-    static uint8_t LDAA_STAA[] = {
-            0x96, 0, 0, 0xB7, 0x01, 0x00, 0};  // LDAA dir[addr], STAA $0100
-    LDAA_STAA[1] = addr;
-    Pins.captureWrites(LDAA_STAA, sizeof(LDAA_STAA), nullptr, &LDAA_STAA[2], 1);
-    return LDAA_STAA[2];
-}
-
-void Memory::internal_write(uint8_t addr, uint8_t data) const {
-    static uint8_t LDAA_STAA[] = {
-            0x86, 0, 0x97, 0, 0, 0};  // LDAA #val, STA dir[addr]
-    LDAA_STAA[1] = data;
-    LDAA_STAA[3] = addr;
-    Pins.execInst(LDAA_STAA, sizeof(LDAA_STAA));
-}
-
 bool Memory::is_internal(uint16_t addr) {
-#if defined(BIONIC_MC6802)
-    // Internal RAM is enabled in Mode 2.
-    if (addr < 0x100)  // Internal RAM
-        return digitalReadFast(PIN_RE) == HIGH;
-#endif
     return false;  // External Memory Space
 }
 
 uint8_t Memory::read(uint16_t addr) const {
-    return is_internal(addr) ? internal_read(addr) : raw_read(addr);
+    return raw_read(addr);
 }
 
 void Memory::write(uint16_t addr, uint8_t data) {
-    if (is_internal(addr)) {
-        internal_write(addr, data);
-    } else {
-        raw_write(addr, data);
-    }
+    raw_write(addr, data);
 }
 
 uint8_t Memory::raw_read(uint16_t addr) const {
