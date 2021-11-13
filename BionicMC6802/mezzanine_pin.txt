@@ -1,26 +1,26 @@
-                      BionicMC6802 (backside)
+                    BionicMC6802 (backside)
 
            _________                    _____
-#RESET  40|        *|1   VSS    GND  48|    *|1   GND
- EXTAL  39|         |2   #HALT  P20  47|     |2   P10
-  XTAL  38|         |3   MR     P21  46|     |3   P11
-     E  37|         |4   #IRQ   P22  45|     |4   P12
-    RE  36|         |5   VMA    P23  44|  B  |5   P13
- VSTBY  35|         |6   #NMI   P24  43|  i  |6   P14
-   R/W  34|         |7   BA     P25  42|  o  |7   P15
-    D0  33|    M    |8   VCC    P26  41|  n  |8   P16
-    D1  32|    C    |9   A0     P27  40|  i  |9   P17
-    D2  31|    6    |10  A1      E1  39|  c  |10  E0
-    D3  30|    8    |11  A2     P40  38|     |11  P30
-    D4  29|    0    |12  A3     P41  37|  C  |12  P31
-    D5  28|    2    |13  A4     P42  36|  o  |13  P32
-    D6  27|         |14  A5     P43  35|  n  |14  P33
-    D7  26|         |15  A6     P44  34|  n  |15  P34
-   A15  25|         |16  A7     P45  33|  e  |16  P35
-   A14  24|         |17  A8     P46  32|  c  |17  P36
-   A13  23|         |18  A9     P47  31|  t  |18  P37
-   A12  22|         |19  A10     E3  30|  o  |19  E2
-   VSS  21|_________|20  A11    P54  29|  r  |20  P50
+#RESET P53|        *|VSS        GND  48|    *|1   GND
+ EXTAL P46|         |P40 #HALT  P20  47|     |2   P10
+  XTAL GND|         |P52 MR     P21  46|     |3   P11
+     E P47|         |P42 #IRQ   P22  45|     |4   P12
+    RE P51|         |P50 VMA    P23  44|  B  |5   P13
+ VSTBY VCC|         |P43 #NMI   P24  43|  i  |6   P14
+   R/W P41|         |P55 BA     P25  42|  o  |7   P15
+    D0 P00|    M    |VCC        P26  41|  n  |8   P16
+    D1 P00|    C    |P20 A0     P27  40|  i  |9   P17
+    D2 P00|    6    |P20 A1      E1  39|  c  |10  E0
+    D3 P00|    8    |P20 A2     P40  38|     |11  P30
+    D4 P00|    0    |P20 A3     P41  37|  C  |12  P31
+    D5 P00|    2    |P20 A4     P42  36|  o  |13  P32
+    D6 P00|         |P20 A5     P43  35|  n  |14  P33
+    D7 P00|         |P20 A6     P44  34|  n  |15  P34
+   A15 P30|         |P20 A7     P45  33|  e  |16  P35
+   A14 P30|         |P30 A8     P46  32|  c  |17  P36
+   A13 P30|         |P30 A9     P47  31|  t  |18  P37
+   A12 P30|         |P30 A10     E3  30|  o  |19  E2
+       VSS|_________|P30 A11    P54  29|  r  |20  P50
             3     4 V           P55  28|     |21  P51
         3 3 O 4 4 O c           P56  27|     |22  P52
         Y A E Y A E c           P57  26|     |23  P53
