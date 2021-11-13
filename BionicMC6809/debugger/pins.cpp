@@ -17,12 +17,12 @@ Mc6850 Acia(Console);
 static constexpr bool debug_cycles = false;
 
 static inline void clock_hi() {
-    digitalWriteFast(PIN_CLOCK, HIGH);
+    digitalWriteFast(PIN_EXTAL, HIGH);
     delayMicroseconds(1);
 }
 
 static inline void clock_lo() {
-    digitalWriteFast(PIN_CLOCK, LOW);
+    digitalWriteFast(PIN_EXTAL, LOW);
     delayMicroseconds(1);
 }
 
@@ -173,7 +173,7 @@ void Pins::begin() {
     pinMode(PIN_NMI, OUTPUT);
     pinMode(PIN_Q, INPUT);
     pinMode(PIN_FIRQ, OUTPUT);
-    pinMode(PIN_CLOCK, OUTPUT);
+    pinMode(PIN_EXTAL, OUTPUT);
     pinMode(PIN_E, INPUT);
     pinMode(PIN_BS, INPUT);
     pinMode(PIN_MRDY, OUTPUT);

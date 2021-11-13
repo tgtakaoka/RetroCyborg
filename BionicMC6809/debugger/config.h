@@ -54,7 +54,7 @@
 #define PIN_NMI 18    /* PTB03 */
 #define PIN_Q 0       /* PTB16 */
 #define PIN_FIRQ 1    /* PTB17 */
-#define PIN_CLOCK 29  /* PTB18 */
+#define PIN_EXTAL 29  /* PTB18 */
 #define PIN_E 30      /* PTB19 */
 #define PIN_BS 34     /* PTE25 */
 #define PIN_MRDY 24   /* PTE26 */
@@ -112,7 +112,7 @@
 #define PIN_NMI 33    /* P9.07 */
 #define PIN_Q 0       /* P6.03 */
 #define PIN_FIRQ 1    /* P6.04 */
-#define PIN_CLOCK 5   /* P9.08 */
+#define PIN_EXTAL 5   /* P9.08 */
 #define PIN_E 29      /* P9.31 */
 #define PIN_BS 9      /* P7.11 */
 #define PIN_MRDY 32   /* P7.12 */
