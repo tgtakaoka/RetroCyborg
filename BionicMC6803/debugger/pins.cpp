@@ -153,8 +153,6 @@ Signals &Pins::cycle() {
     clock_lo();
     clock_hi();
     //
-    clock_lo();
-    clock_hi();
     signals.get();
 
     // DO the transaction here
@@ -187,6 +185,8 @@ Signals &Pins::cycle() {
     }
     // Set clock low to handle hold times and tristate data bus.
     clock_lo();
+    clock_hi();
+    clock_lo();
     busMode(AD, INPUT);
 
     Signals::nextCycle();
@@ -205,13 +205,13 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
     for (uint8_t i = 0; i < len; i++) {
-        Signals::inject(inst[i]).debug('i');
+        Signals::inject(inst[i]);
         cycle();
     }
     uint8_t cap = 0;
     if (buf) {
         while (cap < max) {
-            Signals::capture().debug('c');
+            Signals::capture();
             const Signals &signals = cycle();
             if (cap == 0 && addr)
                 *addr = signals.addr;

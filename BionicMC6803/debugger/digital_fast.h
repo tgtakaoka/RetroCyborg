@@ -45,10 +45,10 @@
 
 #define busMode(name, mode)               \
     do {                                  \
-        if ((mode) == INPUT) {            \
-            PDDR(name) &= ~PORT_gm(name); \
-        } else {                          \
+        if ((mode) == OUTPUT) {           \
             PDDR(name) |= PORT_gm(name);  \
+        } else {                          \
+            PDDR(name) &= ~PORT_gm(name); \
         }                                 \
     } while (0)
 #define readPort(name, val)                                                  \
@@ -58,11 +58,11 @@
     (BUS_gp(name) >= BUS_vp(name) ? ((val) << (BUS_gp(name) - BUS_vp(name))) \
                                   : ((val) >> (BUS_vp(name) - BUS_gp(name))))
 #define busRead(name) (readPort(name, PIN(name)) & VALUE_gm(name))
-#define busWrite(name, val)                                    \
-    do {                                                       \
-        const uint32_t v = static_cast<uint32_t>(val);         \
-        const uint32_t o = POUT(name) & ~PORT_gm(name);        \
-        POUT(name) = o | (writePort(name, v) & PORT_gm(name)); \
+#define busWrite(name, val)                                            \
+    do {                                                               \
+        const uint32_t v = static_cast<uint32_t>(val) << BUS_vp(name); \
+        const uint32_t o = POUT(name) & ~PORT_gm(name);                \
+        POUT(name) = o | (writePort(name, v) & PORT_gm(name));         \
     } while (0)
 
 #endif
