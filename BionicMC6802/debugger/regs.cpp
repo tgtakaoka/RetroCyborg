@@ -36,7 +36,7 @@ struct Memory Memory;
  */
 
 const char *Regs::cpu() const {
-    return "6801";
+    return Memory::is_internal_ram_enabled() ? "MC6802" : "MC6808";
 }
 
 static char bit1(uint8_t v, char name) {
@@ -192,6 +192,10 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
     return true;
 }
 
+bool Memory::is_internal_ram_enabled() {
+    return digitalReadFast(PIN_RE) == HIGH;
+}
+
 uint8_t Memory::internal_read(uint8_t addr) const {
     static uint8_t LDAA_STAA[] = {
             0x96, 0, 0, 0xB7, 0x01, 0x00, 0};  // LDAA dir[addr], STAA $0100
@@ -209,8 +213,7 @@ void Memory::internal_write(uint8_t addr, uint8_t data) const {
 }
 
 bool Memory::is_internal(uint16_t addr) {
-    // Internal RAM is enabled when RE is HIGH.
-    return digitalReadFast(PIN_RE) == HIGH && addr < 0x0100;
+    return is_internal_ram_enabled() && addr < 0x0100;
 }
 
 uint8_t Memory::read(uint16_t addr) const {

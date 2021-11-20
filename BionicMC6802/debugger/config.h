@@ -4,9 +4,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define MPU_NAME "MC6802"
-
-#define VERSION_TEXT "* Bionic" MPU_NAME " 0.1"
+#define VERSION_TEXT F(" 0.1")
 #define Console Serial
 
 #define IO_BASE_ADDR 0xDF00
@@ -52,7 +50,7 @@
 #define PIN_RW 17     /* PTB01 */
 #define PIN_IRQ 19    /* PTB02 */
 #define PIN_NMI 18    /* PTB03 */
-#define PIN_CLOCK 29  /* PTB18 */
+#define PIN_EXTAL 29  /* PTB18 */
 #define PIN_E 30      /* PTB19 */
 #define PIN_VMA 33    /* PTE24 */
 #define PIN_RE 34     /* PTE25 */

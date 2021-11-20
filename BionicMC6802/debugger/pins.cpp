@@ -17,12 +17,12 @@ Mc6850 Acia(Console);
 static constexpr bool debug_cycles = false;
 
 static inline void clock_hi() {
-    digitalWriteFast(PIN_CLOCK, HIGH);
+    digitalWriteFast(PIN_EXTAL, HIGH);
     delayMicroseconds(1);
 }
 
 static inline void clock_lo() {
-    digitalWriteFast(PIN_CLOCK, LOW);
+    digitalWriteFast(PIN_EXTAL, LOW);
     delayMicroseconds(1);
 }
 
@@ -65,16 +65,6 @@ static void negate_mr() {
     digitalWriteFast(PIN_MR, HIGH);
 }
 
-static void negate_re() __attribute__((unused));
-static void negate_re() {
-    digitalWriteFast(PIN_RE, LOW);
-}
-
-static void assert_re() __attribute__((unused));
-static void assert_re() {
-    digitalWriteFast(PIN_RE, HIGH);
-}
-
 static void assert_reset() {
     // Drive RESET condition
     digitalWriteFast(PIN_RESET, LOW);
@@ -82,7 +72,6 @@ static void assert_reset() {
     negate_nmi();
     negate_irq();
     negate_mr();
-    negate_re();  // Disable internal RAM.
 }
 
 static void negate_reset() {
@@ -157,10 +146,10 @@ void Pins::begin() {
     pinMode(PIN_RW, INPUT);
     pinMode(PIN_IRQ, OUTPUT);
     pinMode(PIN_NMI, OUTPUT);
-    pinMode(PIN_CLOCK, OUTPUT);
+    pinMode(PIN_EXTAL, OUTPUT);
     pinMode(PIN_E, INPUT);
     pinMode(PIN_VMA, INPUT);
-    pinMode(PIN_RE, OUTPUT);
+    pinMode(PIN_RE, INPUT_PULLUP);
     pinMode(PIN_MR, OUTPUT);
     pinMode(PIN_RESET, OUTPUT);
     pinMode(PIN_BA, INPUT);

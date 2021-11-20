@@ -48,6 +48,7 @@ public:
     static constexpr auto memory_size = 0x10000;
     static constexpr auto reset_vector = 0xFFFE;
     static bool is_internal(uint16_t addr);
+    static bool is_internal_ram_enabled();
 
 protected:
     uint8_t nextByte() { return read(address()); }

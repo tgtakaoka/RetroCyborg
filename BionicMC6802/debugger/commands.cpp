@@ -494,6 +494,8 @@ void Commands::exec(char c) {
         cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
+        cli.print(F("* Bionic"));
+        cli.print(Regs.cpu());
         cli.println(VERSION_TEXT);
         cli.println(USAGE);
         break;
