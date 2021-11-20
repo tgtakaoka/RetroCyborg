@@ -4,14 +4,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define BIONIC_MC6802
-//#define BIONIC_MC6808
-
-#if defined(BIONIC_MC6802)
 #define MPU_NAME "MC6802"
-#else
-#define MPU_NAME "MC6808"
-#endif
 
 #define VERSION_TEXT "* Bionic" MPU_NAME " 0.1"
 #define Console Serial

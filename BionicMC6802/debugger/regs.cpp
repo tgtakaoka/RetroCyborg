@@ -209,12 +209,8 @@ void Memory::internal_write(uint8_t addr, uint8_t data) const {
 }
 
 bool Memory::is_internal(uint16_t addr) {
-#if defined(BIONIC_MC6802)
-    // Internal RAM is enabled in Mode 2.
-    if (addr < 0x100)  // Internal RAM
-        return digitalReadFast(PIN_RE) == HIGH;
-#endif
-    return false;  // External Memory Space
+    // Internal RAM is enabled when RE is HIGH.
+    return digitalReadFast(PIN_RE) == HIGH && addr < 0x0100;
 }
 
 uint8_t Memory::read(uint16_t addr) const {
