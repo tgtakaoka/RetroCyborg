@@ -28,6 +28,7 @@ struct Regs {
     void restore(bool show = false);
     void capture(const Signals *stack);
     const char *cpu() const;
+    bool xtal_open() const;
 
     void printRegList() const;
     bool validUint8Reg(char reg) const;

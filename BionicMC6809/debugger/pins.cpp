@@ -16,22 +16,88 @@ Mc6850 Acia(Console);
 
 static constexpr bool debug_cycles = false;
 
-static inline void clock_hi() {
+/**
+ * MC6809 bus cycle.
+ *          __    __    __    __    __    __    __    __    __
+ * EXTAL __|c1|__|c2|__|c3|__|c4|__|c1|__|c2|__|c3|__|c4|__|c1|_
+ *             \___________\           \___________\
+ *     Q ______|           |___________|           |___________|
+ *                   \___________\           \___________\     \
+ *     E ____________|           |___________|           |______
+ *             ________________________
+ *   R/W -----<                        |________________________
+ *                           ____               _________
+ *  Data -------------------<rrrr>-------------<wwwwwwwww>------
+ *
+ * - EXTAL falling-edge to E and Q edges takes 40ns.
+ * - R/W, Address, BA and BS are valid before 40ns of raising edge of Q.
+ * - Read data setup to falling E egde is 80ns.
+ * - Read data hold to falling E edge is 10ns.
+ * - Write data gets valid after 200ns of raising Q edge.
+ */
+
+#if defined(ARDUINO_TEENSY35)
+static constexpr auto extal_hi_ns = 120;
+static constexpr auto extal_lo_ns = 120;
+static constexpr auto delay_extal_e_ns = 60;
+static constexpr auto c1_lo_ns = 0;
+static constexpr auto c1_hi_ns = 45;
+static constexpr auto c2_lo_ns = 45;
+static constexpr auto c2_hi_ns = 115;
+static constexpr auto c3_read_lo_ns = 5;
+static constexpr auto c3_read_hi_ns = 0;
+static constexpr auto c4_read_lo_ns = 0;
+static constexpr auto c4_read_hi_ns = 0;
+static constexpr auto c3_write_lo_ns = 5;
+static constexpr auto c3_write_hi_ns = 0;
+static constexpr auto c4_write_lo_ns = 0;
+static constexpr auto c4_write_hi_ns = 0;
+static constexpr auto next_c1_lo_ns = 0;
+#endif
+#if defined(ARDUINO_TEENSY41)
+static constexpr auto extal_hi_ns = 103;
+static constexpr auto extal_lo_ns = 33;
+static constexpr auto delay_extal_e_ns = 40;
+static constexpr auto c1_lo_ns = 0;
+static constexpr auto c1_hi_ns = 78;
+static constexpr auto c2_lo_ns = 60;
+static constexpr auto c2_hi_ns = 101;
+static constexpr auto c3_read_lo_ns = 89;
+static constexpr auto c3_read_hi_ns = 68;
+static constexpr auto c4_read_lo_ns = 74;
+static constexpr auto c4_read_hi_ns = 55;
+static constexpr auto c3_write_lo_ns = 89;
+static constexpr auto c3_write_hi_ns = 75;
+static constexpr auto c4_write_lo_ns = 68;
+static constexpr auto c4_write_hi_ns = 53;
+static constexpr auto next_c1_lo_ns = 5;
+#endif
+
+static inline void extal_hi() __attribute__((always_inline));
+static inline void extal_hi() {
     digitalWriteFast(PIN_EXTAL, HIGH);
-    delayMicroseconds(1);
 }
 
-static inline void clock_lo() {
+static inline void extal_lo() __attribute__((always_inline));
+static inline void extal_lo() {
     digitalWriteFast(PIN_EXTAL, LOW);
-    delayMicroseconds(1);
 }
 
-static void clock_cycle() {
-    clock_hi();
-    clock_lo();
+static inline void clock_cycle() __attribute__((always_inline));
+static inline void clock_cycle() {
+    extal_hi();
+    delayNanoseconds(extal_hi_ns);
+    extal_lo();
+    delayNanoseconds(extal_lo_ns);
 }
 
-static uint8_t clock_e() {
+static inline uint8_t clock_q() __attribute__((always_inline));
+static inline uint8_t clock_q() {
+    return digitalReadFast(PIN_Q);
+}
+
+static inline uint8_t clock_e() __attribute__((always_inline));
+static inline uint8_t clock_e() {
     return digitalReadFast(PIN_E);
 }
 
@@ -175,6 +241,7 @@ void Pins::begin() {
     pinMode(PIN_FIRQ, OUTPUT);
     pinMode(PIN_EXTAL, OUTPUT);
     pinMode(PIN_E, INPUT);
+    pinMode(PIN_XTAL, INPUT_PULLUP);
     pinMode(PIN_BS, INPUT);
     pinMode(PIN_MRDY, OUTPUT);
     pinMode(PIN_RESET, OUTPUT);
@@ -185,57 +252,75 @@ void Pins::begin() {
     turn_off_led();
 
     assert_reset();
-    clock_lo();
+    extal_lo();
     _freeRunning = false;
 
     setIoDevice(SerialDevice::DEV_ACIA, ioBaseAddress());
 }
 
 Signals &Pins::cycle() {
-    Signals &signals = Signals::currCycle();
     // MC6809 clock E is CLK/4, so we toggle CLK 4 times
-    clock_lo();
-    clock_hi();
-    //
-    clock_lo();
-    signals.readAddr();
-    clock_hi();
-    //
-    clock_lo();
-    clock_hi();
-    //
-    clock_lo();
-    clock_hi();
-    signals.get();
+    // c1
+    delayNanoseconds(c1_lo_ns);
+    Signals &signals = Signals::currCycle();
+    signals.getDirection();
+    extal_hi();
+    delayNanoseconds(c1_hi_ns);
+    signals.getAddr1();
+    extal_lo();
+    // c2
+    signals.getAddr2();
+    delayNanoseconds(c2_lo_ns);
+    extal_hi();
+    delayNanoseconds(c2_hi_ns);
+    extal_lo();
 
-    if (signals.rw == HIGH) {
-        if (Acia.isSelected(signals.addr)) {
-            signals.debug('a').data = Acia.read(signals.addr);
-        } else if (signals.readRam()) {
-            signals.debug('m').data = Memory.raw_read(signals.addr);
-        } else {
-            ;  // inject data from signals.data
-            signals.debug('i');
-        }
-        busWrite(D, signals.data);
-        // change data bus to output
-        busMode(D, OUTPUT);
-    } else {
-        signals.readData();
+    if (signals.rw == LOW) {
+        // c3
+        delayNanoseconds(c3_write_lo_ns);
+        extal_hi();
+        delayNanoseconds(c3_write_hi_ns);
+        signals.getData();
+        extal_lo();
+        // c4
         if (Acia.isSelected(signals.addr)) {
             Acia.write(signals.debug('a').data, signals.addr);
         } else if (signals.writeRam()) {
             Memory.raw_write(signals.addr, signals.debug('m').data);
         } else {
             ;  // capture data to signals.data
-            signals.debug('c');
         }
+        delayNanoseconds(c4_write_lo_ns);
+        extal_hi();
+        Signals::nextCycle();
+        delayNanoseconds(c4_write_hi_ns);
+    } else {
+        // c3
+        delayNanoseconds(c3_read_lo_ns);
+        extal_hi();
+        if (Acia.isSelected(signals.addr)) {
+            signals.debug('a').data = Acia.read(signals.addr);
+        } else if (signals.readRam()) {
+            signals.debug('m').data = Memory.raw_read(signals.addr);
+        } else {
+            ;  // inject data from signals.data
+        }
+        delayNanoseconds(c3_read_hi_ns);
+        extal_lo();
+        // c4
+        delayNanoseconds(c4_read_lo_ns);
+        busWrite(D, signals.data);
+        extal_hi();
+        // change data bus to output
+        busMode(D, OUTPUT);
+        Signals::nextCycle();
+        delayNanoseconds(c4_read_hi_ns);
     }
-    // Set clock low to handle hold times and tristate data bus.
-    clock_lo();
+    // To ensure data hold time (10ns).
+    extal_lo();
+    delayNanoseconds(next_c1_lo_ns);
     busMode(D, INPUT);
 
-    Signals::nextCycle();
     return signals;
 }
 
@@ -251,13 +336,13 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
     for (uint8_t i = 0; i < len; i++) {
-        Signals::inject(inst[i]).debug('i');
+        Signals::inject(inst[i]);
         cycle();
     }
     uint8_t cap = 0;
     if (buf) {
         while (cap < max) {
-            Signals::capture().debug('c');
+            Signals::capture();
             const Signals &signals = cycle();
             if (cap == 0 && addr)
                 *addr = signals.addr;
@@ -269,28 +354,38 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 void Pins::reset(bool show) {
     assert_reset();
-    // Synchronize clock output and E clock input.
-    while (clock_e() == LOW)
+    // Synchronize EXTAL input and Q and E output
+    while (true) {
         clock_cycle();
-    while (clock_e() == HIGH)
+        delayNanoseconds(delay_extal_e_ns);
+        if (clock_q() == LOW && clock_e() != LOW)
+            break;
+    }
+    while (clock_e() != LOW) {
         clock_cycle();
-    for (auto i = 0; i < 3; i++)
-        clock_cycle();
+        delayNanoseconds(delay_extal_e_ns);
+    }
+    // At reast one #RESET cycle.
+    cycle().debug('R');
     Signals::resetCycles();
     cycle().debug('R');
     negate_reset();
-    // Three FFFE cycles.
-    cycle().debug('r');
-    cycle().debug('r');
-    cycle().debug('r');
-    // Read Reset vector
-    cycle().debug('v');
+    while (true) {
+        Signals &signals = cycle();
+        if (signals.ba == LOW && signals.bs != LOW) {
+            // MSB of reset vector has read.
+            signals.debug('v');
+            break;
+        }
+        signals.debug('r');
+    }
+    // LSB of reset vector;
     cycle().debug('v');
     // non-VMA
     cycle().debug('-');
-    Regs.save();
     if (show)
         Signals::printCycles();
+    Regs.save(show);
 }
 
 void Pins::idle() {
@@ -319,26 +414,29 @@ void Pins::suspend(bool show) {
     assert_nmi();
     // Wait for consequtive 12 writes which means registers saved onto stack.
     while (writes < 12) {
-        Signals signals = Signals::capture();
-        if (cycle().rw == LOW) {
+        Signals::capture();
+        Signals &signals = cycle();
+        if (signals.rw == LOW) {
             writes++;
+            signals.debug('0' + writes);
         } else {
             writes = 0;
         }
-        if (writes)
-            signals.debug('0' + writes);
     }
     negate_nmi();
     // Capture registers pushed onto stack.
     const Signals *end = &Signals::currCycle() - writes;
     Regs.capture(end);
-    cycle().debug('n');
+    // Non-VMA cycle
+    cycle().debug('-');
     // Inject the current PC as NMI vector.
     Signals::inject(Regs.pc >> 8);
     cycle().debug('v');
     Signals::inject(Regs.pc);
     cycle().debug('v');
     Signals::flushWrites(end);
+    // Non-VMA cycle
+    cycle().debug('-');
     if (debug_cycles) {
         Signals::printCycles();
     } else if (show) {
@@ -348,7 +446,7 @@ void Pins::suspend(bool show) {
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        Signals::resetCycles().debug('N');
+        Signals::resetCycles();
         suspend(show);
         _freeRunning = false;
         turn_off_led();
@@ -364,7 +462,7 @@ void Pins::run() {
 
 void Pins::step(bool show) {
     Regs.restore(debug_cycles);
-    Signals::resetCycles().debug('s');
+    Signals::resetCycles();
     suspend(show);
 }
 

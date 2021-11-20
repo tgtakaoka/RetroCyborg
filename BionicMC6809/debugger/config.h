@@ -4,9 +4,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define MPU_NAME "MC6809"
-
-#define VERSION_TEXT "* Bionic" MPU_NAME " 0.1"
+#define VERSION_TEXT F(" 0.1")
 #define Console Serial
 
 #define IO_BASE_ADDR 0xDF00
@@ -56,6 +54,7 @@
 #define PIN_FIRQ 1    /* PTB17 */
 #define PIN_EXTAL 29  /* PTB18 */
 #define PIN_E 30      /* PTB19 */
+#define PIN_XTAL 33   /* PTE24 */
 #define PIN_BS 34     /* PTE25 */
 #define PIN_MRDY 24   /* PTE26 */
 #define PIN_RESET 25  /* PTA05 */
@@ -94,10 +93,10 @@
 #define AM_gp 0       /* P7.00-P7.03 */
 #define AM_gm 0xF     /* P7.12-P7.15 */
 #define AM_vp 8       /* A8-A11 */
-#define PIN_AM8 35    /* P7.00 */
-#define PIN_AM9 36    /* P7.01 */
-#define PIN_AM10 37   /* P7.02 */
-#define PIN_AM11 38   /* P7.03 */
+#define PIN_AM8 10    /* P7.00 */
+#define PIN_AM9 12    /* P7.01 */
+#define PIN_AM10 11   /* P7.02 */
+#define PIN_AM11 13   /* P7.03 */
 #define PORT_AH 7     /* P7.16-P7.19 */
 #define AH_gp 16      /* P7.16-P7.19 */
 #define AH_gm 0xF     /* P7.16-P7.19 */
@@ -114,6 +113,7 @@
 #define PIN_FIRQ 1    /* P6.04 */
 #define PIN_EXTAL 5   /* P9.08 */
 #define PIN_E 29      /* P9.31 */
+#define PIN_XTAL 6    /* P7.10 */
 #define PIN_BS 9      /* P7.11 */
 #define PIN_MRDY 32   /* P7.12 */
 #define PIN_RESET 28  /* P8.18 */

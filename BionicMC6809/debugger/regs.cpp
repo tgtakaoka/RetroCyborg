@@ -23,7 +23,11 @@ struct Memory Memory;
  */
 
 const char *Regs::cpu() const {
-    return "6801";
+    return "MC6809";
+}
+
+bool Regs::xtal_open() const {
+    return digitalReadFast(PIN_XTAL) == HIGH;
 }
 
 static char bit1(uint8_t v, char name) {
@@ -31,18 +35,29 @@ static char bit1(uint8_t v, char name) {
 }
 
 void Regs::print() const {
-    // text=29, reg=5*4+4*2, cc=8, eos=1
-    char buffer[29 + 5 * 4 + 4 * 2 + 8 + 1];
-    char *p = buffer;
-    p = outHex8(outText(p, "DP="), dp);
-    p = outHex16(outText(p, " PC="), pc);
-    p = outHex16(outText(p, " S="), s);
-    p = outHex16(outText(p, " U="), u);
-    p = outHex16(outText(p, " Y="), y);
-    p = outHex16(outText(p, " X="), x);
-    p = outHex8(outText(p, " A="), a);
-    p = outHex8(outText(p, " B="), b);
-    p = outText(p, " CC=");
+    // clang-format off
+    static char buffer[] = {
+        'D', 'P', '=', 0, 0, ' ',        // DP=3
+        'P', 'C', '=', 0, 0, 0, 0, ' ',  // PC=9
+        'S', '=', 0, 0, 0, 0, ' ',       // S=16
+        'U', '=', 0, 0, 0, 0, ' ',       // U=23
+        'Y', '=', 0, 0, 0, 0, ' ',       // S=30
+        'X', '=', 0, 0, 0, 0, ' ',       // X=37
+        'A', '=', 0, 0, ' ',             // A=44
+        'B', '=', 0, 0, ' ',             // B=49
+        'C', 'C', '=',                   // CC=55
+        0, 0, 0, 0, 0, 0, 0, 0, 
+        0,                               // EOS
+    };
+    outHex8(buffer + 3, dp);
+    outHex16(buffer + 9, pc);
+    outHex16(buffer + 16, s);
+    outHex16(buffer + 23, u);
+    outHex16(buffer + 30, y);
+    outHex16(buffer + 37, x);
+    outHex8(buffer + 44, a);
+    outHex8(buffer + 49, b);
+    char *p = buffer + 55;
     *p++ = bit1(cc & 0x80, 'E');
     *p++ = bit1(cc & 0x40, 'F');
     *p++ = bit1(cc & 0x20, 'H');
@@ -51,7 +66,6 @@ void Regs::print() const {
     *p++ = bit1(cc & 0x04, 'Z');
     *p++ = bit1(cc & 0x02, 'V');
     *p++ = bit1(cc & 0x01, 'C');
-    *p = 0;
     cli.println(buffer);
     Pins.idle();
 }

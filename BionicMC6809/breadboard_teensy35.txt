@@ -34,7 +34,7 @@
 32           |         |           32
 33           |_________|           33
 34        VSS|*        |P40 #HALT  34
-35   #NMI P43|         |GND XTAL   35
+35   #NMI P43|         |P50 XTAL   35
 36   #IRQ P42|         |P46 EXTAL  36
 37  #FIRQ P45|         |P53 #RESET 37
 38     BS P51|         |P52 MRDY   38

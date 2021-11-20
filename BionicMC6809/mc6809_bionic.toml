@@ -42,5 +42,5 @@ width = 600
 36 = "P52, MRDY"
 37 = "P53, #RESET"
 38 = "P46, EXTAL"
-39 = "GND, XTAL"
+39 = "P50, XTAL"
 40 = "P40, #HALT"

@@ -5,8 +5,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title "BionicMC6809 Mezzanine"
-Date "2021-11-11"
-Rev "1"
+Date "2021-11-21"
+Rev "2"
 Comp "Tadashi G. Takaoka"
 Comment1 ""
 Comment2 ""
@@ -338,7 +338,6 @@ F 3 "" H 6350 4550 50  0001 C CNN
 	1    6350 4550
 	1    0    0    -1  
 $EndComp
-NoConn ~ 5650 4850
 NoConn ~ 5650 5050
 NoConn ~ 5650 5250
 Text Label 5550 4650 2    50   ~ 0
@@ -388,7 +387,7 @@ Wire Wire Line
 Wire Wire Line
 	7400 3300 7850 3300
 Wire Wire Line
-	7400 3400 7850 3400
+	7400 3400 7750 3400
 Wire Wire Line
 	7400 3500 7850 3500
 Entry Wire Line
@@ -409,19 +408,15 @@ Entry Wire Line
 	7950 3400 7850 3500
 Wire Wire Line
 	6900 4000 6550 4000
-Wire Wire Line
-	6550 4650 6250 4650
-Wire Wire Line
-	6250 4750 6350 4750
 $Comp
 L power:GND #PWR06
 U 1 1 61A0F5E3
-P 6350 4750
-F 0 "#PWR06" H 6350 4500 50  0001 C CNN
-F 1 "GND" H 6355 4577 50  0000 C CNN
-F 2 "" H 6350 4750 50  0001 C CNN
-F 3 "" H 6350 4750 50  0001 C CNN
-	1    6350 4750
+P 6350 4950
+F 0 "#PWR06" H 6350 4700 50  0001 C CNN
+F 1 "GND" H 6355 4777 50  0000 C CNN
+F 2 "" H 6350 4950 50  0001 C CNN
+F 3 "" H 6350 4950 50  0001 C CNN
+	1    6350 4950
 	1    0    0    -1  
 $EndComp
 NoConn ~ 6900 3600
@@ -454,8 +449,6 @@ F 3 "" H 7550 4100 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	3150 3100 3800 3100
-Wire Wire Line
-	6250 4750 6250 4850
 $Comp
 L 0-LocalLibrary:BionicConnector J1
 U 1 1 618CC1AA
@@ -480,7 +473,6 @@ F 3 "https://www.ti.com/lit/ds/symlink/cd74hct126.pdf" H 5950 5050 50  0001 C CN
 	1    5950 5050
 	-1   0    0    -1  
 $EndComp
-Connection ~ 6250 4750
 Wire Wire Line
 	3150 3000 3800 3000
 Wire Wire Line
@@ -589,12 +581,8 @@ Text Label 4800 4200 0    50   ~ 0
 P44
 Text Label 4800 4300 0    50   ~ 0
 P47
-Text Label 3700 3700 2    50   ~ 0
+Text Label 6350 4850 0    50   ~ 0
 P46
-Wire Wire Line
-	3150 3700 3800 3700
-Entry Wire Line
-	3050 3600 3150 3700
 Wire Bus Line
 	3050 1400 7950 1400
 Connection ~ 5350 1600
@@ -628,10 +616,6 @@ Wire Wire Line
 	3200 4650 5650 4650
 Wire Wire Line
 	6250 5250 6250 5150
-Connection ~ 6250 4850
-Connection ~ 6250 4950
-Wire Wire Line
-	6250 4950 6250 4850
 Connection ~ 6250 5050
 Wire Wire Line
 	6250 5050 6250 4950
@@ -649,12 +633,12 @@ Wire Wire Line
 $Comp
 L power:GND #PWR0103
 U 1 1 61B28763
-P 3800 3800
-F 0 "#PWR0103" H 3800 3550 50  0001 C CNN
-F 1 "GND" H 3650 3750 50  0000 C CNN
-F 2 "" H 3800 3800 50  0001 C CNN
-F 3 "" H 3800 3800 50  0001 C CNN
-	1    3800 3800
+P 2600 6250
+F 0 "#PWR0103" H 2600 6000 50  0001 C CNN
+F 1 "GND" H 2450 6200 50  0000 C CNN
+F 2 "" H 2600 6250 50  0001 C CNN
+F 3 "" H 2600 6250 50  0001 C CNN
+	1    2600 6250
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -674,7 +658,6 @@ Entry Wire Line
 	3050 3200 3150 3300
 Text Label 3700 3300 2    50   ~ 0
 P40
-NoConn ~ 6900 3700
 Wire Wire Line
 	6450 3800 6450 4250
 Wire Wire Line
@@ -698,9 +681,9 @@ P41
 Wire Wire Line
 	7950 3700 7950 6100
 Wire Wire Line
-	7950 6100 2950 6100
+	7950 6100 2900 6100
 Wire Wire Line
-	2950 6100 2950 3500
+	2900 6100 2900 3500
 Text Label 3700 3500 2    50   ~ 0
 P54
 Wire Wire Line
@@ -708,11 +691,67 @@ Wire Wire Line
 Wire Wire Line
 	7400 3700 7950 3700
 Wire Wire Line
-	2950 3500 3800 3500
+	2900 3500 3800 3500
+Wire Wire Line
+	6250 4750 6350 4750
+Connection ~ 6350 4550
+Wire Wire Line
+	6250 4650 6550 4650
+Wire Wire Line
+	6350 4550 6350 4750
+Wire Wire Line
+	6250 4950 6350 4950
+Connection ~ 6250 4950
+Wire Wire Line
+	6250 4850 7750 4850
+Wire Wire Line
+	7750 4850 7750 3400
+Connection ~ 7750 3400
+Wire Wire Line
+	7750 3400 7850 3400
+Wire Wire Line
+	3000 3700 3000 4850
+Wire Wire Line
+	3000 4850 5650 4850
+Wire Wire Line
+	3000 3700 3800 3700
+Text Label 5550 4850 2    50   ~ 0
+EXTAL
+Text Label 3700 3700 2    50   ~ 0
+EXTAL
+Text Label 6800 3700 2    50   ~ 0
+P50
+Wire Wire Line
+	6900 3700 6800 3700
+Wire Wire Line
+	6800 3700 6800 6000
+Wire Wire Line
+	6800 6000 3100 6000
+Wire Wire Line
+	3800 3800 3100 3800
+Wire Wire Line
+	3100 3800 3100 6000
+Text Label 3700 3800 2    50   ~ 0
+P50
+$Comp
+L Jumper:Jumper_3_Bridged12 JP1
+U 1 1 61A5AE1A
+P 2600 6000
+F 0 "JP1" V 2646 6067 50  0000 L CNN
+F 1 "HD63/MC68" V 2555 6067 50  0000 L CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 2600 6000 50  0001 C CNN
+F 3 "~" H 2600 6000 50  0001 C CNN
+	1    2600 6000
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	2750 6000 3100 6000
+Connection ~ 3100 6000
+NoConn ~ 2600 5750
 Wire Bus Line
 	5350 1600 5350 4200
 Wire Bus Line
-	3050 1400 3050 3600
+	3050 1400 3050 3200
 Wire Bus Line
 	5250 1500 5250 3400
 Wire Bus Line
