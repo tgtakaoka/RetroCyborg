@@ -1,27 +1,27 @@
-                          BionicMezzanine (Front side)
-        _____
-GND   1|*    |48  GND
-P10   2|     |47  P20
-P11   3|     |46  P21
-P12   4|     |45  P22                                          _________
-P13   5|  B  |44  P23                                      VSS|*        |P53 #RESET
-P14   6|  i  |43  P24                                #HALT P40|         |P54 TSC
-P15   7|  o  |42  P25                                 PHI1 P46|         |
-P16   8|  n  |41  P26                                 #IRQ P42|         |P47 PHI2
-P17   9|  i  |40  P27                                  VMA P50|         |P52 DBE
- E0  10|  c  |39  E1                                  #NMI P43|         |
-P30  11|     |38  P40                                   BA P55|         |P41 R/#W
-P31  12|  C  |37  P41                                      VCC|    M    |P00 D0
-P32  13|  o  |36  P42                                   A0 P20|    C    |P00 D1
-P33  14|  n  |35  P43               _____               A1 P20|    6    |P00 D2
-P34  15|  n  |34  P44      #OE1   1|*    |20  Vcc       A2 P20|    8    |P00 D3
-P35  16|  e  |33  P45        A0   2|     |19  #OE2      A3 P20|    0    |P00 D4
-P36  17|  c  |32  P46        A1   3|  7  |18  Y0        A4 P20|    0    |P00 D5
-P37  18|  t  |31  P47        A2   4|  4  |17  Y1        A5 P20|         |P00 D6
- E2  19|  o  |30  E3         A3   5|  5  |16  Y2        A6 P20|         |P00 D7
-P50  20|  r  |29  P54        A4   6|  4  |15  Y3        A7 P20|         |P30 A15
-P51  21|     |28  P55        A5   7|  1  |14  Y4        A8 P30|         |P30 A14
-P52  22|     |27  P56        A6   8|     |13  Y5        A9 P30|         |P30 A13
-P53  23|     |26  P57        A7   9|     |12  Y6       A10 P30|         |P30 A12
-VCC  24|_____|25  VCC       GND  10|_____|11  Y7       A11 P30|_________|VSS
-  Bionic Connector               CD74HCT541E                     MC6800
+                  BionicMezzanine (Front side)
+      _____
+  GND|*    |GND
+  P10|     |P20
+  P11|     |P21
+  P12|     |P22                                     _________
+  P13|  B  |P23                              VSS  1|*        |40 P53 #RESET
+  P14|  i  |P24                        #HALT P40  2|         |39 P54 TSC
+  P15|  o  |P25                         PHI1 P46  3|         |38
+  P16|  n  |P26                         #IRQ P42  4|         |37 P47 PHI2
+  P17|  i  |P27                          VMA P50  5|         |36 P52 DBE
+   E0|  c  |E1                          #NMI P43  6|         |35
+  P30|     |P40                           BA P55  7|         |34 P41 R/#W
+  P31|  C  |P41                              VCC  8|    M    |33 P00 D0
+  P32|  o  |P42                           A0 P20  9|    C    |32 P01 D1
+  P33|  n  |P43          _____            A1 P21 10|    6    |31 P02 D2
+  P34|  n  |P44  #OE1  1|*    |20 Vcc     A2 P22 11|    8    |30 P03 D3
+  P35|  e  |P45    A0  2|     |19 #OE2    A3 P23 12|    0    |29 P04 D4
+  P36|  c  |P46    A1  3|  7  |18 Y0      A4 P24 13|    0    |28 P05 D5
+  P37|  t  |P47    A2  4|  4  |17 Y1      A5 P25 14|         |27 P06 D6
+   E2|  o  |E3     A3  5|  5  |16 Y2      A6 P26 15|         |26 P07 D7
+  P50|  r  |P54    A4  6|  4  |15 Y3      A7 P27 16|         |25 P37 A15
+  P51|     |P55    A5  7|  1  |14 Y4      A8 P30 17|         |24 P36 A14
+  P52|     |P56    A6  8|     |13 Y5      A9 P31 18|         |23 P35 A13
+  P53|     |P57    A7  9|     |12 Y6     A10 P32 19|         |22 P34 A12
+  VCC|_____|VCC   GND 10|_____|11 Y7     A11 P33 20|_________|21 VSS
+Bionic Connector      CD74HCT541E                    MC6800

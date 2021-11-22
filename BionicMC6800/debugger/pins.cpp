@@ -16,30 +16,66 @@ Mc6850 Acia(Console);
 
 static constexpr bool debug_cycles = false;
 
-static void assert_dbe() {
-    digitalWriteFast(PIN_DBE, HIGH);
-}
+/**
+ * MC6800 bus cycle.
+ *         __________            __________            _____
+ *  PHI1 _|          |__________|          |__________|
+ *       _     _________________     _________________     _
+ *   DBE  |___|                 |___|                 |___|
+ *       _            __________            __________
+ *  PHI2  |__________|          |__________|          |______
+ *       ________  ____________________  ____________________
+ *   VMA ________><____________________><____________________
+ *                ______________________
+ *   R/W --------<                      |____________________
+ *                              ____               _________
+ *  Data -----------------------<rrrr>-------------<wwwwwwwww>---
+ *
+ * - Minimum DBE asserted period is 150ns.
+ * - Minimum PHI1/PHI2 high period is 400ns.
+ * - Minimum overrapping of PHI1 and PHI2 is 0ns.
+ * - Maximum separation of PHI1 and PHI2 is 9100ns.
+ * - PHI1 raising-edge to valid VMA, R/W and address is 270ns.
+ * - Read data setup to falling PHI2 egde is 100ns.
+ * - Read data hold to falling PHI2 edge is 10ns.
+ * - Write data gets valid after 225ns of raising DBE edge.
+ */
 
-static void negate_dbe() {
+#if defined(ARDUINO_TEENSY35)
+static constexpr auto dbe_negate_ns = 70;
+static constexpr auto phi1_hi_ns = 50;
+static constexpr auto phi2_novma_hi_ns = 20;
+static constexpr auto phi2_write_hi_ns = 0;
+static constexpr auto phi2_read_hi_ns = 0;
+#endif
+#if defined(ARDUINO_TEENSY41)
+static constexpr auto dbe_negate_ns = 120;
+static constexpr auto phi1_hi_ns = 180;
+static constexpr auto phi2_novma_hi_ns = 280;
+static constexpr auto phi2_write_hi_ns = 220;
+static constexpr auto phi2_read_hi_ns = 200;
+#endif
+
+static inline void phi1_hi_dbe_lo() __attribute__((always_inline));
+static inline void phi1_hi_dbe_lo() {
+    digitalWriteFast(PIN_PHI1, HIGH);
     digitalWriteFast(PIN_DBE, LOW);
 }
 
-static inline void clock_phi1() {
-    digitalWriteFast(PIN_PHI1, HIGH);
-    negate_dbe();
-    delayNanoseconds(150);
-    assert_dbe();
-    delayNanoseconds(850);
+static inline void phi1_lo_phi2_hi() __attribute__((always_inline));
+static inline void phi1_lo_phi2_hi() {
     digitalWriteFast(PIN_PHI1, LOW);
-}
-
-static inline void clock_phi2_hi() {
     digitalWriteFast(PIN_PHI2, HIGH);
-    delayNanoseconds(1000);
 }
 
-static inline void clock_phi2_lo() {
+static inline void phi2_lo() __attribute__((always_inline));
+static inline void phi2_lo() {
     digitalWriteFast(PIN_PHI2, LOW);
+}
+
+static inline void assert_dbe() __attribute__((always_inline));
+static inline void assert_dbe() {
+    digitalWriteFast(PIN_DBE, HIGH);
 }
 
 static void assert_nmi() {
@@ -172,42 +208,48 @@ void Pins::begin() {
 }
 
 Signals &Pins::cycle() {
+    // PHI1=HIGH
+    phi1_hi_dbe_lo();
     Signals &signals = Signals::currCycle();
-    clock_phi1();
-    signals.readAddr();
-    clock_phi2_hi();
-    signals.get();
+    delayNanoseconds(dbe_negate_ns);
+    assert_dbe();
+    delayNanoseconds(phi1_hi_ns);
+    signals.getDirection();
+    phi1_lo_phi2_hi();
+    // PHI2=HIGH
+    signals.getAddr();
 
     if (signals.vma == LOW) {
         signals.debug('-');
-    } else if (signals.rw == HIGH) {
-        if (Acia.isSelected(signals.addr)) {
-            signals.debug('a').data = Acia.read(signals.addr);
-        } else if (signals.readRam()) {
-            signals.debug('m').data = Memory.raw_read(signals.addr);
-        } else {
-            ;  // inject data from signals.data
-            signals.debug('i');
-        }
-        busWrite(D, signals.data);
-        // change data bus to output
-        busMode(D, OUTPUT);
-    } else {
-        signals.readData();
+        delayNanoseconds(phi2_novma_hi_ns);
+    } else if (signals.rw == LOW) {
+        signals.getData();
         if (Acia.isSelected(signals.addr)) {
             Acia.write(signals.debug('a').data, signals.addr);
         } else if (signals.writeRam()) {
             Memory.raw_write(signals.addr, signals.debug('m').data);
         } else {
             ;  // capture data to signals.data
-            signals.debug('c');
         }
+        delayNanoseconds(phi2_write_hi_ns);
+    } else {
+        if (Acia.isSelected(signals.addr)) {
+            signals.debug('a').data = Acia.read(signals.addr);
+        } else if (signals.readRam()) {
+            signals.debug('m').data = Memory.raw_read(signals.addr);
+        } else {
+            ;  // inject data from signals.data
+        }
+        busWrite(D, signals.data);
+        // change data bus to output
+        busMode(D, OUTPUT);
+        delayNanoseconds(phi2_read_hi_ns);
     }
+    Signals::nextCycle();
+    phi2_lo();
     // Set clock low to handle hold times and tristate data bus.
-    clock_phi2_lo();
     busMode(D, INPUT);
 
-    Signals::nextCycle();
     return signals;
 }
 
@@ -223,13 +265,13 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
     for (uint8_t i = 0; i < len; i++) {
-        Signals::inject(inst[i]).debug('i');
+        Signals::inject(inst[i]);
         cycle();
     }
     uint8_t cap = 0;
     if (buf) {
         while (cap < max) {
-            Signals::capture().debug('c');
+            Signals::capture();
             const Signals &signals = cycle();
             if (cap == 0 && addr)
                 *addr = signals.addr;
@@ -241,10 +283,8 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 void Pins::reset(bool show) {
     assert_reset();
+    cycle();
     Signals::resetCycles();
-    for (auto i = 0; i < 10; i++)
-        cycle();
-    //Signals::resetCycles();
     cycle().debug('R');
     negate_reset();
     cycle().debug('r');
@@ -286,8 +326,9 @@ void Pins::suspend(bool show) {
     assert_nmi();
     // Wait for consequtive 7 writes which means registers saved onto stack.
     while (writes < 7) {
-        Signals signals = Signals::capture();
-        if (cycle().rw == LOW) {
+        Signals::capture();
+        Signals &signals = cycle();
+        if (signals.rw == LOW) {
             writes++;
             signals.debug('0' + writes);
         } else {
@@ -314,7 +355,7 @@ void Pins::suspend(bool show) {
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        Signals::resetCycles().debug('N');
+        Signals::resetCycles();
         suspend(show);
         _freeRunning = false;
         turn_off_led();
@@ -329,7 +370,7 @@ void Pins::run() {
 
 void Pins::step(bool show) {
     Regs.restore(debug_cycles);
-    Signals::resetCycles().debug('s');
+    Signals::resetCycles();
     suspend(show);
 }
 

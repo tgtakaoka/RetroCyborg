@@ -44,25 +44,29 @@ static char bit1(uint8_t v, char name) {
 }
 
 void Regs::print() const {
-    const auto text = 20;
-    const auto hex = 8*2;
-    const auto flags = 6;
-    const auto eos = 1;
-    char buffer[text + hex + flags + eos];
-    char *p = buffer;
-    p = outHex16(outText(p, F("PC=")), pc);
-    p = outHex16(outText(p, F(" SP=")), sp);
-    p = outHex16(outText(p, F(" X=")), x);
-    p = outHex8(outText(p, F(" A=")), a);
-    p = outHex8(outText(p, F(" B=")), b);
-    p = outText(p, F(" CC="));
+    // clang-format off
+    static char buffer[] = {
+        'P', 'C', '=', 0, 0, 0, 0, ' ',  // PC=3
+        'S', 'P', '=', 0, 0, 0, 0, ' ',  // SP=11
+        'X', '=', 0, 0, 0, 0, ' ',       // X=18
+        'A', '=', 0, 0, ' ',             // A=25
+        'B', '=', 0, 0, ' ',             // B=30
+        'C', 'C', '=', 0, 0, 0, 0, 0, 0, // CC=36
+        0,                               // EOS
+    };
+    // clang-format on
+    outHex16(buffer + 3, pc);
+    outHex16(buffer + 11, sp);
+    outHex16(buffer + 18, x);
+    outHex8(buffer + 25, a);
+    outHex8(buffer + 30, b);
+    char *p = buffer + 36;
     *p++ = bit1(cc & 0x20, 'H');
     *p++ = bit1(cc & 0x10, 'I');
     *p++ = bit1(cc & 0x08, 'N');
     *p++ = bit1(cc & 0x04, 'Z');
     *p++ = bit1(cc & 0x02, 'V');
     *p++ = bit1(cc & 0x01, 'C');
-    *p = 0;
     cli.println(buffer);
     Pins.idle();
 }
