@@ -3,15 +3,14 @@
 
 #include <stdint.h>
 
-#define DEBUG_SIGNALS
-
 struct Signals {
-    Signals &get();
-    Signals &readAddr();
-    Signals &readData();
-    Signals &clear();
-    static Signals &inject(uint8_t data);
-    static Signals &capture();
+    void getAddr1();
+    void getAddr2();
+    void getDirection();
+    void getData();
+    void clear();
+    static void inject(uint8_t data);
+    static void capture();
     void print() const;
     Signals &debug(char c);
 
@@ -24,17 +23,14 @@ struct Signals {
 
     static void printCycles(const Signals *end = nullptr);
     static Signals &currCycle();
-    static Signals &resetCycles();
-    static Signals &nextCycle();
+    static void resetCycles();
+    static void nextCycle();
     static void flushWrites(const Signals *end);
 
 private:
     bool _inject;
     bool _capture;
-
-#ifdef DEBUG_SIGNALS
     char _debug;
-#endif
 
     static constexpr uint8_t MAX_CYCLES = 40;
     static uint8_t _cycles;

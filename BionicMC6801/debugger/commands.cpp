@@ -265,8 +265,7 @@ static void listDirectory(File dir, const char *parent = nullptr) {
                 cli.print(parent);
                 cli.print('/');
             }
-            cli.print(entry.name());
-            cli.print('\t');
+            cli.printStr(entry.name(), -20);
             cli.printlnDec(entry.size(), 6);
         }
         entry.close();
@@ -375,13 +374,12 @@ static void printIoDevice(State state) {
     uint16_t baseAddr;
     if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
         cli.print(F("ACIA (MC6850) at $"));
+        cli.printlnHex(baseAddr, 4);
     } else {
         cli.print(F("SCI ("));
         cli.print(Regs.cpu());
-        cli.print(F(") at $"));
+        cli.println(')');
     }
-    cli.printHex(baseAddr, 4);
-    cli.println();
 }
 
 static void handleAciaAddr(uint32_t val, uintptr_t extra, State state) {
@@ -402,11 +400,8 @@ cancel:
 static void handleIo(char *line, uintptr_t extra, State state) {
     if (state == State::CLI_CANCEL)
         goto cancel;
-    if (state == State::CLI_DELETE) {
-        cli.backspace();
-        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
+    if (state == State::CLI_DELETE)
         return;
-    }
     if (state == State::CLI_SPACE &&
             strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
         cli.readHex(handleAciaAddr, 0, UINT16_MAX);

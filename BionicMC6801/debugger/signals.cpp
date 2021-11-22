@@ -12,12 +12,9 @@ extern libcli::Cli &cli;
 uint8_t Signals::_cycles;
 Signals Signals::_signals[MAX_CYCLES + 1];
 
-Signals &Signals::clear() {
-    addr = 0;
-    data = 0;
-    rw = 0;
+void Signals::clear() {
+    // fields including _debug will be written in Pins::cycle().
     _inject = _capture = false;
-    return *this;
 }
 
 void Signals::printCycles(const Signals *end) {
@@ -33,15 +30,14 @@ Signals &Signals::currCycle() {
     return _signals[_cycles];
 }
 
-Signals &Signals::resetCycles() {
-    _cycles = 0;
-    return _signals[_cycles].clear();
+void Signals::resetCycles() {
+    _signals[_cycles = 0].clear();
 }
 
-Signals &Signals::nextCycle() {
+void Signals::nextCycle() {
     if (_cycles < MAX_CYCLES)
         _cycles++;
-    return _signals[_cycles].clear();
+    _signals[_cycles].clear();
 }
 
 void Signals::flushWrites(const Signals *end) {
@@ -51,73 +47,54 @@ void Signals::flushWrites(const Signals *end) {
     }
 }
 
-Signals &Signals::get() {
+void Signals::getAddr1() {
+    addr = busRead(AH);
+}
+
+void Signals::getAddr2() {
+    addr |= busRead(AD);
+}
+
+void Signals::getDirection() {
     rw = digitalReadFast(PIN_RW);
-    return *this;
 }
 
-Signals &Signals::readAddr() {
-    const auto as = digitalReadFast(PIN_AS);
-    if (as == HIGH) {
-        addr = busRead(AH);
-        addr |= busRead(AD);
-    }
-    return *this;
-}
-
-Signals &Signals::readData() {
+void Signals::getData() {
     data = busRead(AD);
-    return *this;
 }
 
-Signals &Signals::inject(uint8_t val) {
+void Signals::inject(uint8_t val) {
     Signals &curr = currCycle();
     curr._inject = true;
     curr.data = val;
-    return curr;
+    curr.debug('i');
 }
 
-Signals &Signals::capture() {
+void Signals::capture() {
     Signals &curr = currCycle();
     curr._capture = true;
-    return curr;
-}
-
-static char *outPin(char *p, bool value, const char *name)
-        __attribute__((unused));
-static char *outPin(char *p, bool value, const char *name) {
-    if (value)
-        return outText(p, name);
-    while (*name++)
-        *p++ = ' ';
-    *p = 0;
-    return p;
+    curr.debug('c');
 }
 
 void Signals::print() const {
-    const auto debug = 2;
-    const auto text = 7;
-    const auto hex = (1 + 2) * 2;
-    const auto eos = 1;
-    static char buffer[debug + text + hex + eos];
-    char *p = buffer;
-#ifdef DEBUG_SIGNALS
-    *p++ = _debug ? _debug : ' ';
-    *p++ = ' ';
-#endif
-    *p++ = rw == LOW ? 'W' : 'R';
-    p = outText(p, " A=");
-    p = outHex16(p, addr);
-    p = outText(p, " D=");
-    p = outHex8(p, data);
-    *p = 0;
+    // clang-format off
+    static char buffer[] = {
+        ' ',                       // _debug=0
+        ' ', 'W',                  // rw=2
+        ' ', 'A', '=', 0, 0, 0, 0, // addr=6
+        ' ', 'D', '=', 0, 0,       // data=13
+        0,
+    };
+    // clang-format on
+    buffer[0] = _debug;
+    buffer[2] = (rw == LOW) ? 'W' : 'R';
+    outHex16(buffer + 6, addr);
+    outHex8(buffer + 13, data);
     cli.println(buffer);
 }
 
 Signals &Signals::debug(char c) {
-#ifdef DEBUG_SIGNALS
     _debug = c;
-#endif
     return *this;
 }
 

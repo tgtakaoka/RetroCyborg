@@ -87,7 +87,7 @@
 #define PIN_NMI 33    /* P9.07 */
 #define PIN_SCITXD 0  /* P6.03 */
 #define PIN_SCIRXD 1  /* P6.02 */
-#define PIN_CLOCK 5   /* P9.08 */
+#define PIN_EXTAL 5   /* P9.08 */
 #define PIN_E 29      /* P9.31 */
 #define PIN_PC0 6     /* P7.10 */
 #define PIN_PC1 9     /* P7.11 */

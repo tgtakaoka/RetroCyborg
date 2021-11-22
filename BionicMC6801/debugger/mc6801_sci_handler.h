@@ -1,13 +1,13 @@
-#ifndef __SCI_HANDLER_H__
-#define __SCI_HANDLER_H__
+#ifndef __MC6801_SCI_HANDLER_H__
+#define __MC6801_SCI_HANDLER_H__
 
 #include <Arduino.h>
 #include <stdint.h>
 
 template <const uint8_t RXD_PIN, const uint8_t TXD_PIN>
-class SciHandler {
+class Mc6801SciHandler {
 public:
-    SciHandler(Stream &stream)
+    Mc6801SciHandler(Stream &stream)
         : _stream(stream), _enabled(false) {
         pinMode(RXD_PIN, INPUT_PULLUP);  // output mark/idle
         pinMode(TXD_PIN, INPUT_PULLUP);
@@ -16,7 +16,7 @@ public:
 
     bool isSelected(uint16_t addr) const { return _enabled && addr == 0x10; }
     void write(uint8_t data, uint16_t addr) {
-        static uint16_t scaler[] = {16, 128, 1024, 4096};
+        static const uint16_t scaler[] = {16, 128, 1024, 4096};
         reset();
         _divider = scaler[data & 3];
     }
