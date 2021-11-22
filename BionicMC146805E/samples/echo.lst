@@ -45,7 +45,7 @@
    0: =$1FFE   VEC_RESET:      EQU   $1FFE           ; $1FFE: Reset
    0:
    0:          ;;; MC6850 Asynchronous Communication Interface Adapter
-   0: =$1F00   ACIA:           EQU   $1F00
+   0: =$17F8   ACIA:           EQU   $17F8
    0:                          INCLUDE               "mc6850.inc"
    0:          ;;; -*- mode: asm; mode: flyspell-prog; -*-
    0:
@@ -53,7 +53,7 @@
    0:          ;;; Asynchronous Communication Interface Adapter
    0:
    0:          ;;; Control register
-   0: =$1F00   ACIA_control:   EQU   ACIA+0
+   0: =$17F8   ACIA_control:   EQU   ACIA+0
    0:          ;; Counter Divider Select Bits
    0: =$3      CDS_gm:         EQU   %11             ; Group mask
    0: =$0      CDS_DIV1_gc:    EQU   %00000000       ; /1
@@ -80,7 +80,7 @@
    0: =$80     RIEB_bm:        EQU   %10000000       ; Receive Interrupt Enable Bit mask
    0:
    0:          ;;; Status register
-   0: =$1F00   ACIA_status:    EQU   ACIA+0
+   0: =$17F8   ACIA_status:    EQU   ACIA+0
    0: =$1      RDRF_bm:        EQU   %00000001       ; Receive Data Register Full
    0: =$2      TDRE_bm:        EQU   %00000010       ; Transmit Data Register Empty
    0: =$4      DCDF_bm:        EQU   %00000100       ; Data Carrier Detect Flag
@@ -91,7 +91,7 @@
    0: =$80     IRQF_bm:        EQU   %10000000       ; Interrupt Request Flag
    0:
    0:          ;;; Data register
-   0: =$1F01   ACIA_data:      EQU   ACIA+1          ; Data register
+   0: =$17F9   ACIA_data:      EQU   ACIA+1          ; Data register
    0:
   20:                          ORG   $20
   20:          save_a:         RMB   1
@@ -99,10 +99,10 @@
  100:                          ORG   $0100
  100:          initialize:
  100: A6 03                    LDA   #CDS_RESET_gc   ; Master reset
- 102: C7 1F 00                 STA   ACIA_control
+ 102: C7 17 F8                 STA   ACIA_control
  105: A6 14                    LDA   #WSB_8N1_gc     ; 8 bits + No Parity + 1 Stop Bits
  107:          ; Transmit, Receive interrupts disabled
- 107: C7 1F 00                 STA   ACIA_control
+ 107: C7 17 F8                 STA   ACIA_control
  10A:
  10A: AD 0A    loop:           BSR   getchar
  10C: AD 13    echo:           BSR   putchar
@@ -112,22 +112,22 @@
  114: 20 F6                    BRA   echo
  116:
  116:          getchar:
- 116: C6 1F 00                 LDA   ACIA_status
+ 116: C6 17 F8                 LDA   ACIA_status
  119: A5 01                    BIT   #RDRF_bm
  11B: 27 F9                    BEQ   getchar
  11D:          receive_data:
- 11D: C6 1F 01                 LDA   ACIA_data
+ 11D: C6 17 F9                 LDA   ACIA_data
  120: 81                       RTS
  121:
  121:          putchar:
  121: B7 20                    STA   save_a
  123:          transmit_loop:
- 123: C6 1F 00                 LDA   ACIA_status
+ 123: C6 17 F8                 LDA   ACIA_status
  126: A5 02                    BIT   #TDRE_bm
  128: 27 F9                    BEQ   transmit_loop
  12A:          transmit_data:
  12A: B6 20                    LDA   save_a
- 12C: C7 1F 01                 STA   ACIA_data
+ 12C: C7 17 F9                 STA   ACIA_data
  12F: 81                       RTS
  130:
 1FFE:                          ORG   VEC_RESET

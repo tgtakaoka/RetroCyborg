@@ -9,7 +9,7 @@
 #define VERSION_TEXT "* Bionic" MPU_NAME " 0.1"
 #define Console Serial
 
-#define IO_BASE_ADDR 0x1F00
+#define IO_BASE_ADDR 0x17F8
 
 #if defined(ARDUINO_TEENSY35)
 #define PORT_B D      /* GPIOD */
@@ -37,7 +37,7 @@
 #define PIN_RW 17     /* PTB01 */
 #define PIN_IRQ 19    /* PTB02 */
 #define PIN_TIMER 1   /* PTB17 */
-#define PIN_CLOCK 29  /* PTB18 */
+#define PIN_OSC1 29   /* PTB18 */
 #define PIN_DS 33     /* PTE24 */
 #define PIN_LI 34     /* PTE25 */
 #define PIN_RESET 25  /* PTA05 */
@@ -71,7 +71,7 @@
 #define PIN_RW 3      /* P9.05 */
 #define PIN_IRQ 4     /* P9.06 */
 #define PIN_TIMER 1   /* P6.02 */
-#define PIN_CLOCK 6   /* P9.08 */
+#define PIN_OSC1 5    /* P9.08 */
 #define PIN_DS 6      /* P7.10 */
 #define PIN_LI 9      /* P7.11 */
 #define PIN_RESET 28  /* P8.18 */

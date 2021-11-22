@@ -2,7 +2,7 @@
         include "mc6805.inc"
 
 ;;; MC6850 Asynchronous Communication Interface Adapter
-ACIA:   equ     $1F00
+ACIA:   equ     $17F8
         include "mc6850.inc"
 
 rx_queue_size:  equ     16

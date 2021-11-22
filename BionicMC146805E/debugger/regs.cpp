@@ -280,14 +280,21 @@ static char bit1(uint8_t v, char name) {
 }
 
 void Regs::print() const {
-    // text=35, reg=8*2, cc=8, eos=1
-    char buffer[20 + 8 * 2 + 8 + 1];
-    char *p = buffer;
-    p = outHex16(outText(p, "PC="), pc);
-    p = outHex16(outText(p, " SP="), sp);
-    p = outHex8(outText(p, " X="), x);
-    p = outHex8(outText(p, " A="), a);
-    p = outText(p, " CC=");
+    // clang-format off
+    static char buffer[] = {
+        'P', 'C', '=', 0, 0, 0, 0, ' ', // PC=3
+        'S', 'P', '=', 0, 0, 0, 0, ' ', // SP=11
+        'X', '=', 0, 0, ' ',            // X=18
+        'A', '=', 0, 0, ' ',            // A=23
+        'C', 'C', '=', 0, 0, 0, 0, 0,   // CC=29
+        0,                              // EOS
+    };
+    // clang-format on
+    outHex16(buffer + 3, pc);
+    outHex16(buffer + 11, sp);
+    outHex8(buffer + 18, x);
+    outHex8(buffer + 23, a);
+    char *p = buffer + 29;
     *p++ = bit1(cc & 0x10, 'H');
     *p++ = bit1(cc & 0x08, 'I');
     *p++ = bit1(cc & 0x04, 'N');

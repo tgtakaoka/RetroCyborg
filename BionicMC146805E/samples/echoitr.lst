@@ -45,7 +45,7 @@
    0: =$1FFE   VEC_RESET:      EQU   $1FFE           ; $1FFE: Reset
    0:
    0:          ;;; MC6850 Asynchronous Communication Interface Adapter
-   0: =$1F00   ACIA:           EQU   $1F00
+   0: =$17F8   ACIA:           EQU   $17F8
    0:                          INCLUDE               "mc6850.inc"
    0:          ;;; -*- mode: asm; mode: flyspell-prog; -*-
    0:
@@ -53,7 +53,7 @@
    0:          ;;; Asynchronous Communication Interface Adapter
    0:
    0:          ;;; Control register
-   0: =$1F00   ACIA_control:   EQU   ACIA+0
+   0: =$17F8   ACIA_control:   EQU   ACIA+0
    0:          ;; Counter Divider Select Bits
    0: =$3      CDS_gm:         EQU   %11             ; Group mask
    0: =$0      CDS_DIV1_gc:    EQU   %00000000       ; /1
@@ -80,7 +80,7 @@
    0: =$80     RIEB_bm:        EQU   %10000000       ; Receive Interrupt Enable Bit mask
    0:
    0:          ;;; Status register
-   0: =$1F00   ACIA_status:    EQU   ACIA+0
+   0: =$17F8   ACIA_status:    EQU   ACIA+0
    0: =$1      RDRF_bm:        EQU   %00000001       ; Receive Data Register Full
    0: =$2      TDRE_bm:        EQU   %00000010       ; Transmit Data Register Empty
    0: =$4      DCDF_bm:        EQU   %00000100       ; Data Carrier Detect Flag
@@ -91,7 +91,7 @@
    0: =$80     IRQF_bm:        EQU   %10000000       ; Interrupt Request Flag
    0:
    0:          ;;; Data register
-   0: =$1F01   ACIA_data:      EQU   ACIA+1          ; Data register
+   0: =$17F9   ACIA_data:      EQU   ACIA+1          ; Data register
    0:
    0: =$10     rx_queue_size:  EQU   16
    0: =$20     tx_queue_size:  EQU   32
@@ -118,9 +118,9 @@
  10B: CD 01 A1                 JSR   queue_init
  10E:          ;; initialize ACIA
  10E: A6 03                    LDA   #CDS_RESET_gc   ; master reset
- 110: C7 1F 00                 STA   ACIA_control
+ 110: C7 17 F8                 STA   ACIA_control
  113: A6 94                    LDA   #RX_INT_TX_NO
- 115: C7 1F 00                 STA   ACIA_control
+ 115: C7 17 F8                 STA   ACIA_control
  118: 3F 51                    CLR   tx_int_control  ; disable Tx interrupt
  11A: 9A                       CLI                   ; enable IRQ
  11B:
@@ -223,7 +223,7 @@
  194: 3D 51                    TST   tx_int_control
  196: 26 07                    BNE   putchar_return
  198: A6 B4                    LDA   #RX_INT_TX_INT  ; enable Tx interrupt
- 19A: C7 1F 00                 STA   ACIA_control
+ 19A: C7 17 F8                 STA   ACIA_control
  19D: 33 51                    COM   tx_int_control
  19F:          putchar_return:
  19F: 9A                       CLI                   ; enable IRQ
@@ -320,13 +320,13 @@
  1F9:          ;;; vim: set ft=asm et ts=4 sw=4:
  1F9:
  1F9:          isr_irq:
- 1F9: C6 1F 00                 LDA   ACIA_status
+ 1F9: C6 17 F8                 LDA   ACIA_status
  1FC: A5 80                    BIT   #IRQF_bm
  1FE: 27 23                    BEQ   isr_irq_return
  200:          isr_irq_receive:
  200: A5 01                    BIT   #RDRF_bm
  202: 27 08                    BEQ   isr_irq_recv_end
- 204: C6 1F 01                 LDA   ACIA_data       ; receive character
+ 204: C6 17 F9                 LDA   ACIA_data       ; receive character
  207: AE 21                    LDX   #rx_queue
  209: CD 01 AD                 JSR   queue_add
  20C:          isr_irq_recv_end:
@@ -336,11 +336,11 @@
  210: AE 31                    LDX   #tx_queue
  212: CD 01 D8                 JSR   queue_remove
  215: 24 05                    BCC   isr_irq_send_empty
- 217: C7 1F 01                 STA   ACIA_data       ; send character
+ 217: C7 17 F9                 STA   ACIA_data       ; send character
  21A: 20 07                    BRA   isr_irq_send_end
  21C:          isr_irq_send_empty:
  21C: A6 94                    LDA   #RX_INT_TX_NO
- 21E: C7 1F 00                 STA   ACIA_control    ; disable Tx interrupt
+ 21E: C7 17 F8                 STA   ACIA_control    ; disable Tx interrupt
  221: 3F 51                    CLR   tx_int_control
  223:          isr_irq_send_end:
  223:          isr_irq_return:
