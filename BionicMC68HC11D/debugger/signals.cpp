@@ -47,16 +47,17 @@ void Signals::flushWrites(const Signals *end) {
     }
 }
 
-void Signals::getAddr1() {
-    addr = busRead(AH);
+void Signals::getAddrMux() {
+    addr = busRead(AD);
 }
 
-void Signals::getAddr2() {
-    addr |= busRead(AD);
-}
-
-void Signals::getDirection() {
+void Signals::getAddrNonmux() {
     rw = digitalReadFast(PIN_RW);
+    addr |= busRead(AH);
+}
+
+void Signals::getControl() {
+    lir = digitalReadFast(PIN_LIR);
 }
 
 void Signals::getData() {
@@ -80,16 +81,18 @@ void Signals::print() const {
     // clang-format off
     static char buffer[] = {
         ' ',                       // _debug=0
-        ' ', 'W',                  // rw=2
-        ' ', 'A', '=', 0, 0, 0, 0, // addr=6
-        ' ', 'D', '=', 0, 0,       // data=13
+        ' ', 'L',                  // lir=2
+        'W',                       // rw=3
+        ' ', 'A', '=', 0, 0, 0, 0, // addr=7
+        ' ', 'D', '=', 0, 0,       // data=14
         0,
     };
     // clang-format on
     buffer[0] = _debug;
-    buffer[2] = (rw == LOW) ? 'W' : 'R';
-    outHex16(buffer + 6, addr);
-    outHex8(buffer + 13, data);
+    buffer[2] = (lir == LOW) ? 'L' : ' ';
+    buffer[3] = (rw == LOW) ? 'W' : 'R';
+    outHex16(buffer + 7, addr);
+    outHex8(buffer + 14, data);
     cli.println(buffer);
 }
 

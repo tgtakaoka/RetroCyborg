@@ -4,12 +4,14 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define MPU_MODE 2  // Non-Multiplexed Mode (Internal RAM enabled)
+#define MPU_NAME "MC68HC11"
 
-#define VERSION_TEXT F(" 0.1")
+#define MPU_MODE 3 /* Normal expanded mode */
+
+#define VERSION_TEXT F("* Bionic " MPU_NAME " 0.1")
 #define Console Serial
 
-#define IO_BASE_ADDR 0xDF00
+#define ACIA_BASE_ADDR 0xDF00
 
 #if defined(ARDUINO_TEENSY35)
 #define PORT_AD D     /* GPIOD */
@@ -38,22 +40,18 @@
 #define PIN_AH15 12   /* PTC07 */
 #define PIN_AS 16     /* PTB00 */
 #define PIN_RW 17     /* PTB01 */
-#define PIN_IRQ1 19   /* PTB02 */
-#define PIN_NMI 18    /* PTB03 */
+#define PIN_IRQ 19    /* PTB02 */
+#define PIN_XIRQ 18   /* PTB03 */
 #define PIN_SCITXD 0  /* PTB16 */
 #define PIN_SCIRXD 1  /* PTB17 */
 #define PIN_EXTAL 29  /* PTB18 */
 #define PIN_E 30      /* PTB19 */
-#define PIN_PC0 33    /* PTE24 */
-#define PIN_PC1 34    /* PTE25 */
-#define PIN_PC2 24    /* PTE26 */
+#define PIN_MODA 33   /* PTE24 */
+#define PIN_LIR 33    /* PTE24 */
+#define PIN_MODB 34   /* PTE25 */
 #define PIN_RESET 25  /* PTA05 */
-#define PIN_XTAL 39   /* PTA17 */
 #define PIN_USRSW 31  /* PTB10 */
 #define PIN_USRLED 32 /* PTB11 */
-/**
- * For LILBUG's trace, Timer ouput (P21/PC1) is connected to #NMI on board.
- */
 #endif
 
 #if defined(ARDUINO_TEENSY41)
@@ -83,22 +81,18 @@
 #define PIN_AH15 27   /* P6.31 */
 #define PIN_AS 2      /* P9.04 */
 #define PIN_RW 3      /* P9.05 */
-#define PIN_IRQ1 4    /* P9.06 */
-#define PIN_NMI 33    /* P9.07 */
+#define PIN_IRQ 4     /* P9.06 */
+#define PIN_XIRQ 33   /* P9.07 */
 #define PIN_SCITXD 0  /* P6.03 */
 #define PIN_SCIRXD 1  /* P6.02 */
 #define PIN_EXTAL 5   /* P9.08 */
 #define PIN_E 29      /* P9.31 */
-#define PIN_PC0 6     /* P7.10 */
-#define PIN_PC1 9     /* P7.11 */
-#define PIN_PC2 32    /* P7.12 */
+#define PIN_MODA 6    /* P7.10 */
+#define PIN_LIR 6     /* P7.10 */
+#define PIN_MODB 9    /* P7.11 */
 #define PIN_RESET 28  /* P8.18 */
-#define PIN_XTAL 30   /* P8.23 */
 #define PIN_USRSW 35  /* P7.28 */
 #define PIN_USRLED 34 /* P7.29 */
-/**
- * For LILBUG's trace, Timer ouput (P21/PC1) is connected to #NMI on board.
- */
 #endif
 
 #endif

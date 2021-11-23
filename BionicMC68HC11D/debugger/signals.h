@@ -4,9 +4,9 @@
 #include <stdint.h>
 
 struct Signals {
-    void getAddr1();
-    void getAddr2();
-    void getDirection();
+    void getAddrMux();
+    void getAddrNonmux();
+    void getControl();
     void getData();
     void clear();
     static void inject(uint8_t data);
@@ -17,6 +17,7 @@ struct Signals {
     uint16_t addr;
     uint8_t data;
     uint8_t rw;
+    uint8_t lir;
 
     bool readRam() const { return _inject == false; }
     bool writeRam() const { return _capture == false; }

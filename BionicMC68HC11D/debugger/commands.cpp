@@ -369,30 +369,47 @@ static void handleRegisterValue(uint32_t value, uintptr_t reg, State state) {
 
 static void handleIo(char *line, uintptr_t extra, State state);
 
-static void printIoDevice(State state) {
+static void printIoDevice() {
     cli.println();
+    cli.print(F("RAM Base at $"));
+    cli.printlnHex(Pins.ramBaseAddress(), 4);
+    cli.print(F("DEV Base at $"));
+    cli.printlnHex(Pins.devBaseAddress(), 4);
     uint16_t baseAddr;
     if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
         cli.print(F("ACIA (MC6850) at $"));
-        cli.printlnHex(baseAddr, 4);
     } else {
         cli.print(F("SCI ("));
         cli.print(Regs.cpu());
-        cli.println(')');
+        cli.print(F(") at $"));
     }
+    cli.printlnHex(baseAddr, 4);
 }
 
-static void handleAciaAddr(uint32_t val, uintptr_t extra, State state) {
+#define BASE_RAM 1
+#define BASE_DEV 2
+#define BASE_ACIA 3
+static void handleBaseAddr(uint32_t val, uintptr_t extra, State state) {
     if (state == State::CLI_CANCEL)
         goto cancel;
     if (state == State::CLI_DELETE) {
         cli.backspace();
-        strcpy_P(str_buffer, PSTR("ACIA"));
+        if (extra == BASE_RAM)
+            strcpy_P(str_buffer, PSTR("RAM"));
+        if (extra == BASE_DEV)
+            strcpy_P(str_buffer, PSTR("DEV"));
+        if (extra == BASE_ACIA)
+            strcpy_P(str_buffer, PSTR("ACIA"));
         cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer), true);
         return;
     }
-    Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, val);
-    printIoDevice(state);
+    if (extra == BASE_RAM)
+        Pins.setRamBaseAddress(val);
+    if (extra == BASE_DEV)
+        Pins.setDevBaseAddress(val);
+    if (extra == BASE_ACIA)
+        Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, val);
+    printIoDevice();
 cancel:
     printPrompt();
 }
@@ -402,17 +419,25 @@ static void handleIo(char *line, uintptr_t extra, State state) {
         goto cancel;
     if (state == State::CLI_DELETE)
         return;
-    if (state == State::CLI_SPACE &&
-            strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
-        cli.readHex(handleAciaAddr, 0, UINT16_MAX);
-        return;
+    if (state == State::CLI_SPACE) {
+        auto base = 0;
+        if (strcasecmp_P(str_buffer, PSTR("ram")) == 0)
+            base = BASE_RAM;
+        if (strcasecmp_P(str_buffer, PSTR("dev")) == 0)
+            base = BASE_DEV;
+        if (strcasecmp_P(str_buffer, PSTR("acia")) == 0)
+            base = BASE_ACIA;
+        if (base) {
+            cli.readHex(handleBaseAddr, base, UINT16_MAX);
+            return;
+        }
     }
     if (strcasecmp_P(str_buffer, PSTR("sci")) == 0) {
         Pins.setIoDevice(Pins::SerialDevice::DEV_SCI, 0);
     } else if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
-        Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, Pins.ioBaseAddress());
+        Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, ACIA_BASE_ADDR);
     }
-    printIoDevice(state);
+    printIoDevice();
 cancel:
     printPrompt();
 }
@@ -495,8 +520,6 @@ void Commands::exec(char c) {
         cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
-        cli.print(F("* Bionic"));
-        cli.print(Regs.cpu());
         cli.println(VERSION_TEXT);
         cli.println(USAGE);
         break;

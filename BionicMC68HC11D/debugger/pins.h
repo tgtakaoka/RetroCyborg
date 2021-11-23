@@ -23,14 +23,16 @@ public:
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
-    static constexpr uint16_t ioBaseAddress() { return IO_BASE_ADDR; }
-
     uint8_t allocateIrq();
     void assertIrq(const uint8_t irq);
     void negateIrq(const uint8_t irq);
 
+    uint16_t ramBaseAddress() { return _ramBaseAddress; }
+    void setRamBaseAddress(uint16_t addr) { _ramBaseAddress = addr & 0xF000; }
+    uint16_t devBaseAddress() { return _devBaseAddress; }
+    void setDevBaseAddress(uint16_t addr) { _devBaseAddress = addr & 0xF000; }
     enum SerialDevice : uint8_t {
-        DEV_SCI = 0,   // MC6803/HD6303 SCI
+        DEV_SCI = 0,   // MC68HC11 SCI
         DEV_ACIA = 1,  // MC6850 ACIA
     };
     SerialDevice getIoDevice(uint16_t &baseAddr);
@@ -39,9 +41,12 @@ public:
 private:
     bool _freeRunning;
     uint8_t _irq;
+    uint16_t _ramBaseAddress;
+    uint16_t _devBaseAddress;
     SerialDevice _ioDevice;
 
     Signals &cycle();
+    Signals &raw_cycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
     void suspend(bool show = false);

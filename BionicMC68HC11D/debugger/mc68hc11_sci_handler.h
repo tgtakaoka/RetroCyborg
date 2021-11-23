@@ -1,24 +1,26 @@
-#ifndef __MC6801_SCI_HANDLER_H__
-#define __MC6801_SCI_HANDLER_H__
+#ifndef __MC68HC11_SCI_HANDLER_H__
+#define __MC68HC11_SCI_HANDLER_H__
 
 #include <Arduino.h>
 #include <stdint.h>
 
 template <const uint8_t RXD_PIN, const uint8_t TXD_PIN>
-class Mc6801SciHandler {
+class Mc68hc11SciHandler {
 public:
-    Mc6801SciHandler(Stream &stream)
-        : _stream(stream), _enabled(false) {
+    Mc68hc11SciHandler(Stream &stream) : _stream(stream), _enabled(false) {
         pinMode(RXD_PIN, INPUT_PULLUP);  // output mark/idle
         pinMode(TXD_PIN, INPUT_PULLUP);
         reset();
     }
 
-    bool isSelected(uint16_t addr) const { return _enabled && addr == 0x10; }
+    bool isSelected(uint16_t addr) const {
+        return _enabled && addr == _baseAddr + 0x2B /* BAUD */;
+    }
     void write(uint8_t data, uint16_t addr) {
-        static const uint16_t scaler[] = {16, 128, 1024, 4096};
+        static const uint16_t scaler[] = {1, 3, 4, 13};
+        static const uint16_t selector[] = {1, 2, 4, 8, 16, 32, 64, 128};
         reset();
-        _divider = scaler[data & 3];
+        _divider = scaler[(data >> 4) & 3] * selector[data & 7] * 16;
     }
     uint8_t read(uint16_t addr) { return 0; }
 
@@ -35,14 +37,17 @@ public:
         }
     }
 
-    void enable(bool enabled) {
+    void enable(bool enabled, uint16_t baseAddr) {
         _enabled = enabled;
+        _baseAddr = baseAddr;
         reset();
     }
+    uint16_t baseAddr() const { return _baseAddr; }
 
 private:
     Stream &_stream;
     bool _enabled;
+    uint16_t _baseAddr;
     uint16_t _divider;
     struct Transmitter {
         uint8_t bit;
@@ -62,7 +67,7 @@ private:
                 tx.data = _stream.read();
                 tx.delay = _divider;
                 digitalWriteFast(RXD_PIN, LOW);  // start bit
-                pinMode(RXD_PIN, OUTPUT);
+                pinMode(RXD_PIN, OUTPUT_OPENDRAIN);
             }
         } else {
             if (--tx.delay == 0) {

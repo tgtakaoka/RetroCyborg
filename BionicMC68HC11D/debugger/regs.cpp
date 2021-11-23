@@ -34,12 +34,8 @@ struct Memory Memory;
  * X=$0000: MB8861
  */
 
-bool Regs::isHd63() const {
-    return digitalReadFast(PIN_XTAL) == HIGH;
-}
-
 const char *Regs::cpu() const {
-    return isHd63() ? "HD6301" : "MC6801";
+    return "MC68HC11";
 }
 
 static char bit1(uint8_t v, char name) {
@@ -52,18 +48,23 @@ void Regs::print() const {
         'P', 'C', '=', 0, 0, 0, 0, ' ',  // PC=3
         'S', 'P', '=', 0, 0, 0, 0, ' ',  // SP=11
         'X', '=', 0, 0, 0, 0, ' ',       // X=18
-        'A', '=', 0, 0, ' ',             // A=25
-        'B', '=', 0, 0, ' ',             // B=30
-        'C', 'C', '=', 0, 0, 0, 0, 0, 0, // CC=36
+        'Y', '=', 0, 0, 0, 0, ' ',       // Y=25
+        'A', '=', 0, 0, ' ',             // A=32
+        'B', '=', 0, 0, ' ',             // B=37
+        'C', 'C', '=',                   // CC=43
+        0, 0, 0, 0, 0, 0, 0, 0,
         0,                               // EOS
     };
     // clang-format on
     outHex16(buffer + 3, pc);
     outHex16(buffer + 11, sp);
     outHex16(buffer + 18, x);
-    outHex8(buffer + 25, a);
-    outHex8(buffer + 30, b);
-    char *p = buffer + 36;
+    outHex16(buffer + 25, y);
+    outHex8(buffer + 32, a);
+    outHex8(buffer + 37, b);
+    char *p = buffer + 43;
+    *p++ = bit1(cc & 0x80, 'S');
+    *p++ = bit1(cc & 0x40, 'X');
     *p++ = bit1(cc & 0x20, 'H');
     *p++ = bit1(cc & 0x10, 'I');
     *p++ = bit1(cc & 0x08, 'N');
@@ -90,57 +91,48 @@ static constexpr uint8_t lo(const uint16_t v) {
     return static_cast<uint8_t>(v);
 }
 
-void Regs::save(bool show, bool undoPrefetch) {
-    static const uint8_t SWI[3] = {0x3F, 0xFF, 0xFF};  // SWI
+void Regs::save(bool show) {
+    static const uint8_t SWI[2] = {0x3F, 0xFF};  // SWI
 
-    uint8_t bytes[10];
+    uint8_t bytes[12];
     if (show)
         Signals::resetCycles();
-    const bool hd63 = isHd63();
-    const uint8_t SWI_cycles = hd63 ? 3 : 2;
-    Pins.captureWrites(SWI, SWI_cycles, &sp, bytes, 7);
+    Pins.captureWrites(SWI, sizeof(SWI), &sp, bytes, 9);
     // Capturing writes to stack in little endian order.
     pc = le16(bytes) - 1;  //  offset SWI instruction.
-    if (undoPrefetch)
-        pc--;
     // Injecting PC as SWI vector (with irrelevant read ahead).
-    if (hd63) {
-        bytes[7] = hi(pc);
-        bytes[8] = lo(pc);
-        Pins.execInst(bytes + 7, 2);
-    } else {
-        bytes[7] = 0;
-        bytes[8] = hi(pc);
-        bytes[9] = lo(pc);
-        Pins.execInst(bytes + 7, 3);
-    }
+    bytes[9] = 0;
+    bytes[10] = hi(pc);
+    bytes[11] = lo(pc);
+    Pins.execInst(bytes + 9, 3);
     if (show)
         Signals::printCycles();
 
-    x = le16(bytes + 2);
-    a = bytes[4];
-    b = bytes[5];
-    cc = bytes[6];
+    y = le16(bytes + 2);
+    x = le16(bytes + 4);
+    a = bytes[6];
+    b = bytes[7];
+    cc = bytes[8];
 }
 
 void Regs::restore(bool show) {
-    static uint8_t LDS[3] = {0x8E};               // LDS #sp
-    static uint8_t RTI[10] = {0x3B, 0xFF, 0xFF};  // RTI
-    const uint16_t s = sp - 7;
-    LDS[1] = hi(s);
-    LDS[2] = lo(s);
-    RTI[3] = cc;
-    RTI[4] = b;
-    RTI[5] = a;
-    RTI[6] = hi(x);
-    RTI[7] = lo(x);
-    RTI[8] = hi(pc);
-    RTI[9] = lo(pc);
+    static uint8_t LDS_RTI[3 + 12] = {0x8E, 0, 0, 0x3B, 0xFF, 0xFF};  // LDS #sp
+    const uint16_t s = sp - 9;
+    LDS_RTI[1] = hi(s);
+    LDS_RTI[2] = lo(s);
+    LDS_RTI[6] = cc & ~0x40;  // Forcibly clear X bit to accept #XIRQ.
+    LDS_RTI[7] = b;
+    LDS_RTI[8] = a;
+    LDS_RTI[9] = hi(x);
+    LDS_RTI[10] = lo(x);
+    LDS_RTI[11] = hi(y);
+    LDS_RTI[12] = lo(y);
+    LDS_RTI[13] = hi(pc);
+    LDS_RTI[14] = lo(pc);
 
     if (show)
         Signals::resetCycles();
-    Pins.execInst(LDS, sizeof(LDS));
-    Pins.execInst(RTI, sizeof(RTI));
+    Pins.execInst(LDS_RTI, sizeof(LDS_RTI));
     if (show)
         Signals::printCycles();
 }
@@ -148,14 +140,15 @@ void Regs::restore(bool show) {
 void Regs::capture(const Signals *stack) {
     sp = stack[0].addr;
     pc = uint16(stack[1].data, stack[0].data);
-    x = uint16(stack[3].data, stack[2].data);
-    a = stack[4].data;
-    b = stack[5].data;
-    cc = stack[6].data;
+    y = uint16(stack[3].data, stack[2].data);
+    x = uint16(stack[5].data, stack[4].data);
+    a = stack[6].data;
+    b = stack[7].data;
+    cc = stack[8].data;
 }
 
 void Regs::printRegList() const {
-    cli.println(F("?Reg: pc sp x a b d cc"));
+    cli.println(F("?Reg: pc sp y x a b d cc"));
 }
 
 bool Regs::validUint8Reg(char reg) const {
@@ -169,7 +162,7 @@ bool Regs::validUint8Reg(char reg) const {
 }
 
 bool Regs::validUint16Reg(char reg) const {
-    if (reg == 'p' || reg == 's' || reg == 'x' || reg == 'd') {
+    if (reg == 'p' || reg == 's' || reg == 'y' || reg == 'x' || reg == 'd') {
         cli.print(reg);
         if (reg == 'p')
             cli.print('c');
@@ -195,6 +188,9 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
     case 's':
         sp = value;
         break;
+    case 'y':
+        y = value;
+        break;
     case 'x':
         x = value;
         break;
@@ -215,31 +211,50 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
     return true;
 }
 
-uint8_t Memory::internal_read(uint8_t addr) const {
-    static uint8_t LDAA_STAA[] = {
-            0x96, 0, 0, 0x97, 0x20};  // LDAA dir[addr], STAA $20
-    LDAA_STAA[1] = addr;
-    Pins.captureWrites(LDAA_STAA, sizeof(LDAA_STAA), nullptr, &LDAA_STAA[2], 1);
-    return LDAA_STAA[2];
+void Memory::setRamDevBase(uint16_t ram, uint16_t dev) {
+    ram_base = ram;
+    dev_base = dev;
 }
 
-void Memory::internal_write(uint8_t addr, uint8_t data) const {
-    static uint8_t LDAA_STAA[] = {
-            0x86, 0, 0x97, 0, 0};  // LDAA #val, STA dir[addr]
+void Memory::disableCOP() {
+    // Disable watchdog timer.
+    static const uint8_t DISABLE_COP[] = {
+            0x86, 0x04, 0x97, 0x3F, 0};  // LDAA #NOCOP_bm; STAA dir[CONFIG]
+    Pins.execInst(DISABLE_COP, sizeof(DISABLE_COP));
+}
+
+void Memory::setINIT() {
+    // Move internal devices ana RAM base address.
+    static uint8_t SET_INIT[] = {0x86, 0, 0x97, 0x3D, 0}; // LDAA #INIT_gc; STAA dir[INIT]
+    SET_INIT[1] = static_cast<uint8_t>(ram_base >> 8 & 0xF0) |
+                  static_cast<uint8_t>(dev_base >> 12);
+    Pins.execInst(SET_INIT, sizeof(SET_INIT));
+}
+
+uint8_t Memory::internal_read(uint16_t addr) const {
+    static uint8_t LDAA_STAA[4 + 3] = {
+            0xB6, 0, 0, 0, 0xB7, 0x01, 0x00};  // LDAA ext[addr], STAA $0100
+    LDAA_STAA[1] = hi(addr);
+    LDAA_STAA[2] = lo(addr);
+    Pins.captureWrites(LDAA_STAA, sizeof(LDAA_STAA), nullptr, &LDAA_STAA[3], 1);
+    return LDAA_STAA[3];
+}
+
+void Memory::internal_write(uint16_t addr, uint8_t data) const {
+    static uint8_t LDAA_STAA[2 + 4] = {
+            0x86, 0, 0xB7, 0, 0, 0};  // LDAA #val, STA ext[addr]
     LDAA_STAA[1] = data;
-    LDAA_STAA[3] = addr;
+    LDAA_STAA[3] = hi(addr);
+    LDAA_STAA[4] = lo(addr);
     Pins.execInst(LDAA_STAA, sizeof(LDAA_STAA));
 }
 
-bool Memory::is_internal(uint16_t addr) {
-    if (addr < 0x20)  // Internal Peripherals
+bool Memory::is_internal(uint16_t addr) const {
+    if (addr >= ram_base + ram_start && addr < ram_base + ram_end)
         return true;
-    // Internal RAM is enabled in Mode 2.
-    if (addr < 0x80)  // External Memory Space
-        return false;
-    if (addr < 0x100)  // Internal RAM
+    if (addr >= dev_base + dev_start && addr < dev_base + dev_end)
         return true;
-    return false;  // External Memory Space
+    return false;
 }
 
 uint8_t Memory::read(uint16_t addr) const {
