@@ -5,8 +5,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title "BionicMC6809E Mezzanine"
-Date "2021-11-12"
-Rev "1"
+Date "2021-11-25"
+Rev "2"
 Comp "Tadashi G. Takaoka"
 Comment1 ""
 Comment2 ""
@@ -319,7 +319,7 @@ Wire Wire Line
 	7750 2500 7400 2500
 Wire Wire Line
 	7750 2600 7400 2600
-Text Label 6400 4650 0    50   ~ 0
+Text Label 6400 5050 0    50   ~ 0
 P53
 Text Label 3700 3000 2    50   ~ 0
 P43
@@ -338,9 +338,8 @@ F 3 "" H 6350 4550 50  0001 C CNN
 	1    6350 4550
 	1    0    0    -1  
 $EndComp
-NoConn ~ 5650 5050
 NoConn ~ 5650 5250
-Text Label 4750 4650 2    50   ~ 0
+Text Label 5550 5050 2    50   ~ 0
 #RESET
 Text Label 3700 2900 2    50   ~ 0
 #RESET
@@ -354,8 +353,6 @@ Entry Wire Line
 	3050 2900 3150 3000
 Entry Wire Line
 	3050 3000 3150 3100
-Entry Wire Line
-	5350 4100 5250 4200
 Text Label 7500 2800 0    50   ~ 0
 P40
 Text Label 7500 2900 0    50   ~ 0
@@ -385,7 +382,7 @@ Wire Wire Line
 Wire Wire Line
 	7400 3300 7850 3300
 Wire Wire Line
-	7400 3500 7850 3500
+	7400 3500 7700 3500
 Entry Wire Line
 	7950 2700 7850 2800
 Entry Wire Line
@@ -398,17 +395,15 @@ Entry Wire Line
 	7950 3100 7850 3200
 Entry Wire Line
 	7950 3200 7850 3300
-Entry Wire Line
-	7950 3400 7850 3500
 $Comp
 L power:GND #PWR06
 U 1 1 61A0F5E3
-P 6350 4950
-F 0 "#PWR06" H 6350 4700 50  0001 C CNN
-F 1 "GND" H 6355 4777 50  0000 C CNN
-F 2 "" H 6350 4950 50  0001 C CNN
-F 3 "" H 6350 4950 50  0001 C CNN
-	1    6350 4950
+P 6350 5150
+F 0 "#PWR06" H 6350 4900 50  0001 C CNN
+F 1 "GND" H 6355 4977 50  0000 C CNN
+F 2 "" H 6350 5150 50  0001 C CNN
+F 3 "" H 6350 5150 50  0001 C CNN
+	1    6350 5150
 	1    0    0    -1  
 $EndComp
 NoConn ~ 6900 3600
@@ -567,10 +562,8 @@ Wire Bus Line
 	5250 1500 7850 1500
 Text Label 4800 3800 0    50   ~ 0
 P55
-Text Label 4800 4200 0    50   ~ 0
+Text Label 6400 4650 0    50   ~ 0
 P47
-Wire Wire Line
-	5250 4200 4700 4200
 Text Label 3700 3700 2    50   ~ 0
 P52
 Connection ~ 7400 1800
@@ -579,14 +572,6 @@ Wire Wire Line
 Connection ~ 7400 4100
 Wire Wire Line
 	6250 5250 6250 5150
-Connection ~ 6250 5050
-Wire Wire Line
-	6250 5050 6250 4950
-Connection ~ 6250 5150
-Wire Wire Line
-	6250 5150 6250 5050
-Wire Wire Line
-	6800 4000 6800 4650
 Wire Wire Line
 	3800 3300 3150 3300
 Entry Wire Line
@@ -615,21 +600,16 @@ F 3 "https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%2
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	6250 4950 6350 4950
-Connection ~ 6250 4950
-Wire Wire Line
 	6350 4750 6250 4750
 Connection ~ 6350 4550
 Wire Wire Line
 	6350 4550 6350 4750
 Wire Wire Line
-	7400 3400 7750 3400
+	7400 3400 7800 3400
 Wire Wire Line
-	7750 3400 7750 4850
+	7800 3400 7800 4850
 Wire Wire Line
-	7750 4850 6250 4850
-Text Label 6400 4850 0    50   ~ 0
-P46
+	7800 4850 6250 4850
 Wire Wire Line
 	4700 4300 5000 4300
 Wire Wire Line
@@ -638,21 +618,14 @@ Wire Wire Line
 	5000 4850 5650 4850
 Wire Bus Line
 	3350 1600 6450 1600
-Wire Bus Line
-	3050 1400 5350 1400
-Connection ~ 5350 1400
-Wire Bus Line
-	5350 1400 7950 1400
 Entry Wire Line
 	3150 3900 3050 3800
 Wire Wire Line
 	3800 3900 3150 3900
 Wire Wire Line
-	3350 2900 3350 4650
-Wire Wire Line
 	3350 2900 3800 2900
 Wire Wire Line
-	3350 4650 5650 4650
+	3350 5050 5650 5050
 Text Label 3700 3800 2    50   ~ 0
 P50
 Text Label 3700 3900 2    50   ~ 0
@@ -719,8 +692,6 @@ Text Label 6800 4000 2    50   ~ 0
 P53
 Wire Wire Line
 	6800 4000 6900 4000
-Wire Wire Line
-	6250 4650 6800 4650
 Entry Wire Line
 	6550 3800 6650 3700
 Entry Wire Line
@@ -739,23 +710,52 @@ Connection ~ 6550 4250
 Wire Bus Line
 	6550 4250 5550 4250
 Wire Bus Line
-	5550 4250 5550 5050
+	5550 4250 5550 4550
 Wire Bus Line
-	5550 5050 2850 5050
+	5550 4550 2850 4550
+Connection ~ 5550 4250
+Wire Wire Line
+	6250 5150 6350 5150
+Connection ~ 6250 5150
+Text Label 6400 4850 0    50   ~ 0
+P46
+Wire Wire Line
+	6350 4750 6350 4950
+Wire Wire Line
+	6350 4950 6250 4950
+Connection ~ 6350 4750
+Wire Wire Line
+	6800 5050 6250 5050
+Wire Wire Line
+	6800 4000 6800 5050
+Wire Wire Line
+	7700 3500 7700 4650
+Wire Wire Line
+	7700 4650 6250 4650
+Wire Wire Line
+	3350 2900 3350 5050
 Wire Bus Line
-	5350 1400 5350 4100
+	3050 1400 5350 1400
+Wire Wire Line
+	5100 4200 5100 4650
+Wire Wire Line
+	5100 4650 5650 4650
+Wire Wire Line
+	5100 4200 4700 4200
+Wire Bus Line
+	5350 3900 5350 1400
 Wire Bus Line
 	7950 3800 7950 4250
 Wire Bus Line
 	5550 3800 5550 4250
 Wire Bus Line
-	2850 3600 2850 5050
+	2850 3600 2850 4550
 Wire Bus Line
 	6550 3800 6550 4250
 Wire Bus Line
 	3050 1400 3050 3800
 Wire Bus Line
-	7950 1400 7950 3400
+	7950 1400 7950 3200
 Wire Bus Line
 	5250 1500 5250 3400
 Wire Bus Line
@@ -768,5 +768,7 @@ Wire Bus Line
 	5150 1700 5150 2600
 Wire Bus Line
 	3350 1600 3350 2600
-Connection ~ 5550 4250
+Connection ~ 5350 1400
+Wire Bus Line
+	5350 1400 7950 1400
 $EndSCHEMATC

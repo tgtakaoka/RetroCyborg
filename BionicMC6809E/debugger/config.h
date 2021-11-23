@@ -4,9 +4,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define MPU_NAME "MC6809E"
-
-#define VERSION_TEXT "* Bionic" MPU_NAME " 0.1"
+#define VERSION_TEXT F("E 0.1")
 #define Console Serial
 
 #define IO_BASE_ADDR 0xDF00
@@ -95,10 +93,10 @@
 #define AM_gp 0       /* P7.00-P7.03 */
 #define AM_gm 0xF     /* P7.12-P7.15 */
 #define AM_vp 8       /* A8-A11 */
-#define PIN_AM8 35    /* P7.00 */
-#define PIN_AM9 36    /* P7.01 */
-#define PIN_AM10 37   /* P7.02 */
-#define PIN_AM11 38   /* P7.03 */
+#define PIN_AM8 10    /* P7.00 */
+#define PIN_AM9 12    /* P7.01 */
+#define PIN_AM10 11   /* P7.02 */
+#define PIN_AM11 13   /* P7.03 */
 #define PORT_AH 7     /* P7.16-P7.19 */
 #define AH_gp 16      /* P7.16-P7.19 */
 #define AH_gm 0xF     /* P7.16-P7.19 */

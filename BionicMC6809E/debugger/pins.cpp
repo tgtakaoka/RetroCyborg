@@ -16,31 +16,70 @@ Mc6850 Acia(Console);
 
 static constexpr bool debug_cycles = false;
 
-static inline void clock_q_hi() {
+/**
+ * MC6809 bus cycle.
+ *               ___________             ___________
+ *     Q _______|           |___________|           |___________|
+ *               \     ___________       \     ___________
+ *     E |____________|           |___________|           |______
+ *        \    ____________________\                       \
+ *   R/W -----<                    |_______________________>-----
+ *                           ____               _________
+ *  Data -------------------<rrrr>-------------<wwwwwwwww>-------
+ *       ________       _________________       _________________
+ *  AVMA ________>-----<_________________>-----<_________________>
+ *
+ * - Minimum pulse width of Q and E are 450 ns.
+ * - Minimum delay time between Q and E edges are 200ns.
+ * - R/W, Address, BA and BS are valid after 200ns of falling edge of E.
+ * - R/W, Address, BA and BS get invalid after 20ns of falling edge of E.
+ * - AVMA, BUSY and LIC get valid after 300ns of raising edge of Q.
+ * - Read data setup to falling E egde is 80ns.
+ * - Read data hold to falling E edge is 10ns.
+ * - Write data gets valid after 200ns of raising Q edge.
+ */
+
+#if defined(ARDUINO_TEENSY35)
+static constexpr auto raw_e_lo_q_lo_ns = 0;
+static constexpr auto e_lo_q_lo_ns = 0;
+static constexpr auto e_lo_q_hi_ns = 100;
+static constexpr auto e_hi_q_hi_novma_ns = 0;
+static constexpr auto e_hi_q_lo_novma_ns = 0;
+static constexpr auto e_hi_q_hi_write_ns = 0;
+static constexpr auto e_hi_q_lo_write_ns = 0;
+static constexpr auto e_hi_q_hi_read_ns = 0;
+static constexpr auto e_hi_q_lo_read_ns = 0;
+#endif
+#if defined(ARDUINO_TEENSY41)
+static constexpr auto raw_e_lo_q_lo_ns = 30;
+static constexpr auto e_lo_q_lo_ns = 0;
+static constexpr auto e_lo_q_hi_ns = 122;
+static constexpr auto e_hi_q_hi_novma_ns = 100;
+static constexpr auto e_hi_q_lo_novma_ns = 120;
+static constexpr auto e_hi_q_hi_write_ns = 100;
+static constexpr auto e_hi_q_lo_write_ns = 60;
+static constexpr auto e_hi_q_hi_read_ns = 40;
+static constexpr auto e_hi_q_lo_read_ns = 70;
+#endif
+
+static inline void q_hi() __attribute__((always_inline));
+static inline void q_hi() {
     digitalWriteFast(PIN_Q, HIGH);
-    delayMicroseconds(1);
 }
 
-static inline void clock_e_hi() {
+static inline void e_hi() __attribute__((always_inline));
+static inline void e_hi() {
     digitalWriteFast(PIN_E, HIGH);
-    delayMicroseconds(1);
 }
 
-static inline void clock_q_lo() {
+static inline void q_lo() __attribute__((always_inline));
+static inline void q_lo() {
     digitalWriteFast(PIN_Q, LOW);
-    delayMicroseconds(1);
 }
 
-static inline void clock_e_lo() {
+static inline void e_lo() __attribute__((always_inline));
+static inline void e_lo() {
     digitalWriteFast(PIN_E, LOW);
-    delayMicroseconds(1);
-}
-
-static void clock_cycle() {
-    clock_q_hi();
-    clock_e_hi();
-    clock_q_lo();
-    clock_e_lo();
 }
 
 static void assert_nmi() {
@@ -179,8 +218,8 @@ void Pins::begin() {
     turn_off_led();
 
     assert_reset();
-    clock_q_lo();
-    clock_e_lo();
+    q_lo();
+    e_lo();
     _freeRunning = false;
 
     setIoDevice(SerialDevice::DEV_ACIA, ioBaseAddress());
@@ -189,45 +228,67 @@ void Pins::begin() {
 Signals &Pins::cycle() {
     static uint8_t vma = LOW;
 
+    // E=L Q=L
+    delayNanoseconds(e_lo_q_lo_ns);
     Signals &signals = Signals::currCycle();
-    clock_q_hi();
-    signals.readAddr();
-    clock_e_hi();
-    signals.get();
-    clock_q_lo();
-
+    signals.getDirection();
+    q_hi();
+    // E=L Q=H
+    signals.getAddr();
+    delayNanoseconds(e_lo_q_hi_ns);
+    e_hi();
+    // E=H Q=H
+    signals.getControl();
     if (vma == LOW) {
+        delayNanoseconds(e_hi_q_hi_novma_ns);
+        q_lo();
+        // E=H Q=L
         signals.debug('-');
-    } else if (signals.rw == HIGH) {
-        if (Acia.isSelected(signals.addr)) {
-            signals.debug('a').data = Acia.read(signals.addr);
-        } else if (signals.readRam()) {
-            signals.debug('m').data = Memory.raw_read(signals.addr);
-        } else {
-            ;  // inject data from signals.data
-            signals.debug('i');
-        }
-        busWrite(D, signals.data);
-        // change data bus to output
-        busMode(D, OUTPUT);
-    } else {
-        signals.readData();
+        Signals::nextCycle();
+        delayNanoseconds(e_hi_q_lo_novma_ns);
+    } else if (signals.rw == LOW) {
+        delayNanoseconds(e_hi_q_hi_write_ns);
+        q_lo();
+        // E=H Q=L
+        signals.getData();
         if (Acia.isSelected(signals.addr)) {
             Acia.write(signals.debug('a').data, signals.addr);
         } else if (signals.writeRam()) {
             Memory.raw_write(signals.addr, signals.debug('m').data);
         } else {
             ;  // capture data to signals.data
-            signals.debug('c');
         }
+        Signals::nextCycle();
+        delayNanoseconds(e_hi_q_lo_write_ns);
+    } else {
+        // E=H Q=L
+        if (Acia.isSelected(signals.addr)) {
+            signals.debug('a').data = Acia.read(signals.addr);
+        } else if (signals.readRam()) {
+            signals.debug('m').data = Memory.raw_read(signals.addr);
+        } else {
+            ;  // inject data from signals.data
+        }
+        delayNanoseconds(e_hi_q_hi_read_ns);
+        q_lo();
+        busWrite(D, signals.data);
+        // change data bus to output
+        busMode(D, OUTPUT);
+        Signals::nextCycle();
+        delayNanoseconds(e_hi_q_lo_read_ns);
     }
+    // E=L Q=L
+    e_lo();
     // Set E clock low to handle hold times and tristate data bus.
-    clock_e_lo();
-    busMode(D, INPUT);
     vma = signals.avma;
+    busMode(D, INPUT);
 
-    Signals::nextCycle();
     return signals;
+}
+
+Signals &Pins::raw_cycle() {
+    delayNanoseconds(raw_e_lo_q_lo_ns);
+    return cycle();
 }
 
 void Pins::execInst(const uint8_t *inst, uint8_t len) {
@@ -242,14 +303,14 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
     for (uint8_t i = 0; i < len; i++) {
-        Signals::inject(inst[i]).debug('i');
-        cycle();
+        Signals::inject(inst[i]);
+        raw_cycle();
     }
     uint8_t cap = 0;
     if (buf) {
         while (cap < max) {
-            Signals::capture().debug('c');
-            const Signals &signals = cycle();
+            Signals::capture();
+            const Signals &signals = raw_cycle();
             if (cap == 0 && addr)
                 *addr = signals.addr;
             buf[cap++] = signals.data;
@@ -261,19 +322,19 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 void Pins::reset(bool show) {
     assert_reset();
     for (auto i = 0; i < 3; i++)
-        clock_cycle();
+        raw_cycle().debug('R');
     Signals::resetCycles();
-    cycle().debug('R');
+    raw_cycle().debug('R');
     negate_reset();
     // Three FFFE cycles.
-    cycle().debug('r');
-    cycle().debug('r');
-    cycle().debug('r');
+    raw_cycle().debug('r');
+    raw_cycle().debug('r');
+    raw_cycle().debug('r');
     // Read Reset vector
-    cycle().debug('v');
-    cycle().debug('v');
+    raw_cycle().debug('v');
+    raw_cycle().debug('v');
     // non-VMA
-    cycle().debug('-');
+    raw_cycle().debug('-');
     Regs.save();
     if (show)
         Signals::printCycles();
@@ -282,11 +343,11 @@ void Pins::reset(bool show) {
 void Pins::idle() {
     // Inject "BRA *"
     Signals::inject(0x20);
-    cycle();
+    raw_cycle();
     Signals::inject(0xFE);
-    cycle();
+    raw_cycle();
     Signals::inject(0);
-    cycle();
+    raw_cycle();
 }
 
 void Pins::loop() {
@@ -305,25 +366,28 @@ void Pins::suspend(bool show) {
     assert_nmi();
     // Wait for consequtive 12 writes which means registers saved onto stack.
     while (writes < 12) {
-        Signals signals = Signals::capture();
-        if (cycle().rw == LOW) {
+        Signals::capture();
+        Signals &signals = raw_cycle();
+        if (signals.rw == LOW) {
             writes++;
+            signals.debug('0' + writes);
         } else {
             writes = 0;
         }
-        if (writes)
-            signals.debug('0' + writes);
     }
     negate_nmi();
     // Capture registers pushed onto stack.
     const Signals *end = &Signals::currCycle() - writes;
     Regs.capture(end);
-    cycle().debug('n');
+    // Non-VMA cycle
+    raw_cycle().debug('-');
     // Inject the current PC as NMI vector.
     Signals::inject(Regs.pc >> 8);
-    cycle().debug('v');
+    raw_cycle().debug('v');
     Signals::inject(Regs.pc);
-    cycle().debug('v');
+    raw_cycle().debug('v');
+    // Non-VMA cycle
+    raw_cycle().debug('-');
     Signals::flushWrites(end);
     if (debug_cycles) {
         Signals::printCycles();
@@ -334,7 +398,7 @@ void Pins::suspend(bool show) {
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        Signals::resetCycles().debug('N');
+        Signals::resetCycles();
         suspend(show);
         _freeRunning = false;
         turn_off_led();
@@ -350,7 +414,7 @@ void Pins::run() {
 
 void Pins::step(bool show) {
     Regs.restore(debug_cycles);
-    Signals::resetCycles().debug('s');
+    Signals::resetCycles();
     suspend(show);
 }
 

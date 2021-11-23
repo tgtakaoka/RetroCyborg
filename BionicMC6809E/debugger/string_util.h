@@ -3,9 +3,8 @@
 
 #include <stdint.h>
 
-char *outText(char *p, const char *text);
-char *outHex8(char *p, uint8_t value);
-char *outHex16(char *p, uint16_t value);
+void outHex8(char *p, uint8_t value);
+void outHex16(char *p, uint16_t value);
 
 #endif
 
