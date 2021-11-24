@@ -1,5 +1,5 @@
-        cpu     6801
-        include "mc6801.inc"
+        cpu     6811
+        include "mc68hc11d.inc"
 
         org     $2000
 
@@ -9,8 +9,8 @@ tx_queue_size:  equ     128
 tx_queue:       rmb     tx_queue_size
 
 ;;; SCI: Enable Rx interrupt
-RX_INT_TX_NO:   equ     TRCSR_TE_bm|TRCSR_RE_bm|TRCSR_RIE_bm
-RX_INT_TX_INT:  equ     RX_INT_TX_NO|TRCSR_TIE_bm
+RX_INT_TX_NO:   equ     SCCR2_TE_bm|SCCR2_RE_bm|SCCR2_RIE_bm
+RX_INT_TX_INT:  equ     RX_INT_TX_NO|SCCR2_TIE_bm
 
         org     $1000
 stack:  equ     *-1             ; MC6801's SP is post-decrement/pre-increment
@@ -25,10 +25,11 @@ initialize:
         ldab    #tx_queue_size
         jsr     queue_init
         ;; Initialize SCI
-        ldaa    #CCFS_NRZ_gc|SS_DIV16_gc
-        staa    RMCR            ; set NRZ and E/16
+        clr     SCCR1           ; 8bit 1stop
+        ldaa    #BAUD_SCP1_gc|BAUD_SCR1_gc ; E/16
+        staa    BAUD
         ldaa    #RX_INT_TX_NO
-        staa    TRCSR           ; Enable Tx and Rx/Interrupt
+        staa    SCCR2           ; enable Tx and Rx/Interrupt
         cli                     ; enable IRQ
 
 receive_loop:
@@ -147,7 +148,7 @@ putchar:
         jsr     queue_add
         pulx
         ldaa    #RX_INT_TX_INT  ; Enable Tx interrupt
-        staa    TRCSR
+        staa    SCCR2
         pula                    ; restore CC
         tap
         pula
@@ -157,30 +158,30 @@ putchar:
         include "queue.inc"
 
 isr_sci:
-        ldab    TRCSR
-	bitb    #TRCSR_ORFE_bm
+        ldab    SCSR
+	bitb    #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm
         bne     isr_sci_error
-        bitb    #TRCSR_RDRF_bm
+        bitb    #SCSR_RDRF_bm
         beq     isr_sci_send
 isr_sci_receive:
-        ldaa    SCRDR          ; receive character
+        ldaa    SCDR            ; receive character
         ldx     #rx_queue
         jsr     queue_add
 isr_sci_send:
-        bitb    #TRCSR_TDRE_bm
+        bitb    #SCSR_TDRE_bm
         beq     isr_sci_return
         ldx     #tx_queue
         jsr     queue_remove
         bcc     isr_sci_empty
-        staa    SCTDR          ; send character
+        staa    SCDR            ; send character
 isr_sci_return: 
         rti
 isr_sci_empty:
         ldaa    #RX_INT_TX_NO
-        staa    TRCSR           ; disable Tx interrupt
+        staa    SCCR2           ; disable Tx interrupt
 	bra     isr_sci_return
 isr_sci_error:
-        ldaa    SCRDR          ; reset ORFE
+        ldaa    SCDR            ; reset ORFE
         bra     isr_sci_send
 	
         org     VEC_SCI

@@ -1,5 +1,5 @@
-        cpu     6801
-        include "mc6801.inc"
+        cpu     6811
+        include "mc68hc11d.inc"
 
         org     $2000
 
@@ -7,7 +7,7 @@ rx_queue_size:  equ     128
 rx_queue:       rmb     rx_queue_size
 
 ;;; SCI: Enable Rx interrupt
-RX_INT_TX_NO:   equ     TRCSR_TE_bm|TRCSR_RE_bm|TRCSR_RIE_bm
+RX_INT_TX_NO:   equ     SCCR2_TE_bm|SCCR2_RE_bm|SCCR2_RIE_bm
 
         org     $1000
 stack:  equ     *-1             ; MC6801's SP is post-decrement/pre-increment
@@ -19,10 +19,11 @@ initialize:
         ldab    #rx_queue_size
         jsr     queue_init
         ;; Initialize SCI
-        ldaa    #CCFS_NRZ_gc|SS_DIV16_gc
-        staa    RMCR            ; set NRZ and E/16
+        clr     SCCR1           ; 8bit 1stop
+        ldaa    #BAUD_SCP1_gc|BAUD_SCR1_gc ; E/16
+        staa    BAUD
         ldaa    #RX_INT_TX_NO
-        staa    TRCSR           ; Enable Tx and Rx/Interrupt
+        staa    SCCR2           ; Enable Tx and Rx/Interrupt
         cli                     ; Enable IRQ
 
         ldx     #rx_queue
@@ -32,11 +33,11 @@ receive_loop:
         cli                     ; Enable IRQ
         bcc     receive_loop
 transmit_loop:
-        ldab    TRCSR
-        bitb    #TRCSR_TDRE_bm
+        ldab    SCSR
+        bitb    #SCSR_TDRE_bm
         beq     transmit_loop
 transmit_data:
-        staa    SCTDR
+        staa    SCDR
         cmpa    #$0d
         bne     receive_loop
         ldaa    #$0a
@@ -45,19 +46,19 @@ transmit_data:
         include "queue.inc"
 
 isr_sci:
-        ldab    TRCSR
-	bitb    #TRCSR_ORFE_bm
+        ldab    SCSR
+	bitb    #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm
         bne     isr_sci_error
-        bitb    #TRCSR_RDRF_bm
+        bitb    #SCSR_RDRF_bm
         beq     isr_sci_return
 isr_sci_receive:
-        ldaa    SCRDR
+        ldaa    SCDR
         ldx     #rx_queue
         jsr     queue_add
 isr_sci_return:
         rti
 isr_sci_error:
-        ldab    SCRDR          ; clear ORFE
+        ldab    SCDR            ; clear OR/NF/FE
         bra     isr_sci_return
 
         org     VEC_SCI

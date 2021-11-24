@@ -1,5 +1,5 @@
-        cpu     6801
-        include "mc6801.inc"
+        cpu     6811
+        include "mc68hc11d.inc"
 
 ;;; MC6850 Asynchronous Communication Interface Adapter
 ACIA:   equ     $DF00
@@ -60,7 +60,7 @@ isr_irq_recv_end:
 isr_irq_return:
         rti
 
-        org     VEC_IRQ1
+        org     VEC_IRQ
         fdb     isr_irq
 
         org     VEC_RESET
