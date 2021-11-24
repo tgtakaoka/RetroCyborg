@@ -293,36 +293,38 @@
 1000: =$FFF          stack:          EQU   *-1             ; MC6801's SP is post-decrement/pre-increment
 1000:
 1000:                                ORG   $1000
-1000:                initialize:
-1000: 8E 0F FF                       LDS   #stack
-1003:                ;; Initialize SCI
-1003: 7F 00 2C                       CLR   SCCR1           ; 8bit 1stop
-1006: 86 00                          LDAA  #BAUD_SCP1_gc|BAUD_SCR1_gc  ; E/16
-1008: 97 2B                          STAA  BAUD
-100A: 86 0C                          LDAA  #RX_ON_TX_ON
-100C: 97 2D                          STAA  SCCR2
-100E: 20 02                          BRA   receive_loop
-1010:
-1010:                receive_error:
-1010: 96 2F                          LDAA  SCDR            ; Reset OR/NF/FE
-1012:                receive_loop:
-1012: 96 2E                          LDAA  SCSR
-1014: 85 0E                          BITA  #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm   ; Overrun or noise or framing error?
-1016: 26 F8                          BNE   receive_error
-1018: 85 20                          BITA  #SCSR_RDRF_bm   ; Receive Data Register Full?
-101A: 27 F6                          BEQ   receive_loop    ; no
-101C:                receive_data:
-101C: D6 2F                          LDAB  SCDR            ; Received data
-101E:                transmit_loop:
-101E: 96 2E                          LDAA  SCSR
-1020: 85 80                          BITA  #SCSR_TDRE_bm   ; Transmit Data Register Empty?
-1022: 27 FA                          BEQ   transmit_loop   ; no
-1024:                transmit_data:
-1024: D7 2F                          STAB  SCDR            ; transmit data
-1026: C1 0D                          CMPB  #$0d
-1028: 26 E8                          BNE   receive_loop
-102A: C6 0A                          LDAB  #$0a
-102C: 20 F0                          BRA   transmit_loop
-102E:
+1000:                device_base:
+1000: 00 00                          DC.W  $0000           ; device base
+1002:                initialize:
+1002: 8E 0F FF                       LDS   #stack
+1005:                ;; Initialize SCI
+1005: FE 10 00                       LDX   device_base
+1008: 6F 2C                          CLR   SCCR1,x         ; 8bit 1stop
+100A: 86 00                          LDAA  #BAUD_SCP1_gc|BAUD_SCR1_gc  ; E/16
+100C: A7 2B                          STAA  BAUD,x
+100E: 86 0C                          LDAA  #RX_ON_TX_ON
+1010: A7 2D                          STAA  SCCR2,x
+1012: 20 02                          BRA   receive_loop
+1014:
+1014:                receive_error:
+1014: A6 2F                          LDAA  SCDR,x          ; Reset OR/NF/FE
+1016:                receive_loop:
+1016:                ;;; Overrun or noise or framing error?
+1016: 1E 2E 0E FA                    BRSET SCSR,x, #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm, receive_error
+101A:                ;;; Receive Data Register Full?
+101A: 1F 2E 20 F8                    BRCLR SCSR,x, #SCSR_RDRF_bm, receive_loop
+101E: 27 F6                          BEQ   receive_loop    ; no
+1020:                receive_data:
+1020: E6 2F                          LDAB  SCDR,x          ; Received data
+1022:                transmit_loop:
+1022:                ;;; Transmit Data Register Empty?
+1022: 1F 2E 80 FC                    BRCLR SCSR,x, #SCSR_TDRE_bm, transmit_loop
+1026:                transmit_data:
+1026: E7 2F                          STAB  SCDR,x          ; transmit data
+1028: C1 0D                          CMPB  #$0d
+102A: 26 EA                          BNE   receive_loop
+102C: C6 0A                          LDAB  #$0a
+102E: 20 F2                          BRA   transmit_loop
+1030:
 FFFE:                                ORG   VEC_RESET
-FFFE: 10 00                          FDB   initialize
+FFFE: 10 02                          FDB   initialize

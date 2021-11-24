@@ -13,17 +13,20 @@ RX_INT_TX_NO:   equ     SCCR2_TE_bm|SCCR2_RE_bm|SCCR2_RIE_bm
 stack:  equ     *-1             ; MC6801's SP is post-decrement/pre-increment
 
         org     $1000
+device_base:
+        dc.w    $0000           ; device base
 initialize:
         lds     #stack
         ldx     #rx_queue
         ldab    #rx_queue_size
         jsr     queue_init
         ;; Initialize SCI
-        clr     SCCR1           ; 8bit 1stop
+        ldy     device_base
+        clr     SCCR1,y         ; 8bit 1stop
         ldaa    #BAUD_SCP1_gc|BAUD_SCR1_gc ; E/16
-        staa    BAUD
+        staa    BAUD,y
         ldaa    #RX_INT_TX_NO
-        staa    SCCR2           ; Enable Tx and Rx/Interrupt
+        staa    SCCR2,y         ; Enable Tx and Rx/Interrupt
         cli                     ; Enable IRQ
 
         ldx     #rx_queue
@@ -33,11 +36,9 @@ receive_loop:
         cli                     ; Enable IRQ
         bcc     receive_loop
 transmit_loop:
-        ldab    SCSR
-        bitb    #SCSR_TDRE_bm
-        beq     transmit_loop
+        brclr   SCSR,y, #SCSR_TDRE_bm, transmit_loop
 transmit_data:
-        staa    SCDR
+        staa    SCDR,y
         cmpa    #$0d
         bne     receive_loop
         ldaa    #$0a
@@ -46,19 +47,17 @@ transmit_data:
         include "queue.inc"
 
 isr_sci:
-        ldab    SCSR
-	bitb    #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm
-        bne     isr_sci_error
-        bitb    #SCSR_RDRF_bm
-        beq     isr_sci_return
+        ldy     device_base
+        brset   SCSR,y, #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm, isr_sci_error
+        brclr   SCSR,y, #SCSR_RDRF_bm, isr_sci_return
 isr_sci_receive:
-        ldaa    SCDR
+        ldaa    SCDR,y
         ldx     #rx_queue
         jsr     queue_add
 isr_sci_return:
         rti
 isr_sci_error:
-        ldab    SCDR            ; clear OR/NF/FE
+        ldab    SCDR,y          ; clear OR/NF/FE
         bra     isr_sci_return
 
         org     VEC_SCI

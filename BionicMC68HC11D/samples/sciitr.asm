@@ -16,6 +16,8 @@ RX_INT_TX_INT:  equ     RX_INT_TX_NO|SCCR2_TIE_bm
 stack:  equ     *-1             ; MC6801's SP is post-decrement/pre-increment
 
         org     $1000
+device_base:
+        dc.w    $0000           ; device base
 initialize:
         lds     #stack
         ldx     #rx_queue
@@ -25,11 +27,12 @@ initialize:
         ldab    #tx_queue_size
         jsr     queue_init
         ;; Initialize SCI
-        clr     SCCR1           ; 8bit 1stop
+        ldy     device_base
+        clr     SCCR1,y                    ; 8bit 1stop
         ldaa    #BAUD_SCP1_gc|BAUD_SCR1_gc ; E/16
-        staa    BAUD
+        staa    BAUD,y
         ldaa    #RX_INT_TX_NO
-        staa    SCCR2           ; enable Tx and Rx/Interrupt
+        staa    SCCR2,y         ; enable Tx and Rx/Interrupt
         cli                     ; enable IRQ
 
 receive_loop:
@@ -158,30 +161,27 @@ putchar:
         include "queue.inc"
 
 isr_sci:
-        ldab    SCSR
-	bitb    #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm
-        bne     isr_sci_error
-        bitb    #SCSR_RDRF_bm
-        beq     isr_sci_send
+        ldy     device_base
+        brset   SCSR,y, #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm, isr_sci_error
+        brclr   SCSR,y, #SCSR_RDRF_bm, isr_sci_send
 isr_sci_receive:
-        ldaa    SCDR            ; receive character
+        ldaa    SCDR,y          ; receive character
         ldx     #rx_queue
         jsr     queue_add
 isr_sci_send:
-        bitb    #SCSR_TDRE_bm
-        beq     isr_sci_return
+        brclr   SCSR,y, #SCSR_TDRE_bm, isr_sci_return
         ldx     #tx_queue
         jsr     queue_remove
         bcc     isr_sci_empty
-        staa    SCDR            ; send character
+        staa    SCDR,y          ; send character
 isr_sci_return: 
         rti
 isr_sci_empty:
         ldaa    #RX_INT_TX_NO
-        staa    SCCR2           ; disable Tx interrupt
+        staa    SCCR2,y         ; disable Tx interrupt
 	bra     isr_sci_return
 isr_sci_error:
-        ldaa    SCDR            ; reset ORFE
+        ldaa    SCDR,y          ; reset ORFE
         bra     isr_sci_send
 	
         org     VEC_SCI

@@ -349,7 +349,7 @@
 1000: 8E 0F FF                       LDS   #stack
 1003: CE 20 00                       LDX   #rx_queue
 1006: C6 80                          LDAB  #rx_queue_size
-1008: BD 10 32                       JSR   queue_init
+1008: BD 10 34                       JSR   queue_init
 100B:                ;; initialize ACIA
 100B: 86 03                          LDAA  #CDS_RESET_gc   ; Master reset
 100D: B7 DF 00                       STAA  ACIA_control
@@ -357,122 +357,121 @@
 1012: B7 DF 00                       STAA  ACIA_control
 1015: 0E                             CLI                   ; Enable IRQ
 1016:
-1016: CE 20 00                       LDX   #rx_queue
-1019:                receive_loop:
-1019: 0F                             SEI                   ; Disable IRQ
-101A: BD 10 5D                       JSR   queue_remove
-101D: 0E                             CLI                   ; Enable IRQ
-101E: 24 F9                          BCC   receive_loop
-1020:                transmit_loop:
-1020: F6 DF 00                       LDAB  ACIA_status
-1023: C5 02                          BITB  #TDRE_bm
-1025: 27 F9                          BEQ   transmit_loop
-1027:                transmit_data:
-1027: B7 DF 01                       STAA  ACIA_data
-102A: 81 0D                          CMPA  #$0d
-102C: 26 EB                          BNE   receive_loop
-102E: 86 0A                          LDAA  #$0a
-1030: 20 EE                          BRA   transmit_loop
-1032:
-1032:                                INCLUDE               "queue.inc"
-1032:                ;;; [queue] queue structure
-1032: =$0            queue_len:      EQU   0               ; queue length
-1032: =$1            queue_size:     EQU   1               ; buffer size
-1032: =$2            queue_put:      EQU   2               ; queue put index
-1032: =$3            queue_get:      EQU   3               ; queue get index
-1032: =$4            queue_buf:      EQU   4               ; buffer start offset
-1032:
-1032:                ;;; [queue] Initialize queue
-1032:                ;;; @param X queue work space pointer
-1032:                ;;; @param B queue work space size
-1032:                ;;; @clobber B
-1032:                queue_init:
-1032: 37                             PSHB
-1033: 3C                             PSHX
-1034:                queue_init_loop:
-1034: 6F 00                          CLR   0,x
-1036: 08                             INX
-1037: 5A                             DECB
-1038: 26 FA                          BNE   queue_init_loop
-103A: 38                             PULX
-103B: 33                             PULB
-103C: C0 04                          SUBB  #queue_buf
-103E: E7 01                          STAB  queue_size,x
-1040: 39                             RTS
-1041:
-1041:                ;;; [queue] Add an element to queue
-1041:                ;;; @param X queue work space pointer
-1041:                ;;; @param A an element
-1041:                ;;; @return CC.C 0 if queue is full
-1041:                queue_add:
-1041: 37                             PSHB
-1042: E6 00                          LDAB  queue_len,x
-1044: E1 01                          CMPB  queue_size,x
-1046: 24 13                          BHS   queue_add_return    ; carry is cleared
-1048: E6 02                          LDAB  queue_put,x     ; 8 bits offset
-104A: 3C                             PSHX
-104B: 3A                             ABX                   ; X+=B
-104C: A7 04                          STAA  queue_buf,x     ; store an element
-104E: 38                             PULX
-104F: 6C 00                          INC   queue_len,x
-1051: 5C                             INCB
-1052: E7 02                          STAB  queue_put,x
-1054: E1 01                          CMPB  queue_size,x
-1056: 25 03                          BLO   queue_add_return    ; carry is set
-1058: 6F 02                          CLR   queue_put,x
-105A: 0D                             SEC                   ; set carry
-105B:                queue_add_return:
-105B: 33                             PULB
-105C: 39                             RTS
-105D:
-105D:                ;;; [queue] Remove an element from queue
-105D:                ;;; @param X queue work space pointer
-105D:                ;;; @return A an element
-105D:                ;;; @return CC.C 0 if queue is empty
-105D:                queue_remove:
-105D: 6D 00                          TST   queue_len,x
-105F: 26 02                          BNE   queue_remove_elem
-1061: 0C                             CLC                   ; clear carry
-1062: 39                             RTS
-1063:                queue_remove_elem
-1063: 37                             PSHB
-1064: E6 03                          LDAB  queue_get,x     ; 8 bits offset
-1066: 3C                             PSHX
-1067: 3A                             ABX                   ; X+=B
-1068: A6 04                          LDAA  queue_buf,x     ; read an element
-106A: 38                             PULX
-106B: 6A 00                          DEC   queue_len,x
-106D: 5C                             INCB
-106E: E7 03                          STAB  queue_get,x
-1070: E1 01                          CMPB  queue_size,x
-1072: 25 03                          BLO   queue_remove_return ; carry is set
-1074: 6F 03                          CLR   queue_get,x
-1076: 0D                             SEC                   ; set carry
-1077:                queue_remove_return:
-1077: 33                             PULB
-1078: 39                             RTS
-1079:
-1079:                ;;; Local Variables:
-1079:                ;;; mode: asm
-1079:                ;;; End:
-1079:                ;;; vim: set ft=asm et ts=4 sw=4:
-1079:
-1079:                isr_irq:
-1079: F6 DF 00                       LDAB  ACIA_status
-107C: C5 80                          BITB  #IRQF_bm
-107E: 27 0D                          BEQ   isr_irq_return
-1080:                isr_irq_receive:
-1080: C5 01                          BITB  #RDRF_bm
-1082: 27 09                          BEQ   isr_irq_recv_end
-1084: B6 DF 01                       LDAA  ACIA_data
-1087: CE 20 00                       LDX   #rx_queue
-108A: BD 10 41                       JSR   queue_add
-108D:                isr_irq_recv_end:
-108D:                isr_irq_return:
-108D: 3B                             RTI
-108E:
+1016: 18 CE DF 00                    LDY   #ACIA
+101A: CE 20 00                       LDX   #rx_queue
+101D:                receive_loop:
+101D: 0F                             SEI                   ; Disable IRQ
+101E: BD 10 5F                       JSR   queue_remove
+1021: 0E                             CLI                   ; Enable IRQ
+1022: 24 F9                          BCC   receive_loop
+1024:                transmit_loop:
+1024: 18 1F 00 02 FB                 BRCLR 0,y, #TDRE_bm, transmit_loop
+1029:                transmit_data:
+1029: B7 DF 01                       STAA  ACIA_data
+102C: 81 0D                          CMPA  #$0d
+102E: 26 ED                          BNE   receive_loop
+1030: 86 0A                          LDAA  #$0a
+1032: 20 F0                          BRA   transmit_loop
+1034:
+1034:                                INCLUDE               "queue.inc"
+1034:                ;;; [queue] queue structure
+1034: =$0            queue_len:      EQU   0               ; queue length
+1034: =$1            queue_size:     EQU   1               ; buffer size
+1034: =$2            queue_put:      EQU   2               ; queue put index
+1034: =$3            queue_get:      EQU   3               ; queue get index
+1034: =$4            queue_buf:      EQU   4               ; buffer start offset
+1034:
+1034:                ;;; [queue] Initialize queue
+1034:                ;;; @param X queue work space pointer
+1034:                ;;; @param B queue work space size
+1034:                ;;; @clobber B
+1034:                queue_init:
+1034: 37                             PSHB
+1035: 3C                             PSHX
+1036:                queue_init_loop:
+1036: 6F 00                          CLR   0,x
+1038: 08                             INX
+1039: 5A                             DECB
+103A: 26 FA                          BNE   queue_init_loop
+103C: 38                             PULX
+103D: 33                             PULB
+103E: C0 04                          SUBB  #queue_buf
+1040: E7 01                          STAB  queue_size,x
+1042: 39                             RTS
+1043:
+1043:                ;;; [queue] Add an element to queue
+1043:                ;;; @param X queue work space pointer
+1043:                ;;; @param A an element
+1043:                ;;; @return CC.C 0 if queue is full
+1043:                queue_add:
+1043: 37                             PSHB
+1044: E6 00                          LDAB  queue_len,x
+1046: E1 01                          CMPB  queue_size,x
+1048: 24 13                          BHS   queue_add_return    ; carry is cleared
+104A: E6 02                          LDAB  queue_put,x     ; 8 bits offset
+104C: 3C                             PSHX
+104D: 3A                             ABX                   ; X+=B
+104E: A7 04                          STAA  queue_buf,x     ; store an element
+1050: 38                             PULX
+1051: 6C 00                          INC   queue_len,x
+1053: 5C                             INCB
+1054: E7 02                          STAB  queue_put,x
+1056: E1 01                          CMPB  queue_size,x
+1058: 25 03                          BLO   queue_add_return    ; carry is set
+105A: 6F 02                          CLR   queue_put,x
+105C: 0D                             SEC                   ; set carry
+105D:                queue_add_return:
+105D: 33                             PULB
+105E: 39                             RTS
+105F:
+105F:                ;;; [queue] Remove an element from queue
+105F:                ;;; @param X queue work space pointer
+105F:                ;;; @return A an element
+105F:                ;;; @return CC.C 0 if queue is empty
+105F:                queue_remove:
+105F: 6D 00                          TST   queue_len,x
+1061: 26 02                          BNE   queue_remove_elem
+1063: 0C                             CLC                   ; clear carry
+1064: 39                             RTS
+1065:                queue_remove_elem
+1065: 37                             PSHB
+1066: E6 03                          LDAB  queue_get,x     ; 8 bits offset
+1068: 3C                             PSHX
+1069: 3A                             ABX                   ; X+=B
+106A: A6 04                          LDAA  queue_buf,x     ; read an element
+106C: 38                             PULX
+106D: 6A 00                          DEC   queue_len,x
+106F: 5C                             INCB
+1070: E7 03                          STAB  queue_get,x
+1072: E1 01                          CMPB  queue_size,x
+1074: 25 03                          BLO   queue_remove_return ; carry is set
+1076: 6F 03                          CLR   queue_get,x
+1078: 0D                             SEC                   ; set carry
+1079:                queue_remove_return:
+1079: 33                             PULB
+107A: 39                             RTS
+107B:
+107B:                ;;; Local Variables:
+107B:                ;;; mode: asm
+107B:                ;;; End:
+107B:                ;;; vim: set ft=asm et ts=4 sw=4:
+107B:
+107B:                isr_irq:
+107B: F6 DF 00                       LDAB  ACIA_status
+107E: C5 80                          BITB  #IRQF_bm
+1080: 27 0D                          BEQ   isr_irq_return
+1082:                isr_irq_receive:
+1082: C5 01                          BITB  #RDRF_bm
+1084: 27 09                          BEQ   isr_irq_recv_end
+1086: B6 DF 01                       LDAA  ACIA_data
+1089: CE 20 00                       LDX   #rx_queue
+108C: BD 10 43                       JSR   queue_add
+108F:                isr_irq_recv_end:
+108F:                isr_irq_return:
+108F: 3B                             RTI
+1090:
 FFF2:                                ORG   VEC_IRQ
-FFF2: 10 79                          FDB   isr_irq
+FFF2: 10 7B                          FDB   isr_irq
 FFF4:
 FFFE:                                ORG   VEC_RESET
 FFFE: 10 00                          FDB   initialize

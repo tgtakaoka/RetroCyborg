@@ -17,16 +17,13 @@ initialize:
                                 ; Transmit, Receive interrupts disabled
         staa    ACIA_control
 
+        ldx     #ACIA
 receive_loop:
-        ldaa    ACIA_status
-        bita    #RDRF_bm
-        beq     receive_loop
+        brclr   0,x, #RDRF_bm, receive_loop
 receive_data:
-        ldab    ACIA_data
+        ldab    1,x
 transmit_loop:
-        ldaa    ACIA_status
-        bita    #TDRE_bm
-        beq     transmit_loop
+        brclr   0,x, #TDRE_bm, transmit_loop
 transmit_data:
         stab    ACIA_data
         cmpb    #$0d

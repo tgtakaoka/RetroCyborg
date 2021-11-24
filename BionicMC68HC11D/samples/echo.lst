@@ -347,22 +347,19 @@
 100A:                ; Transmit, Receive interrupts disabled
 100A: B7 DF 00                       STAA  ACIA_control
 100D:
-100D:                receive_loop:
-100D: B6 DF 00                       LDAA  ACIA_status
-1010: 85 01                          BITA  #RDRF_bm
-1012: 27 F9                          BEQ   receive_loop
+100D: CE DF 00                       LDX   #ACIA
+1010:                receive_loop:
+1010: 1F 00 01 FC                    BRCLR 0,x, #RDRF_bm, receive_loop
 1014:                receive_data:
-1014: F6 DF 01                       LDAB  ACIA_data
-1017:                transmit_loop:
-1017: B6 DF 00                       LDAA  ACIA_status
-101A: 85 02                          BITA  #TDRE_bm
-101C: 27 F9                          BEQ   transmit_loop
-101E:                transmit_data:
-101E: F7 DF 01                       STAB  ACIA_data
-1021: C1 0D                          CMPB  #$0d
-1023: 26 E8                          BNE   receive_loop
-1025: C6 0A                          LDAB  #$0a
-1027: 20 EE                          BRA   transmit_loop
-1029:
+1014: E6 01                          LDAB  1,x
+1016:                transmit_loop:
+1016: 1F 00 02 FC                    BRCLR 0,x, #TDRE_bm, transmit_loop
+101A:                transmit_data:
+101A: F7 DF 01                       STAB  ACIA_data
+101D: C1 0D                          CMPB  #$0d
+101F: 26 EF                          BNE   receive_loop
+1021: C6 0A                          LDAB  #$0a
+1023: 20 F1                          BRA   transmit_loop
+1025:
 FFFE:                                ORG   VEC_RESET
 FFFE: 10 00                          FDB   initialize

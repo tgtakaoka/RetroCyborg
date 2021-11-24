@@ -8,32 +8,34 @@ RX_ON_TX_ON:   equ     SCCR2_TE_bm|SCCR2_RE_bm
 stack:  equ     *-1      ; MC6801's SP is post-decrement/pre-increment
 
         org     $1000
+device_base:
+        dc.w    $0000   ; device base
 initialize:
         lds     #stack
 	;; Initialize SCI
-        clr     SCCR1           ; 8bit 1stop
+        ldx     device_base
+        clr     SCCR1,x                    ; 8bit 1stop
         ldaa    #BAUD_SCP1_gc|BAUD_SCR1_gc ; E/16
-        staa    BAUD
+        staa    BAUD,x
         ldaa    #RX_ON_TX_ON
-        staa    SCCR2
+        staa    SCCR2,x
         bra     receive_loop
 
 receive_error:
-        ldaa    SCDR            ; Reset OR/NF/FE
+        ldaa    SCDR,x          ; Reset OR/NF/FE
 receive_loop:
-        ldaa    SCSR
-        bita    #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm ; Overrun or noise or framing error?
-        bne     receive_error
-        bita    #SCSR_RDRF_bm   ; Receive Data Register Full?
+;;; Overrun or noise or framing error?
+        brset   SCSR,x, #SCSR_OR_bm|SCSR_NF_bm|SCSR_FE_bm, receive_error
+;;; Receive Data Register Full?
+        brclr   SCSR,x, #SCSR_RDRF_bm, receive_loop
         beq     receive_loop    ; no
 receive_data:
-        ldab    SCDR            ; Received data
+        ldab    SCDR,x          ; Received data
 transmit_loop:
-        ldaa    SCSR
-        bita    #SCSR_TDRE_bm   ; Transmit Data Register Empty?
-        beq     transmit_loop   ; no
+;;; Transmit Data Register Empty?
+        brclr   SCSR,x, #SCSR_TDRE_bm, transmit_loop
 transmit_data:
-        stab    SCDR            ; transmit data
+        stab    SCDR,x          ; transmit data
         cmpb    #$0d
         bne     receive_loop
         ldab    #$0a

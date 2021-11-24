@@ -27,6 +27,7 @@ initialize:
         staa    ACIA_control
         cli                     ; Enable IRQ
 
+        ldy     #ACIA
         ldx     #rx_queue
 receive_loop:
         sei                     ; Disable IRQ
@@ -34,9 +35,7 @@ receive_loop:
         cli                     ; Enable IRQ
         bcc     receive_loop
 transmit_loop:
-        ldab    ACIA_status
-        bitb    #TDRE_bm
-        beq     transmit_loop
+        brclr   0,y, #TDRE_bm, transmit_loop
 transmit_data:
         staa    ACIA_data
         cmpa    #$0d
