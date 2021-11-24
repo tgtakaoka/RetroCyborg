@@ -1,0 +1,284 @@
+   0:                                CPU   6801
+   0:                                INCLUDE               "mc6801.inc"
+   0:                ;;; -*- mode: asm; mode: flyspell-prog; -*-
+   0:
+   0:                ;;; MC6801/MC6803
+   0:                ;;; Condition Code Register (CC)
+   0: =$1            CC_CARRY        EQU   %00000001       ; set to 1 if carry occurred
+   0: =$2            CC_OVERFLOW     EQU   %00000010       ; set to 1 if overflow occurred
+   0: =$4            CC_ZERO         EQU   %00000100       ; set to 1 if result is zero
+   0: =$8            CC_NEGATIVE     EQU   %00001000       ; set to 1 if result is negative
+   0: =$10           CC_IRQ          EQU   %00010000       ; if 1, IRQ is masked
+   0: =$20           CC_HALF_CARRY   EQU   %00100000       ; if 1, decimal carry from least digit occurred
+   0:
+   0:                ;;; Internal Register Area
+   0: =$0            DDR1:           EQU   $00             ; $00: Port 1 Data Direction Register
+   0: =$1            DDR2:           EQU   $01             ; $01: Port 2 Data Direction Register
+   0: =$2            PORT1:          EQU   $02             ; $02: Port 1 Data Register
+   0: =$3            PORT2:          EQU   $03             ; $03: Port 2 Data Register
+   0: =$4            DDR3:           EQU   $04             ; $04: Port 3 Data Direction Register
+   0: =$5            DDR4:           EQU   $05             ; $05: Port 4 Data Direction Register
+   0: =$6            PORT3:          EQU   $06             ; $06: Port 3 Data Register
+   0: =$7            PORT4:          EQU   $07             ; $07: Port 4 Data Register
+   0: =$8            TCSR:           EQU   $08             ; $08: Timer Control and Status Register
+   0: =$9            TCNT:           EQU   $09             ; $09: Timer Counter
+   0: =$B            TOCR:           EQU   $0B             ; $0B: Output Compare Register
+   0: =$D            TCAP:           EQU   $0D             ; $0D: Input Capture Register
+   0: =$F            P3CSR:          EQU   $0F             ; $0F: Port 3 Control and Status Register
+   0: =$10           RMCR:           EQU   $10             ; $10: Rate and Mode Control Registers
+   0: =$11           TRCSR:          EQU   $11             ; $11: Transmit Receive Control and Status Register
+   0: =$12           SCRDR:          EQU   $12             ; $12: Receiver Data Register
+   0: =$13           SCTDR:          EQU   $13             ; $13: Transmit Data Register
+   0: =$14           RAMCR:          EQU   $14             ; $14: RAM Control Register
+   0:
+   0:                ;;; Port 2 Data Register
+   0: =$E0           PC_gm:          EQU   %11100000       ; PC group mask
+   0: =$5            PC_gp:          EQU   5               ; PC group position
+   0: =$20           PC0_bm:         EQU   %00100000       ; PC0
+   0: =$40           PC1_bm:         EQU   %01000000       ; PC1
+   0: =$80           PC2_bm:         EQU   %10000000       ; PC2
+   0:
+   0:                ;;; Port 3 Control and Status Register
+   0: =$8            P3_LATCH_bm:    EQU   %00001000       ; Latch Enable
+   0: =$10           P3_OSS_bm:      EQU   %00010000       ; Output Strobe Select
+   0: =$40           P3_IS3IE_bm:    EQU   %01000000       ; IS3 IRQ1 Enable
+   0: =$80           P3_IS3F_bm:     EQU   %10000000       ; IS3 Flag
+   0:
+   0:                ;;; RAM Control Register
+   0: =$40           RAME_bm:        EQU   %01000000       ; RAM Enable
+   0: =$80           STBY_PWR_bm:    EQU   %10000000       ; Standby Power status
+   0:
+   0:                ;;; Timer Control and Status Register
+   0: =$1            TCSR_OLVL_bm:   EQU   %00000001       ; Output Level
+   0: =$2            TCSR_IEDG_bm:   EQU   %00000010       ; Input Edge. 0=negative/1=positive
+   0: =$4            TCSR_ETOI_bm:   EQU   %00000100       ; Enable Timer Overflow Interrupt for IRQ2
+   0: =$8            TCSR_EOCI_bm:   EQU   %00001000       ; Enable Output Compare Interrupt for IRQ2
+   0: =$10           TCSR_EICI_bm:   EQU   %00010000       ; Enable Input Capture Interrupt for IRQ2
+   0: =$20           TCSR_TOF_bm:    EQU   %00100000       ; Timer Overflow Flag
+   0: =$40           TCSR_OCF_bm:    EQU   %01000000       ; Output Compare Flag
+   0: =$80           TCSR_ICF_bm:    EQU   %10000000       ; Input Capture Flag
+   0:
+   0:                ;;; Serial Communication Interface
+   0:                ;;; Rate and Mode Control Registers
+   0:                ;; Speed Select
+   0: =$3            SS_gm:          EQU   %00000011       ; Group mask
+   0: =$0            SS_DIV16_gc:    EQU   %00000000       ; E/16
+   0: =$1            SS_DIV128_gc:   EQU   %00000001       ; E/128
+   0: =$2            SS_DIV1024_gc:  EQU   %00000010       ; E/1024
+   0: =$3            SS_DIV4096_gc:  EQU   %00000011       ; E/4096
+   0:                ;; Clock Control and Format Select
+   0: =$C            CCFS_gm:        EQU   %00001100       ; Group mask
+   0: =$0            CCFS_BIPH_gc:   EQU   %00000000       ; Bi-Phase
+   0: =$4            CCFS_NRZ_gc:    EQU   %00000100       ; NRZ
+   0: =$8            CCFS_NRZO_gc:   EQU   %00001000       ; NRZ P22=Clock Output
+   0: =$C            CCFS_NRZI_gc:   EQU   %00001100       ; NRZ P22=Clock Input
+   0:                ;;; Transmit/Receive Control and Status Register
+   0: =$1            TRCSR_WU_bm:    EQU   %00000001       ; Wake-up on idle line
+   0: =$2            TRCSR_TE_bm:    EQU   %00000010       ; Transmit Enable; if set, P24 is output
+   0: =$4            TRCSR_TIE_bm:   EQU   %00000100       ; Transmit Interrupt Enable for IRQ2
+   0: =$8            TRCSR_RE_bm:    EQU   %00001000       ; Receiver Enable; if set, P23 is input
+   0: =$10           TRCSR_RIE_bm:   EQU   %00010000       ; Receiver Interrupt Enable for IRQ2
+   0: =$20           TRCSR_TDRE_bm:  EQU   %00100000       ; Transmit Data Register Empty
+   0: =$40           TRCSR_ORFE_bm:  EQU   %01000000       ; Overrun Framing Error
+   0: =$80           TRCSR_RDRF_bm:  EQU   %10000000       ; Receive Data Register Full
+   0:
+   0:                ;;; Vector
+   0: =$FFF0         VEC_SCI:        EQU   $FFF0           ; $FFF0: SCI Interrupt (TDRE+RDRF+ORFE)
+   0: =$FFF2         VEC_TOF:        EQU   $FFF2           ; $FFF2: Timer Overflow Interrupt
+   0: =$FFF4         VEC_OCF:        EQU   $FFF4           ; $FFF4: Output Compare Interrupt
+   0: =$FFF6         VEC_ICF:        EQU   $FFF6           ; $FFF6: Input Capture Interrupt
+   0: =$FFF8         VEC_IRQ1:       EQU   $FFF8           ; $FFF8: Maskable Interrupt Request 1
+   0: =$FFFA         VEC_SWI:        EQU   $FFFA           ; $FFFA: Software Interrupt
+   0: =$FFFC         VEC_NMI:        EQU   $FFFC           ; $FFFC: Non Maskable Interrupt
+   0: =$FFFE         VEC_RESET:      EQU   $FFFE           ; $FFFE: Reset
+   0:
+   0:                ;;; MC6850 Asynchronous Communication Interface Adapter
+   0: =$DF00         ACIA:           EQU   $DF00
+   0:                                INCLUDE               "mc6850.inc"
+   0:                ;;; -*- mode: asm; mode: flyspell-prog; -*-
+   0:
+   0:                ;;; MC6850
+   0:                ;;; Asynchronous Communication Interface Adapter
+   0:
+   0:                ;;; Control register
+   0: =$DF00         ACIA_control:   EQU   ACIA+0
+   0:                ;; Counter Divider Select Bits
+   0: =$3            CDS_gm:         EQU   %11             ; Group mask
+   0: =$0            CDS_DIV1_gc:    EQU   %00000000       ; /1
+   0: =$1            CDS_DIV16_gc:   EQU   %00000001       ; /16
+   0: =$2            CDS_DIV64_gc:   EQU   %00000010       ; /64
+   0: =$3            CDS_RESET_gc:   EQU   %00000011       ; Master Reset
+   0:                ;; Word Select Bits
+   0: =$1C           WSB_gm:         EQU   %00011100       ; Group mask
+   0: =$0            WSB_7E2_gc:     EQU   %00000000       ; 7 Bits + Even Parity + 2 Stop Bits
+   0: =$4            WSB_7O2_gc:     EQU   %00000100       ; 7 bits + Odd Parity  + 2 Stop Bits
+   0: =$8            WSB_7E1_gc:     EQU   %00001000       ; 7 bits + Even Parity + 1 Stop Bits
+   0: =$C            WSB_7O1_gc:     EQU   %00001100       ; 7 bits + Odd Parity  + 1 Stop Bits
+   0: =$10           WSB_8N2_gc:     EQU   %00010000       ; 8 bits + No Parity   + 2 Stop Bits
+   0: =$14           WSB_8N1_gc:     EQU   %00010100       ; 8 bits + No Parity   + 1 Stop Bits
+   0: =$18           WSB_8E1_gc:     EQU   %00011000       ; 8 bits + Even Parity + 1 Stop Bits
+   0: =$1C           WSB_8O1_gc:     EQU   %00011100       ; 8 bits + Odd Parity  + 1 Stop Bits
+   0:                ;; Transmit Control Bits
+   0: =$60           TCB_gm:         EQU   %01100000       ; Group mask
+   0: =$0            TCB_DI_gc:      EQU   %00000000       ; RTS=Low,  Tx Interrupt Disabled
+   0: =$20           TCB_EI_gc:      EQU   %00100000       ; RTS=Low,  Tx Interrupt Enabled
+   0: =$40           TCB_RTS_gc:     EQU   %01000000       ; RTS=High, Tx Interrupt Disabled
+   0: =$60           TCB_BREAK_gc:   EQU   %01100000       ; RTS=Low,  Tx Interrupt Disabled
+   0:                ; Transmit Break Level
+   0: =$80           RIEB_bm:        EQU   %10000000       ; Receive Interrupt Enable Bit mask
+   0:
+   0:                ;;; Status register
+   0: =$DF00         ACIA_status:    EQU   ACIA+0
+   0: =$1            RDRF_bm:        EQU   %00000001       ; Receive Data Register Full
+   0: =$2            TDRE_bm:        EQU   %00000010       ; Transmit Data Register Empty
+   0: =$4            DCDF_bm:        EQU   %00000100       ; Data Carrier Detect Flag
+   0: =$8            CTSF_bm:        EQU   %00001000       ; Clear To Send Flag
+   0: =$10           FERR_bm:        EQU   %00010000       ; Frame Error Flag
+   0: =$20           OVRN_bm:        EQU   %00100000       ; Receiver Overrun Flag
+   0: =$40           PERR_bm:        EQU   %01000000       ; Parity Error Flag
+   0: =$80           IRQF_bm:        EQU   %10000000       ; Interrupt Request Flag
+   0:
+   0:                ;;; Data register
+   0: =$DF01         ACIA_data:      EQU   ACIA+1          ; Data register
+   0:
+2000:                                ORG   $2000
+2000:
+2000: =$80           rx_queue_size:  EQU   128
+2000:                rx_queue:       RMB   rx_queue_size
+2080: =$94           RX_INT_TX_NO:   EQU   WSB_8N1_gc|RIEB_bm
+2080:
+1000:                                ORG   $1000
+1000: =$FFF          stack:          EQU   *-1             ; MC6801's SP is post-decrement/pre-increment
+1000:
+1000:                                ORG   $1000
+1000:                initialize:
+1000: 8E 0F FF                       LDS   #stack
+1003: CE 20 00                       LDX   #rx_queue
+1006: C6 80                          LDAB  #rx_queue_size
+1008: BD 10 32                       JSR   queue_init
+100B:                ;; initialize ACIA
+100B: 86 03                          LDAA  #CDS_RESET_gc   ; Master reset
+100D: B7 DF 00                       STAA  ACIA_control
+1010: 86 94                          LDAA  #RX_INT_TX_NO
+1012: B7 DF 00                       STAA  ACIA_control
+1015: 0E                             CLI                   ; Enable IRQ
+1016:
+1016: CE 20 00                       LDX   #rx_queue
+1019:                receive_loop:
+1019: 0F                             SEI                   ; Disable IRQ
+101A: BD 10 5D                       JSR   queue_remove
+101D: 0E                             CLI                   ; Enable IRQ
+101E: 24 F9                          BCC   receive_loop
+1020:                transmit_loop:
+1020: F6 DF 00                       LDAB  ACIA_status
+1023: C5 02                          BITB  #TDRE_bm
+1025: 27 F9                          BEQ   transmit_loop
+1027:                transmit_data:
+1027: B7 DF 01                       STAA  ACIA_data
+102A: 81 0D                          CMPA  #$0d
+102C: 26 EB                          BNE   receive_loop
+102E: 86 0A                          LDAA  #$0a
+1030: 20 EE                          BRA   transmit_loop
+1032:
+1032:                                INCLUDE               "queue.inc"
+1032:                ;;; [queue] queue structure
+1032: =$0            queue_len:      EQU   0               ; queue length
+1032: =$1            queue_size:     EQU   1               ; buffer size
+1032: =$2            queue_put:      EQU   2               ; queue put index
+1032: =$3            queue_get:      EQU   3               ; queue get index
+1032: =$4            queue_buf:      EQU   4               ; buffer start offset
+1032:
+1032:                ;;; [queue] Initialize queue
+1032:                ;;; @param X queue work space pointer
+1032:                ;;; @param B queue work space size
+1032:                ;;; @clobber B
+1032:                queue_init:
+1032: 37                             PSHB
+1033: 3C                             PSHX
+1034:                queue_init_loop:
+1034: 6F 00                          CLR   0,x
+1036: 08                             INX
+1037: 5A                             DECB
+1038: 26 FA                          BNE   queue_init_loop
+103A: 38                             PULX
+103B: 33                             PULB
+103C: C0 04                          SUBB  #queue_buf
+103E: E7 01                          STAB  queue_size,x
+1040: 39                             RTS
+1041:
+1041:                ;;; [queue] Add an element to queue
+1041:                ;;; @param X queue work space pointer
+1041:                ;;; @param A an element
+1041:                ;;; @return CC.C 0 if queue is full
+1041:                queue_add:
+1041: 37                             PSHB
+1042: E6 00                          LDAB  queue_len,x
+1044: E1 01                          CMPB  queue_size,x
+1046: 24 13                          BHS   queue_add_return    ; carry is cleared
+1048: E6 02                          LDAB  queue_put,x     ; 8 bits offset
+104A: 3C                             PSHX
+104B: 3A                             ABX                   ; X+=B
+104C: A7 04                          STAA  queue_buf,x     ; store an element
+104E: 38                             PULX
+104F: 6C 00                          INC   queue_len,x
+1051: 5C                             INCB
+1052: E7 02                          STAB  queue_put,x
+1054: E1 01                          CMPB  queue_size,x
+1056: 25 03                          BLO   queue_add_return    ; carry is set
+1058: 6F 02                          CLR   queue_put,x
+105A: 0D                             SEC                   ; set carry
+105B:                queue_add_return:
+105B: 33                             PULB
+105C: 39                             RTS
+105D:
+105D:                ;;; [queue] Remove an element from queue
+105D:                ;;; @param X queue work space pointer
+105D:                ;;; @return A an element
+105D:                ;;; @return CC.C 0 if queue is empty
+105D:                queue_remove:
+105D: 6D 00                          TST   queue_len,x
+105F: 26 02                          BNE   queue_remove_elem
+1061: 0C                             CLC                   ; clear carry
+1062: 39                             RTS
+1063:                queue_remove_elem
+1063: 37                             PSHB
+1064: E6 03                          LDAB  queue_get,x     ; 8 bits offset
+1066: 3C                             PSHX
+1067: 3A                             ABX                   ; X+=B
+1068: A6 04                          LDAA  queue_buf,x     ; read an element
+106A: 38                             PULX
+106B: 6A 00                          DEC   queue_len,x
+106D: 5C                             INCB
+106E: E7 03                          STAB  queue_get,x
+1070: E1 01                          CMPB  queue_size,x
+1072: 25 03                          BLO   queue_remove_return ; carry is set
+1074: 6F 03                          CLR   queue_get,x
+1076: 0D                             SEC                   ; set carry
+1077:                queue_remove_return:
+1077: 33                             PULB
+1078: 39                             RTS
+1079:
+1079:                ;;; Local Variables:
+1079:                ;;; mode: asm
+1079:                ;;; End:
+1079:                ;;; vim: set ft=asm et ts=4 sw=4:
+1079:
+1079:                isr_irq:
+1079: F6 DF 00                       LDAB  ACIA_status
+107C: C5 80                          BITB  #IRQF_bm
+107E: 27 0D                          BEQ   isr_irq_return
+1080:                isr_irq_receive:
+1080: C5 01                          BITB  #RDRF_bm
+1082: 27 09                          BEQ   isr_irq_recv_end
+1084: B6 DF 01                       LDAA  ACIA_data
+1087: CE 20 00                       LDX   #rx_queue
+108A: BD 10 41                       JSR   queue_add
+108D:                isr_irq_recv_end:
+108D:                isr_irq_return:
+108D: 3B                             RTI
+108E:
+FFF8:                                ORG   VEC_IRQ1
+FFF8: 10 79                          FDB   isr_irq
+FFFA:
+FFFE:                                ORG   VEC_RESET
+FFFE: 10 00                          FDB   initialize
