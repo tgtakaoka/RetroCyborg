@@ -36,7 +36,7 @@ struct Memory Memory;
  */
 
 const char *Regs::cpu() const {
-    return "6801";
+    return "MC6800";
 }
 
 static char bit1(uint8_t v, char name) {
@@ -44,15 +44,18 @@ static char bit1(uint8_t v, char name) {
 }
 
 void Regs::print() const {
-    // text=35, reg=8*2, cc=8, eos=1
-    char buffer[20 + 8 * 2 + 8 + 1];
+    const auto text = 20;
+    const auto hex = 8*2;
+    const auto flags = 6;
+    const auto eos = 1;
+    char buffer[text + hex + flags + eos];
     char *p = buffer;
-    p = outHex16(outText(p, "PC="), pc);
-    p = outHex16(outText(p, " SP="), sp);
-    p = outHex16(outText(p, " X="), x);
-    p = outHex8(outText(p, " A="), a);
-    p = outHex8(outText(p, " B="), b);
-    p = outText(p, " CC=");
+    p = outHex16(outText(p, F("PC=")), pc);
+    p = outHex16(outText(p, F(" SP=")), sp);
+    p = outHex16(outText(p, F(" X=")), x);
+    p = outHex8(outText(p, F(" A=")), a);
+    p = outHex8(outText(p, F(" B=")), b);
+    p = outText(p, F(" CC="));
     *p++ = bit1(cc & 0x20, 'H');
     *p++ = bit1(cc & 0x10, 'I');
     *p++ = bit1(cc & 0x08, 'N');
@@ -193,7 +196,7 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
 }
 
 bool Memory::is_internal(uint16_t addr) {
-    return false;  // External Memory Space
+    return false;
 }
 
 uint8_t Memory::read(uint16_t addr) const {

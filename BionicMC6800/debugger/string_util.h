@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+class __FlashStringHelper;
+char *outText(char *p, const __FlashStringHelper *text);
 char *outText(char *p, const char *text);
 char *outHex8(char *p, uint8_t value);
 char *outHex16(char *p, uint16_t value);

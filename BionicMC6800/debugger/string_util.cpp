@@ -1,5 +1,18 @@
 #include "string_util.h"
 
+#include <Arduino.h>
+
+char *outText(char *p, const __FlashStringHelper *text) {
+    PGM_P t = reinterpret_cast<PGM_P>(text);
+    while (true) {
+        uint8_t c = pgm_read_byte(t++);
+        *p = c;
+        if (c == 0)
+            return p;
+        p++;
+    }
+}
+
 char *outText(char *p, const char *text) {
     while ((*p = *text++) != 0)
         p++;

@@ -16,25 +16,30 @@ Mc6850 Acia(Console);
 
 static constexpr bool debug_cycles = false;
 
+static void assert_dbe() {
+    digitalWriteFast(PIN_DBE, HIGH);
+}
+
+static void negate_dbe() {
+    digitalWriteFast(PIN_DBE, LOW);
+}
+
 static inline void clock_phi1() {
     digitalWriteFast(PIN_PHI1, HIGH);
-    delayMicroseconds(1);
+    negate_dbe();
+    delayNanoseconds(150);
+    assert_dbe();
+    delayNanoseconds(850);
     digitalWriteFast(PIN_PHI1, LOW);
 }
 
 static inline void clock_phi2_hi() {
     digitalWriteFast(PIN_PHI2, HIGH);
-    delayMicroseconds(1);
+    delayNanoseconds(1000);
 }
 
 static inline void clock_phi2_lo() {
     digitalWriteFast(PIN_PHI2, LOW);
-}
-
-static void clock_cycle() {
-    clock_phi1();
-    clock_phi2_hi();
-    clock_phi2_lo();
 }
 
 static void assert_nmi() {
@@ -65,10 +70,6 @@ static void negate_halt() {
 
 static void negate_tsc() {
     digitalWriteFast(PIN_TSC, LOW);
-}
-
-static void assert_dbe() {
-    digitalWriteFast(PIN_DBE, HIGH);
 }
 
 static void assert_reset() {
@@ -250,11 +251,11 @@ void Pins::reset(bool show) {
     // Read Reset vector
     cycle().debug('v');
     cycle().debug('v');
-    Regs.save();
     if (show)
         Signals::printCycles();
     // The first instruction will be saving registers, and certainly can be
     // injected.
+    Regs.save(show);
 }
 
 void Pins::idle() {
@@ -288,11 +289,10 @@ void Pins::suspend(bool show) {
         Signals signals = Signals::capture();
         if (cycle().rw == LOW) {
             writes++;
+            signals.debug('0' + writes);
         } else {
             writes = 0;
         }
-        if (writes)
-            signals.debug('0' + writes);
     }
     negate_nmi();
     // Capture registers pushed onto stack.

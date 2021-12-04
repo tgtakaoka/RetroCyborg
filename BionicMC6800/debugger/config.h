@@ -92,10 +92,10 @@
 #define AM_gp 0       /* P7.00-P7.03 */
 #define AM_gm 0xF     /* P7.12-P7.15 */
 #define AM_vp 8       /* A8-A11 */
-#define PIN_AM8 35    /* P7.00 */
-#define PIN_AM9 36    /* P7.01 */
-#define PIN_AM10 37   /* P7.02 */
-#define PIN_AM11 38   /* P7.03 */
+#define PIN_AM8 10    /* P7.00 */
+#define PIN_AM9 12    /* P7.01 */
+#define PIN_AM10 11   /* P7.02 */
+#define PIN_AM11 13   /* P7.03 */
 #define PORT_AH 7     /* P7.16-P7.19 */
 #define AH_gp 16      /* P7.16-P7.19 */
 #define AH_gm 0xF     /* P7.16-P7.19 */
@@ -111,7 +111,7 @@
 #define PIN_PHI1 5    /* P9.08 */
 #define PIN_PHI2 29   /* P9.31 */
 #define PIN_VMA 6     /* P7.10 */
-#define PIN_MR DBE    /* P7.12 */
+#define PIN_DBE 32    /* P7.12 */
 #define PIN_RESET 28  /* P8.18 */
 #define PIN_TSC 31    /* P8.22 */
 #define PIN_BA 30     /* P8.23 */

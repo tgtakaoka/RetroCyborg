@@ -265,8 +265,7 @@ static void listDirectory(File dir, const char *parent = nullptr) {
                 cli.print(parent);
                 cli.print('/');
             }
-            cli.print(entry.name());
-            cli.print('\t');
+            cli.printStr(entry.name(), -20);
             cli.printlnDec(entry.size(), 6);
         }
         entry.close();
@@ -375,9 +374,8 @@ static void printIoDevice(State state) {
     uint16_t baseAddr;
     if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
         cli.print(F("ACIA (MC6850) at $"));
+        cli.printlnHex(baseAddr, 4);
     }
-    cli.printHex(baseAddr, 4);
-    cli.println();
 }
 
 static void handleAciaAddr(uint32_t val, uintptr_t extra, State state) {
