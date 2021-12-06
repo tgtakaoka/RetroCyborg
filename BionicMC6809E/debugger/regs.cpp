@@ -22,8 +22,26 @@ struct Memory Memory;
  *   B=$FF: HD6309
  */
 
+static const char MC6809[] = "MC6809";
+static const char HD6309[] = "HD6309";
+
+void Regs::setCpuType() {
+    static const uint8_t CHECKS[] = {
+            0x10, 0x43, 0xCC,  // 6309: COMD + LDA #0
+            0x86, 0x00,        // 6809: NOP + LDD #$8600
+            0x97, 0x00, 0xFF,  // STA $00
+    };
+    uint8_t reg_a;
+    Pins.captureWrites(CHECKS, sizeof(CHECKS), nullptr, &reg_a, sizeof(reg_a));
+    _cpuType = (reg_a == 0) ? HD6309 : MC6809;
+}
+
 const char *Regs::cpu() const {
-    return "MC6809";
+    return _cpuType;
+}
+
+bool Regs::is6309() const {
+    return _cpuType == HD6309;
 }
 
 static char bit1(uint8_t v, char name) {
@@ -40,10 +58,16 @@ void Regs::print() const {
         'Y', '=', 0, 0, 0, 0, ' ',       // S=30
         'X', '=', 0, 0, 0, 0, ' ',       // X=37
         'A', '=', 0, 0, ' ',             // A=44
-        'B', '=', 0, 0, ' ',             // B=49
-        'C', 'C', '=',                   // CC=55
-        0, 0, 0, 0, 0, 0, 0, 0, 
+        'B', '=', 0, 0,                  // B=49
+        0,                               // MC6809/HD6309=51
+        'W', '=', 0, 0, 0, 0, ' ',       // W=54
+        'V', '=', 0, 0, 0, 0,            // V=61
         0,                               // EOS
+    };
+    static char cc_bits[] = {
+        ' ', 'C', 'C', '=',
+        0, 0, 0, 0, 0, 0, 0, 0,          // CC=4
+        0,
     };
     outHex8(buffer + 3, dp);
     outHex16(buffer + 9, pc);
@@ -53,16 +77,24 @@ void Regs::print() const {
     outHex16(buffer + 37, x);
     outHex8(buffer + 44, a);
     outHex8(buffer + 49, b);
-    char *p = buffer + 55;
-    *p++ = bit1(cc & 0x80, 'E');
-    *p++ = bit1(cc & 0x40, 'F');
-    *p++ = bit1(cc & 0x20, 'H');
-    *p++ = bit1(cc & 0x10, 'I');
-    *p++ = bit1(cc & 0x08, 'N');
-    *p++ = bit1(cc & 0x04, 'Z');
-    *p++ = bit1(cc & 0x02, 'V');
-    *p++ = bit1(cc & 0x01, 'C');
-    cli.println(buffer);
+    if (is6309()) {
+        buffer[51] = ' ';
+        outHex8(buffer + 54, e);
+        outHex8(buffer + 56, f);
+        outHex16(buffer + 61, v);
+    } else {
+        buffer[51] = 0;
+    }
+    cli.print(buffer);
+    cc_bits[4] = bit1(cc & 0x80, 'E');
+    cc_bits[5] = bit1(cc & 0x40, 'F');
+    cc_bits[6] = bit1(cc & 0x20, 'H');
+    cc_bits[7] = bit1(cc & 0x10, 'I');
+    cc_bits[8] = bit1(cc & 0x08, 'N');
+    cc_bits[9] = bit1(cc & 0x04, 'Z');
+    cc_bits[10] = bit1(cc & 0x02, 'V');
+    cc_bits[11] = bit1(cc & 0x01, 'C');
+    cli.println(cc_bits);
     Pins.idle();
 }
 
@@ -84,31 +116,35 @@ static constexpr uint8_t lo(const uint16_t v) {
 
 void Regs::save(bool show) {
     static const uint8_t SWI[3] = {0x3F, 0xFF, 0xFF};  // SWI
-    static uint8_t bytes[16];
+    static uint8_t buffer[16];
 
     if (show)
         Signals::resetCycles();
-    Pins.captureWrites(SWI, sizeof(SWI), &s, bytes, 12);
+    Pins.captureWrites(SWI, sizeof(SWI), &s, buffer, 12);
     // Capturing writes to stack in little endian order.
-    pc = le16(bytes) - 1;  //  offset SWI instruction.
+    pc = le16(buffer) - 1;  //  offset SWI instruction.
     // Injecting PC as SWI vector (with irrelevant read ahead).
-    bytes[13] = hi(pc);
-    bytes[14] = lo(pc);
-    Pins.execInst(bytes + 12, 4);
+    buffer[13] = hi(pc);
+    buffer[14] = lo(pc);
+    Pins.execInst(buffer + 12, 4);
+    if (_cpuType == nullptr)
+        setCpuType();
+    if (is6309())
+        save6309();
     if (show)
         Signals::printCycles();
 
     s++;
-    y = le16(bytes + 4);
-    x = le16(bytes + 6);
-    dp = bytes[8];
-    b = bytes[9];
-    a = bytes[10];
-    cc = bytes[11];
+    y = le16(buffer + 4);
+    x = le16(buffer + 6);
+    dp = buffer[8];
+    b = buffer[9];
+    a = buffer[10];
+    cc = buffer[11];
 }
 
 void Regs::restore(bool show) {
-    static uint8_t LDS[4] = {0x10, 0xCE};   // LDS #sp
+    static uint8_t LDS[4] = {0x10, 0xCE,0, 0}; // LDS #sp
     static uint8_t RTI[15] = {0x3B, 0xFF};  // RTI
     const uint16_t sp = s - 12;
     LDS[2] = hi(sp);
@@ -128,10 +164,39 @@ void Regs::restore(bool show) {
 
     if (show)
         Signals::resetCycles();
+    if (is6309())
+        restore6309();
     Pins.execInst(LDS, sizeof(LDS));
     Pins.execInst(RTI, sizeof(RTI));
     if (show)
         Signals::printCycles();
+}
+
+void Regs::save6309() {
+    static const uint8_t STW[] = { 0x10, 0x97, 0x00, 0xFF }; // STW $00
+    static const uint8_t STV[] = {
+        0x1F, 0x70, 0xFF, 0xFF, 0xFF, 0xFF, // TFR V,D
+        0xDD, 0x00, 0xFF,                   // STD $00
+    };
+    static uint8_t buffer[4];
+    Pins.captureWrites(STW, sizeof(STW), nullptr, buffer, 2);
+    Pins.captureWrites(STV, sizeof(STV), nullptr, buffer + 2, 2);
+    e = buffer[0];
+    f = buffer[1];
+    v = be16(buffer + 2);
+}
+
+void Regs::restore6309() {
+    static uint8_t LDW_LDV[] = {
+        0x10, 0x07, 0, 0,                   // LDW #w
+        0xCC, 0, 0,                         // LDD #v
+        0x1F, 0x07, 0xFF, 0xFF, 0xFF, 0xFF, // TFR D,V
+    };
+    LDW_LDV[2] = e;
+    LDW_LDV[3] = f;
+    LDW_LDV[5] = hi(v);
+    LDW_LDV[6] = lo(v);
+    Pins.execInst(LDW_LDV, sizeof(LDW_LDV));
 }
 
 void Regs::capture(const Signals *stack) {
@@ -144,14 +209,21 @@ void Regs::capture(const Signals *stack) {
     b = stack[9].data;
     a = stack[10].data;
     cc = stack[11].data;
+    if (is6309())
+        save6309();
 }
 
 void Regs::printRegList() const {
-    cli.println(F("?Reg: pc s u y x a b d cc DP"));
+    if (is6309()) {
+        cli.println(F("?Reg: pc s u y x a b d e f w v cc DP"));
+    } else {
+        cli.println(F("?Reg: pc s u y x a b d cc DP"));
+    }
 }
 
 bool Regs::validUint8Reg(char reg) const {
-    if (reg == 'a' || reg == 'b' || reg == 'c' || reg == 'D') {
+    if (reg == 'a' || reg == 'b' || reg == 'c' || reg == 'D'
+        || (is6309() && (reg == 'e' || reg == 'f'))) {
         cli.print(reg);
         if (reg == 'c')
             cli.print('c');
@@ -163,7 +235,8 @@ bool Regs::validUint8Reg(char reg) const {
 }
 
 bool Regs::validUint16Reg(char reg) const {
-    if (reg == 'p' || reg == 's' || reg == 'u' || reg == 'y' || reg == 'x' || reg == 'd') {
+    if (reg == 'p' || reg == 's' || reg == 'u' || reg == 'y' || reg == 'x' || reg == 'd'
+        || (is6309() && (reg == 'w' || reg == 'v'))) {
         cli.print(reg);
         if (reg == 'p')
             cli.print('c');
@@ -210,6 +283,18 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
         break;
     case 'c':
         cc = value;
+        break;
+    case 'e':
+        e = value;
+        break;
+    case 'f':
+        f = value;
+        break;
+    case 'w':
+        setW(value);
+        break;
+    case 'v':
+        v = value;
         break;
     }
     print();
