@@ -490,8 +490,7 @@ void Commands::exec(char c) {
         return;
     case '?':
         cli.print(F("* Bionic "));
-        cli.print(Regs.xtal_open() ? F("HD6309") : F("MC6809"));
-        //cli.print(Regs.cpu());
+        cli.print(Regs.cpu());
         cli.println(VERSION_TEXT);
         cli.println(USAGE);
         break;

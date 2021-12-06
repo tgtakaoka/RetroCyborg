@@ -22,19 +22,36 @@ struct Regs {
         a = d >> 8;
     }
     uint8_t cc;
+    uint8_t e;
+    uint8_t f;
+    uint16_t getW() const { return (static_cast<uint16_t>(e) << 8) | f; }
+    void setW(uint16_t w) {
+        f = w;
+        e = w >> 8;
+    }
+    uint16_t v;
 
     void print() const;
     void save(bool show = false);
     void restore(bool show = false);
     void capture(const Signals *stack);
+
+    void checkCpu() { _cpuType = nullptr; }
+    bool is6309() const;
     const char *cpu() const;
-    bool xtal_open() const;
 
     void printRegList() const;
     bool validUint8Reg(char reg) const;
     bool validUint16Reg(char reg) const;
     typedef libcli::Cli::State State;
     bool setRegValue(char reg, uint32_t value, State state);
+
+private:
+    const char *_cpuType;
+
+    void setCpuType();
+    void save6309();
+    void restore6309();
 };
 
 extern Regs Regs;

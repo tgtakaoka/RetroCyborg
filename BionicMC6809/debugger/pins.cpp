@@ -385,17 +385,13 @@ void Pins::reset(bool show) {
     cycle().debug('-');
     if (show)
         Signals::printCycles();
+    Regs.checkCpu();
     Regs.save(show);
 }
 
 void Pins::idle() {
-    // Inject "BRA *"
-    Signals::inject(0x20);
-    cycle();
-    Signals::inject(0xFE);
-    cycle();
-    Signals::inject(0);
-    cycle();
+    static const uint8_t BRA[] = { 0x20, 0xFE, 0xFF }; // BRA *
+    execInst(BRA, sizeof(BRA));
 }
 
 void Pins::loop() {
@@ -426,7 +422,6 @@ void Pins::suspend(bool show) {
     negate_nmi();
     // Capture registers pushed onto stack.
     const Signals *end = &Signals::currCycle() - writes;
-    Regs.capture(end);
     // Non-VMA cycle
     cycle().debug('-');
     // Inject the current PC as NMI vector.
@@ -437,6 +432,7 @@ void Pins::suspend(bool show) {
     Signals::flushWrites(end);
     // Non-VMA cycle
     cycle().debug('-');
+    Regs.capture(end);
     if (debug_cycles) {
         Signals::printCycles();
     } else if (show) {

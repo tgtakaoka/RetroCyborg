@@ -34,7 +34,7 @@ private:
     bool _capture;
     char _debug;
 
-    static constexpr uint8_t MAX_CYCLES = 40;
+    static constexpr uint8_t MAX_CYCLES = 60;
     static uint8_t _cycles;
     static Signals _signals[MAX_CYCLES + 1];
 };
