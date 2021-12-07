@@ -37,7 +37,12 @@ void Regs::setCpuType() {
 }
 
 const char *Regs::cpu() const {
-    return _cpuType;
+    return _cpuType ? _cpuType : MC6809;
+}
+
+void Regs::reset() {
+    _cpuType = nullptr;
+    _native6309 = false;
 }
 
 bool Regs::is6309() const {
@@ -62,7 +67,8 @@ void Regs::print() const {
         0,                               // MC6809/HD6309=51
         'W', '=', 0, 0, 0, 0, ' ',       // W=54
         'V', '=', 0, 0, 0, 0,            // V=61
-        0,                               // EOS
+        0,                               // Native mode=65
+        'N', 0,
     };
     static char cc_bits[] = {
         ' ', 'C', 'C', '=',
@@ -82,6 +88,7 @@ void Regs::print() const {
         outHex8(buffer + 54, e);
         outHex8(buffer + 56, f);
         outHex16(buffer + 61, v);
+        buffer[65] = native6309() ? ' ' : 0;
     } else {
         buffer[51] = 0;
     }
@@ -116,17 +123,18 @@ static constexpr uint8_t lo(const uint16_t v) {
 
 void Regs::save(bool show) {
     static const uint8_t SWI[3] = {0x3F, 0xFF, 0xFF};  // SWI
-    static uint8_t buffer[16];
+    static uint8_t buffer[18];
 
     if (show)
         Signals::resetCycles();
-    Pins.captureWrites(SWI, sizeof(SWI), &s, buffer, 12);
+    const uint8_t regs = native6309() ? 14 : 12;
+    Pins.captureWrites(SWI, sizeof(SWI), &s, buffer, regs);
     // Capturing writes to stack in little endian order.
     pc = le16(buffer) - 1;  //  offset SWI instruction.
     // Injecting PC as SWI vector (with irrelevant read ahead).
-    buffer[13] = hi(pc);
-    buffer[14] = lo(pc);
-    Pins.execInst(buffer + 12, 4);
+    buffer[15] = hi(pc);
+    buffer[16] = lo(pc);
+    Pins.execInst(buffer + 14, 4);
     if (_cpuType == nullptr)
         setCpuType();
     if (is6309())
@@ -135,58 +143,92 @@ void Regs::save(bool show) {
         Signals::printCycles();
 
     s++;
+    u = le16(buffer + 2);
     y = le16(buffer + 4);
     x = le16(buffer + 6);
     dp = buffer[8];
-    b = buffer[9];
-    a = buffer[10];
-    cc = buffer[11];
+    const uint8_t *p = &buffer[9];
+    if (native6309()) {
+        f = *p++;
+        e = *p++;
+    }
+    b = *p++;
+    a = *p++;
+    cc = *p;
 }
 
 void Regs::restore(bool show) {
     static uint8_t LDS[4] = {0x10, 0xCE,0, 0}; // LDS #sp
-    static uint8_t RTI[15] = {0x3B, 0xFF};  // RTI
-    const uint16_t sp = s - 12;
+    const uint16_t sp = s - (native6309() ? 14 : 12);
     LDS[2] = hi(sp);
     LDS[3] = lo(sp);
-    RTI[2] = cc;
-    RTI[3] = a;
-    RTI[4] = b;
-    RTI[5] = dp;
-    RTI[6] = hi(x);
-    RTI[7] = lo(x);
-    RTI[8] = hi(y);
-    RTI[9] = lo(y);
-    RTI[10] = hi(u);
-    RTI[11] = lo(u);
-    RTI[12] = hi(pc);
-    RTI[13] = lo(pc);
+
+    static uint8_t RTI[17] = {0x3B, 0xFF};  // RTI
+    uint8_t *p = &RTI[2];
+    *p++ = cc;
+    *p++ = a;
+    *p++ = b;
+    if (native6309()) {
+        *p++ = e;
+        *p++ = f;
+    }
+    *p++ = dp;
+    *p++ = hi(x);
+    *p++ = lo(x);
+    *p++ = hi(y);
+    *p++ = lo(y);
+    *p++ = hi(u);
+    *p++ = lo(u);
+    *p++ = hi(pc);
+    *p = lo(pc);
 
     if (show)
         Signals::resetCycles();
     if (is6309())
         restore6309();
     Pins.execInst(LDS, sizeof(LDS));
-    Pins.execInst(RTI, sizeof(RTI));
+    Pins.execInst(RTI, native6309() ? 17 : 15);
     if (show)
         Signals::printCycles();
 }
 
 void Regs::save6309() {
-    static const uint8_t STW[] = { 0x10, 0x97, 0x00, 0xFF }; // STW $00
+    static uint8_t buffer[2];
+
+    if (native6309()) {
+        static const uint8_t STV[] = {
+            0x1F, 0x70, 0xFF, 0xFF, // TFR V,D
+            0xDD, 0x00,             // STD $00
+        };
+        Pins.captureWrites(STV, sizeof(STV), nullptr, buffer, 2);
+        v = be16(buffer);
+        return;
+    }
+
     static const uint8_t STV[] = {
         0x1F, 0x70, 0xFF, 0xFF, 0xFF, 0xFF, // TFR V,D
         0xDD, 0x00, 0xFF,                   // STD $00
     };
-    static uint8_t buffer[4];
+    Pins.captureWrites(STV, sizeof(STV), nullptr, buffer, 2);
+    v = be16(buffer);
+    static const uint8_t STW[] = { 0x10, 0x97, 0x00, 0xFF }; // STW $00
     Pins.captureWrites(STW, sizeof(STW), nullptr, buffer, 2);
-    Pins.captureWrites(STV, sizeof(STV), nullptr, buffer + 2, 2);
     e = buffer[0];
     f = buffer[1];
-    v = be16(buffer + 2);
 }
 
 void Regs::restore6309() {
+    if (native6309()) {
+        static uint8_t LDV[] = {
+            0xCC, 0, 0,             // LDD #v
+            0x1F, 0x07, 0xFF, 0xFF, // TFR D,V
+        };
+        LDV[1] = hi(v);
+        LDV[2] = lo(v);
+        Pins.execInst(LDV, sizeof(LDV));
+        return;
+    }
+
     static uint8_t LDW_LDV[] = {
         0x10, 0x86, 0, 0,                   // LDW #w
         0xCC, 0, 0,                         // LDD #v
@@ -199,16 +241,22 @@ void Regs::restore6309() {
     Pins.execInst(LDW_LDV, sizeof(LDW_LDV));
 }
 
-void Regs::capture(const Signals *stack) {
+void Regs::capture(const Signals *stack, bool native6309) {
+    _native6309 = native6309;
     s = stack[0].addr + 1;
     pc = uint16(stack[1].data, stack[0].data);
     u = uint16(stack[3].data, stack[2].data);
     y = uint16(stack[5].data, stack[4].data);
     x = uint16(stack[7].data, stack[6].data);
     dp = stack[8].data;
-    b = stack[9].data;
-    a = stack[10].data;
-    cc = stack[11].data;
+    stack += 9;
+    if (native6309) {
+        f = (stack++)->data;
+        e = (stack++)->data;
+    }
+    b = (stack++)->data;
+    a = (stack++)->data;
+    cc = stack->data;
     if (is6309())
         save6309();
 }

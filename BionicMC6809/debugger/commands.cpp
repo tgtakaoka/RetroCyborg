@@ -104,13 +104,6 @@ cancel:
     printPrompt();
 }
 
-static void print(const char *text, int width) {
-    cli.print(text);
-    for (int i = strlen(text); i < width; i++) {
-        cli.print(' ');
-    }
-}
-
 static void print(const Insn &insn) {
     cli.printHex(insn.address(), 4);
     cli.print(':');
@@ -142,9 +135,8 @@ static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
             cli.println(disassembler.errorText(disassembler.getError()));
             continue;
         }
-        print(insn.name(), 6);
-        print(operands, 12);
-        cli.println();
+        cli.printStr(insn.name(), -6);
+        cli.printlnStr(operands, -12);
     }
     return addr;
 }
@@ -416,9 +408,7 @@ void Commands::exec(char c) {
     case 'R':
         cli.println(F("RESET"));
         Pins.reset(true);
-        Regs.print();
-        disassemble(Regs.pc, 1);
-        break;
+        goto regs;
     case 'd':
         cli.print(F("dump? "));
         cli.readHex(handleDump, DUMP_ADDR, UINT16_MAX);
@@ -436,7 +426,8 @@ void Commands::exec(char c) {
         cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX);
         return;
     case 'r':
-        cli.print(F("regs: "));
+        cli.println(F("regs: "));
+    regs:
         Regs.print();
         disassemble(Regs.pc, 1);
         break;
@@ -452,9 +443,7 @@ void Commands::exec(char c) {
         }
         cli.println(F("STEP"));
         Pins.step(c == 'S');
-        Regs.print();
-        disassemble(Regs.pc, 1);
-        break;
+        goto regs;
     case 'H':
     case 'h':
         if (_target != HALT) {
