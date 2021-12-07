@@ -34,10 +34,11 @@ struct Regs {
     void print() const;
     void save(bool show = false);
     void restore(bool show = false);
-    void capture(const Signals *stack);
+    void capture(const Signals *stack, bool native6309);
 
-    void checkCpu() { _cpuType = nullptr; }
+    void reset();
     bool is6309() const;
+    bool native6309() const { return _native6309; }
     const char *cpu() const;
 
     void printRegList() const;
@@ -48,6 +49,7 @@ struct Regs {
 
 private:
     const char *_cpuType;
+    bool _native6309;
 
     void setCpuType();
     void save6309();

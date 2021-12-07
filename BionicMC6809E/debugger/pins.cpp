@@ -321,6 +321,7 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 void Pins::reset(bool show) {
     assert_reset();
+    // At least one #RESET cycle.
     for (auto i = 0; i < 3; i++)
         raw_cycle().debug('R');
     Signals::resetCycles();
@@ -335,7 +336,7 @@ void Pins::reset(bool show) {
     raw_cycle().debug('v');
     // non-VMA
     raw_cycle().debug('-');
-    Regs.checkCpu();
+    Regs.reset();
     Regs.save();
     if (show)
         Signals::printCycles();
@@ -360,22 +361,33 @@ void Pins::loop() {
 void Pins::suspend(bool show) {
     uint8_t writes = 0;
     assert_nmi();
-    // Wait for consequtive 12 writes which means registers saved onto stack.
-    while (writes < 12) {
+    // Wait for consequtive 12 (or 14 writes in native 6309 mode)
+    // which means registers saved onto stack.
+    bool native6309 = true;
+    while (writes < 14) {
         Signals::capture();
         Signals &signals = raw_cycle();
         if (signals.rw == LOW) {
             writes++;
-            signals.debug('0' + writes);
+            signals.debug(writes + (writes < 10 ? '0' : 'a' - 10));
+        } else if (writes == 12) {
+            native6309 = false;
+            break;
         } else {
             writes = 0;
         }
     }
     negate_nmi();
     // Capture registers pushed onto stack.
-    const Signals *end = &Signals::currCycle() - writes;
-    // Non-VMA cycle
-    raw_cycle().debug('-');
+    Signals *end = &Signals::currCycle() - writes;
+    if (native6309) {
+        // Non-VMA cycle
+        raw_cycle().debug('-');
+    } else {
+        // The last cycle was Non-VMA cycle.
+        end->debug('-');
+        end--;
+    }
     // Inject the current PC as NMI vector.
     Signals::inject(Regs.pc >> 8);
     raw_cycle().debug('v');
@@ -384,7 +396,7 @@ void Pins::suspend(bool show) {
     // Non-VMA cycle
     raw_cycle().debug('-');
     Signals::flushWrites(end);
-    Regs.capture(end);
+    Regs.capture(end, native6309);
     if (debug_cycles) {
         Signals::printCycles();
     } else if (show) {
