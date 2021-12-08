@@ -8,29 +8,43 @@ extern libcli::Cli &cli;
 struct Regs Regs;
 struct Memory Memory;
 
-static const char *cpu_type = nullptr;
-static const char MC6809[] = "6809";
-static const char HD6309[] = "6309";
-static const uint8_t clrb[] = {0x5F};
-static const uint8_t comd[] = {0x10, 0x43};
-static const uint8_t stb[] = {0xD7, 0x00};
+/**
+ * How to determine MC6809 variants.
+ *
+ *   CLRB
+ *   FCB  $10, $43
+ *        ; NOP  ($10) on MC6809
+ *        ; COMA ($43) on MC6809
+ *        ; COMD ($10,$43) on HD6309
+ *   B=$00: MC6809
+ *   B=$FF: HD6309
+ */
 
-static const char *checkCpu() {
-    Pins.execInst(clrb, sizeof(clrb));
-    // 6309:COMD, 6809:NOP+COMA
-    Pins.execInst(comd, sizeof(comd));
-    // 6309:B=0xFF, 6809:B=0
+static const char MC6809[] = "MC6809";
+static const char HD6309[] = "HD6309";
+
+void Regs::setCpuType() {
+    static const uint8_t CLRB[] = {0x5F};
+    static const uint8_t COMD[] = {0x10, 0x43};
+    static const uint8_t STB[] = {0xD7, 0x00};
+
+    Pins.execInst(CLRB, sizeof(CLRB));
+    Pins.execInst(COMD, sizeof(COMD));
     uint8_t b;
-    Pins.captureWrites(stb, sizeof(stb), &b, 1);
-    return b ? HD6309 : MC6809;
-}
-
-bool Regs::is6309() const {
-    return cpu_type == HD6309;
+    Pins.captureWrites(STB, sizeof(STB), &b, 1);
+    _cpuType = b ? HD6309 : MC6809;
 }
 
 const char *Regs::cpu() const {
-    return cpu_type ? cpu_type : MC6809;
+    return _cpuType;
+}
+
+void Regs::reset() {
+    _cpuType = nullptr;
+}
+
+bool Regs::is6309() const {
+    return _cpuType == HD6309;
 }
 
 static char bit1(uint8_t v, char name) {
@@ -96,61 +110,97 @@ void Regs::get(bool show) {
         print();
 }
 
+static constexpr uint16_t uint16(const uint8_t hi, const uint8_t lo) {
+    return (static_cast<uint16_t>(hi) << 8) | lo;
+}
 static constexpr uint16_t le16(const uint8_t *p) {
-    return *p | (static_cast<uint16_t>(p[1]) << 8);
+    return uint16(p[1], p[0]);
 }
-static const uint8_t pshs_all[] = {0x34, 0xFF};  // PSHS PC,U,Y,X,DP,B,A,CC
-static const uint8_t pshu_s[] = {0x36, 0x40};    // PSHU S
-static const uint8_t tfr_wy[] = {0x1F, 0x62};    // TFR W,Y
-static const uint8_t tfr_vx[] = {0x1F, 0x71};    // TFR V,X
-static const uint8_t pshu_yx[] = {0x36, 0x30};   // PSHU Y,X
-void Regs::save() {
-    uint8_t bytes[12];
-    Pins.captureWrites(pshs_all, sizeof(pshs_all), bytes, 12);
-    // capture writes to stack in reverse order.
-    pc = le16(bytes + 0) - 2;  // offset PSHS instruction.
-    u = le16(bytes + 2);
-    y = le16(bytes + 4);
-    x = le16(bytes + 6);
-    dp = bytes[8];
-    b = bytes[9];
-    a = bytes[10];
-    cc = bytes[11];
-    Pins.captureWrites(pshu_s, sizeof(pshu_s), bytes, 2);
-    s = le16(bytes + 0) + 12;  // offset PSHS stack frame.
-    if (cpu_type == nullptr)
-        cpu_type = checkCpu();
-    if (is6309()) {
-        Pins.execInst(tfr_wy, sizeof(tfr_wy));
-        Pins.execInst(tfr_vx, sizeof(tfr_vx));
-        Pins.captureWrites(pshu_yx, sizeof(pshu_yx), bytes, 4);
-        setW(le16(bytes + 0));
-        v = le16(bytes + 2);
-    }
+static constexpr uint16_t be16(const uint8_t *p) {
+    return uint16(p[0], p[1]);
 }
-
 static constexpr uint8_t hi(const uint16_t v) {
     return static_cast<uint8_t>(v >> 8);
 }
 static constexpr uint8_t lo(const uint16_t v) {
     return static_cast<uint8_t>(v);
 }
-static const uint8_t tfr_dv[] = {0x1F, 0x07};  // TFR D,V
+
+void Regs::save() {
+    static const uint8_t PSHS_ALL[] = {0x34, 0xFF};  // PSHS PC,U,Y,X,DP,B,A,CC
+    static const uint8_t PSHU_S[] = {0x36, 0x40};    // PSHU S
+    static uint8_t buffer[14];
+
+    Pins.captureWrites(PSHS_ALL, sizeof(PSHS_ALL), buffer, 12);
+    if (_cpuType == nullptr)
+        setCpuType();
+    Pins.captureWrites(PSHU_S, sizeof(PSHU_S), buffer + 12, 2);
+    if (is6309())
+        save6309();
+    // capture writes to stack in reverse order.
+    pc = le16(buffer + 0) - 2;  // offset PSHS instruction.
+    u = le16(buffer + 2);
+    y = le16(buffer + 4);
+    x = le16(buffer + 6);
+    dp = buffer[8];
+    b = buffer[9];
+    a = buffer[10];
+    cc = buffer[11];
+    s = le16(buffer + 12) + 12;  // offset PSHS stack frame.
+}
+
 void Regs::restore() {
-    if (is6309()) {
-        const uint8_t ldd[] = {0xCC, hi(v), lo(v)};  // LDD #v
-        Pins.execInst(ldd, sizeof(ldd));
-        Pins.execInst(tfr_dv, sizeof(tfr_dv));
-        const uint16_t w = getW();
-        const uint8_t ldw[] = {0x10, 0x86, hi(w), lo(w)};  // LDW #w
-        Pins.execInst(ldw, sizeof(ldw));
-    }
+    static uint8_t LDS[] = {0x10, 0xCE, 0, 0};      // LDS #s-12
+    static uint8_t PULS_ALL[2 + 12] = {0x35, 0xFF}; // PULS CC,A,B,DP,X,Y,U,PC
+
     const uint16_t sp = s - 12;
-    const uint8_t lds[] = {0x10, 0xCE, hi(sp), lo(sp)};  // LDS #(s-12)
-    Pins.execInst(lds, sizeof(lds));
-    const uint8_t puls_all[] = {0x35, 0xFF, cc, a, b, dp, hi(x), lo(x), hi(y),
-            lo(y), hi(u), lo(u), hi(pc), lo(pc)};
-    Pins.execInst(puls_all, sizeof(puls_all));
+    LDS[2] = hi(sp);
+    LDS[3] = lo(sp);
+    PULS_ALL[2] = cc;
+    PULS_ALL[3] = a;
+    PULS_ALL[4] = b;
+    PULS_ALL[5] = dp;
+    PULS_ALL[6] = hi(x);
+    PULS_ALL[7] = lo(x);
+    PULS_ALL[8] = hi(y);
+    PULS_ALL[9] = lo(y);
+    PULS_ALL[10] = hi(u);
+    PULS_ALL[11] = lo(u);
+    PULS_ALL[12] = hi(pc);
+    PULS_ALL[13] = lo(pc);
+
+    if (is6309())
+        restore6309();
+    Pins.execInst(LDS, sizeof(LDS));
+    Pins.execInst(PULS_ALL, sizeof(PULS_ALL));
+}
+
+void Regs::save6309() {
+    static const uint8_t TFR_WY[] = {0x1F, 0x62};    // TFR W,Y
+    static const uint8_t TFR_VX[] = {0x1F, 0x71};    // TFR V,X
+    static const uint8_t PSHU_YX[] = {0x36, 0x30};   // PSHU Y,X
+    static uint8_t buffer[4];
+
+    Pins.execInst(TFR_WY, sizeof(TFR_WY));
+    Pins.execInst(TFR_VX, sizeof(TFR_VX));
+    Pins.captureWrites(PSHU_YX, sizeof(PSHU_YX), buffer, 4);
+    f = buffer[0];
+    e = buffer[1];
+    v = le16(buffer + 2);
+}
+
+void Regs::restore6309() {
+    static uint8_t LDD[] = {0xCC, 0, 0};          // LDD #v
+    static const uint8_t TFR_DV[] = {0x1F, 0x07}; // TFR D,V
+    static uint8_t LDW[] = {0x10, 0x86, 0, 0};    // LDW #w
+
+    LDD[1] = hi(v);
+    LDD[2] = lo(v);
+    LDW[2] = e;
+    LDW[3] = f;
+    Pins.execInst(LDD, sizeof(LDD));
+    Pins.execInst(TFR_DV, sizeof(TFR_DV));
+    Pins.execInst(LDW, sizeof(LDW));
 }
 
 void Regs::printRegList() const {

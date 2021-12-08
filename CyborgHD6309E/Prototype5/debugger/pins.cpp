@@ -6,6 +6,7 @@
 #include "commands.h"
 #include "digital_fast.h"
 #include "mc6850.h"
+#include "regs.h"
 #include "string_util.h"
 
 #ifdef SPI_MAPPING
@@ -346,6 +347,7 @@ void Pins::reset(bool show) {
     turnoff_led();
     _freeRunning = false;
     _stopRunning = false;
+    Regs.reset();
     if (show)
         Signals::printCycles();
 }
