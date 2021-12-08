@@ -391,8 +391,7 @@ void Pins::loop() {
         CCL.INTCTRL0 = CCL_INTMODE2_INTDISABLE_gc;
         _stopRunning = false;
         _freeRunning = false;
-        halt(false);
-        Commands.begin();
+        Commands.halt(true);
     }
 }
 

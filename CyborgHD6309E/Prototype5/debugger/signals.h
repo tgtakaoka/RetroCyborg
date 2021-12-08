@@ -61,7 +61,7 @@ private:
     uint8_t _dbus;
     char _debug;
 
-    static constexpr auto MAX_CYCLES = 40;
+    static constexpr auto MAX_CYCLES = 60;
     static uint8_t _cycles;
     static Signals _signals[MAX_CYCLES + 1];
 };

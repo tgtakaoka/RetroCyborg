@@ -38,22 +38,45 @@ static char bit1(uint8_t v, char name) {
 }
 
 void Regs::print() const {
-    // text=35, hex=17*2, cc=8, eos=1
-    char buffer[35 + 17 * 2 + 8 + 1];
-    char *p = buffer;
-    p = outHex16(outText(p, F("PC=")), pc);
-    p = outHex16(outText(p, F(" S=")), s);
-    p = outHex16(outText(p, F(" U=")), u);
-    p = outHex16(outText(p, F(" Y=")), y);
-    p = outHex16(outText(p, F(" X=")), x);
-    p = outHex8(outText(p, F(" B=")), b);
-    p = outHex8(outText(p, F(" A=")), a);
+    // clang-format off
+    static char buffer[] = {
+        'D', 'P', '=', 0, 0, ' ',  // dp=3
+        'P', 'C', '=', 0, 0, 0, 0, // pc=9
+        ' ', 'S', '=', 0, 0, 0, 0, // s=16
+        ' ', 'U', '=', 0, 0, 0, 0, // u=23
+        ' ', 'Y', '=', 0, 0, 0, 0, // y=30
+        ' ', 'X', '=', 0, 0, 0, 0, // x=37
+        ' ', 'A', '=', 0, 0,       // A=44
+        ' ', 'B', '=', 0, 0,       // B=49
+        ' ',                       // 6309=51
+        'W', '=', 0, 0, 0, 0,      // w=54
+        ' ', 'V', '=', 0, 0, 0, 0, // v=61
+        0,                         // EOS
+    };
+    // clang-format on
+    outHex8(buffer + 3, dp);
+    outHex16(buffer + 9, pc);
+    outHex16(buffer + 16, s);
+    outHex16(buffer + 23, u);
+    outHex16(buffer + 30, y);
+    outHex16(buffer + 37, x);
+    outHex8(buffer + 44, a);
+    outHex8(buffer + 49, b);
     if (is6309()) {
-        p = outHex16(outText(p, F(" W=")), getW());
-        p = outHex16(outText(p, F(" V=")), v);
+        buffer[51] = ' ';
+        outHex16(buffer + 54, getW());
+        outHex16(buffer + 61, v);
+    } else {
+        buffer[51] = 0;
     }
-    p = outHex8(outText(p, F(" DP=")), dp);
-    p = outText(p, F(" CC="));
+    // clang-format off
+    static char cc_bits[] = {
+        ' ', 'C', 'C', '=',
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0,
+    };
+    // clang-format on
+    char *p = cc_bits + 4;
     *p++ = bit1(cc & 0x80, 'E');
     *p++ = bit1(cc & 0x40, 'F');
     *p++ = bit1(cc & 0x20, 'H');
@@ -61,9 +84,9 @@ void Regs::print() const {
     *p++ = bit1(cc & 0x08, 'N');
     *p++ = bit1(cc & 0x04, 'Z');
     *p++ = bit1(cc & 0x02, 'V');
-    *p++ = bit1(cc & 0x01, 'C');
-    *p = 0;
-    cli.println(buffer);
+    *p = bit1(cc & 0x01, 'C');
+    cli.print(buffer);
+    cli.println(cc_bits);
 }
 
 void Regs::get(bool show) {

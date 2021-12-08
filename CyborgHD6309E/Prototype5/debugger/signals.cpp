@@ -58,47 +58,58 @@ void Signals::get() {
     _debug = 0;
 }
 
-static char *outPin(char *p, bool value, const __FlashStringHelper *name) {
-    if (value)
-        return outText(p, name);
+static void outPin(char *p, bool value, const __FlashStringHelper *name) {
+    if (value) {
+        outText(p, name);
+        return;
+    }
     for (PGM_P s = reinterpret_cast<PGM_P>(name); pgm_read_byte(s); s++)
         *p++ = ' ';
-    *p = 0;
-    return p;
 }
 
 void Signals::print(const Signals *prev) const {
-    char buffer[45];
-    char *p = buffer;
-    *p++ = _debug ? _debug : ' ';
-    p = outPin(p, (_pins & halt) == 0, F(" HALT"));
-    p = outPin(p, _pins & ba, F(" BA"));
-    p = outPin(p, _pins & bs, F(" BS"));
-    p = outPin(p, _pins & busy, F(" BUSY"));
-    p = outPin(p, _pins & lic, F(" LIC"));
-    p = outPin(p, _pins & avma, F(" AVMA"));
-    p = outText(p, (_pins & rw) ? F(" RD") : F(" WR"));
-    p = outText(p, F(" DB=0x"));
-    p = outHex8(p, _dbus);
+    static char buffer[] = {
+        'D', ' ',                // _debug=0
+        'B', 'A', ' ',           // ba=2
+        'B', 'S', ' ',           // bs=5
+        'B', 'U', 'S', 'Y', ' ', // busy=8
+        'L', 'I', 'C', ' ',      // lic=13
+        'A', 'V', 'M', 'A', ' ', // avma=17
+        'R', 'D', ' ',           // r/w=22
+        'D', '=', 0, 0,          // _dbus=27
+        ' ',                     // status?=29
+        'S', 0                   // status=30
+    };
+    buffer[0] = _debug ? _debug : ' ';
+    outPin(buffer + 2, _pins & ba, F("BA"));
+    outPin(buffer + 5, _pins & bs, F("BS"));
+    outPin(buffer + 8, _pins & busy, F("BUSY"));
+    outPin(buffer + 13, _pins & lic, F("LIC"));
+    outPin(buffer + 17, _pins & avma, F("AVMA"));
+    outText(buffer + 22, (_pins & rw) ? F("RD") : F("WR"));
+    outHex8(buffer + 27, _dbus);
     if (prev) {
-        *p++ = ' ';
+        char status;
         if (fetchingVector()) {
-            *p++ = 'V';
+            status = 'V';
         } else if (running()) {
             if (writeCycle(prev)) {
-                *p++ = 'W';
+                status = 'W';
             } else if (readCycle(prev)) {
-                *p++ = 'R';
+                status = 'R';
             } else {
-                *p++ = '-';
+                status = '-';
             }
         } else if (halting()) {
-            *p++ = 'H';
+            status = 'H';
         } else {
-            *p++ = 'S';
+            status = 'S';
         }
+        buffer[29] = ' ';
+        buffer[30] = status;
+    } else {
+        buffer[29] = 0;
     }
-    *p = 0;
     cli.println(buffer);
 }
 
