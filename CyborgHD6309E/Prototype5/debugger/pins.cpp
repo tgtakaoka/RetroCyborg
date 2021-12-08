@@ -146,94 +146,10 @@ void Pins::Dbus::capture(bool enabled) {
     _capture = enabled;
 }
 
-void Signals::get() {
-#if defined(SIGNALS_BUS)
-    _pins = busRead(SIGNALS);
-#else
-    uint8_t p = 0;
-    if (digitalRead(BA) == HIGH)
-        p |= ba;
-    if (digitalRead(BS) == HIGH)
-        p |= bs;
-    if (digitalRead(RESET) == HIGH)
-        p |= reset;
-    if (digitalRead(HALT) == HIGH)
-        p |= halt;
-    if (digitalRead(LIC) == HIGH)
-        p |= lic;
-    if (digitalRead(AVMA) == HIGH)
-        p |= avma;
-    if (digitalRead(RD_WR) == HIGH)
-        p |= rw;
-    if (digitalRead(BUSY) == HIGH)
-        p |= busy;
-    _pins = p;
-#endif
-    _dbus = busRead(DB);
-#ifdef DEBUG_SIGNALS
-    _debug = 0;
-    digitalToggle(USR_LED);
-#endif
-}
-
-static char *outPin(char *p, bool value, const __FlashStringHelper *name) {
-    if (value)
-        return outText(p, name);
-    for (PGM_P s = reinterpret_cast<PGM_P>(name); pgm_read_byte(s); s++)
-        *p++ = ' ';
-    *p = 0;
-    return p;
-}
-
-void Signals::print(const Signals *prev) const {
-    char buffer[45];
-    char *p = buffer;
-#ifdef DEBUG_SIGNALS
-    *p++ = _debug ? _debug : ' ';
-#endif
-    p = outPin(p, (_pins & halt) == 0, F(" HALT"));
-    p = outPin(p, _pins & ba, F(" BA"));
-    p = outPin(p, _pins & bs, F(" BS"));
-    p = outPin(p, _pins & busy, F(" BUSY"));
-    p = outPin(p, _pins & lic, F(" LIC"));
-    p = outPin(p, _pins & avma, F(" AVMA"));
-    p = outText(p, (_pins & rw) ? F(" RD") : F(" WR"));
-    p = outText(p, F(" DB=0x"));
-    p = outHex8(p, _dbus);
-    if (prev) {
-        *p++ = ' ';
-        if (fetchingVector()) {
-            *p++ = 'V';
-        } else if (running()) {
-            if (writeCycle(prev)) {
-                *p++ = 'W';
-            } else if (readCycle(prev)) {
-                *p++ = 'R';
-            } else {
-                *p++ = '-';
-            }
-        } else if (halting()) {
-            *p++ = 'H';
-        } else {
-            *p++ = 'S';
-        }
-    }
-    *p = 0;
-    cli.println(buffer);
-}
-
 void Pins::print() {
-    Signals &signals = _signals[0];
+    Signals &signals = Signals::currCycle();
     signals.get();
     signals.print();
-}
-
-void Pins::printCycles() const {
-    const Signals *prev = nullptr;
-    for (uint8_t i = 0; i < _cycles; i++) {
-        _signals[i].print(prev);
-        prev = &_signals[i];
-    }
 }
 
 /*
@@ -414,7 +330,7 @@ void Pins::reset(bool show) {
     startOscillator();
     delayMicroseconds(10);
 
-    resetCycles();
+    Signals::resetCycles();
     const Signals *prev = nullptr;
     stopOscillator();
     negate_reset();
@@ -433,7 +349,7 @@ void Pins::reset(bool show) {
     _freeRunning = false;
     _stopRunning = false;
     if (show)
-        printCycles();
+        Signals::printCycles();
 }
 
 /**
@@ -448,7 +364,7 @@ Signals &Pins::cycle(const Signals *prev) {
     } else {
         _dbus.input();
     }
-    Signals &signals = currCycle();
+    Signals &signals = Signals::currCycle();
     signals.get();
     fallingE();
     // Cleanup data bus.
@@ -456,7 +372,7 @@ Signals &Pins::cycle(const Signals *prev) {
     raisingQ();
     raisingE();
 
-    nextCycle();
+    Signals::nextCycle();
     return signals;
 }
 
@@ -488,7 +404,7 @@ void Pins::run() {
 }
 
 void Pins::halt(bool show) {
-    resetCycles();
+    Signals::resetCycles();
     const Signals *prev = nullptr;
     stopOscillator();
     assert_halt();
@@ -504,7 +420,7 @@ void Pins::halt(bool show) {
 
     turnoff_led();
     if (show)
-        printCycles();
+        Signals::printCycles();
 }
 
 void Pins::setData(uint8_t data) {
@@ -512,7 +428,7 @@ void Pins::setData(uint8_t data) {
 }
 
 const Signals *Pins::unhalt() {
-    resetCycles();
+    Signals::resetCycles();
     const Signals *prev = nullptr;
     stopOscillator();
     negate_halt();
@@ -584,7 +500,7 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
 end:
     restartEQ();
     if (show)
-        printCycles();
+        Signals::printCycles();
     return cap;
 }
 
@@ -600,7 +516,7 @@ void Pins::step(bool show) {
     }
     restartEQ();
     if (show)
-        printCycles();
+        Signals::printCycles();
 }
 
 void Pins::begin() {

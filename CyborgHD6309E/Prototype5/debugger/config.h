@@ -2,6 +2,8 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#include <Arduino.h>
+
 #define MPU_NAME "HD6309E"
 
 #define VERSION_TEXT F("* Cyborg" MPU_NAME " Prototype5 2.3.0")
