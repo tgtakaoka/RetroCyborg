@@ -1,5 +1,3 @@
-/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
-
 #include "regs.h"
 
 #include "pins.h"
@@ -8,6 +6,7 @@
 extern libcli::Cli &cli;
 
 struct Regs Regs;
+struct Memory Memory;
 
 static const char *cpu_type = nullptr;
 static const char MC6809[] = "6809";
@@ -217,3 +216,36 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
     print();
     return true;
 }
+
+uint8_t Memory::read(uint16_t addr) const {
+    static uint8_t LDA[] = {0xB6, 0, 0}; // LDA $addr
+    LDA[1] = hi(addr);
+    LDA[2] = lo(addr);
+    uint8_t data;
+    Pins.captureReads(LDA, sizeof(LDA), &data, 1);
+    return data;
+}
+
+void Memory::write(uint16_t addr, uint8_t data) {
+    static uint8_t LDA[] = {0x86, 0};    // LDA #data
+    static uint8_t STA[] = {0xB7, 0, 0}; // STA $addr
+    LDA[1] = data;
+    STA[1] = hi(addr);
+    STA[2] = lo(addr);
+    Pins.execInst(LDA, sizeof(LDA));
+    Pins.execInst(STA, sizeof(STA));
+}
+
+uint8_t Memory::nextByte() {
+    Regs.save();
+    const uint8_t data = read(address());
+    Regs.restore();
+    return data;
+}
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// End:
+// vim: set ft=cpp et ts=4 sw=4:

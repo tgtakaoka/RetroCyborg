@@ -1,9 +1,9 @@
-/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
 #ifndef __REGS_H__
 #define __REGS_H__
 
 #include <stdint.h>
 
+#include <dis_memory.h>
 #include <libcli.h>
 
 struct Regs {
@@ -46,4 +46,26 @@ struct Regs {
 
 extern Regs Regs;
 
+class Memory : public libasm::DisMemory {
+public:
+    Memory() : DisMemory(0) {}
+    bool hasNext() const override { return true; }
+    void setAddress(uint16_t addr) { resetAddress(addr); }
+
+    uint8_t read(uint16_t addr) const;
+    void write(uint16_t addr, uint8_t data);
+
+    protected:
+    uint8_t nextByte() override;
+};
+
+extern Memory Memory;
+
 #endif
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// End:
+// vim: set ft=cpp et ts=4 sw=4:

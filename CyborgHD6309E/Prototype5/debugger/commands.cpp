@@ -1,4 +1,3 @@
-/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
 /*
   The Controller can accept commands represented by one letter.
 
@@ -40,9 +39,9 @@ using namespace libasm;
 typedef libcli::Cli::State State;
 extern libcli::Cli &cli;
 
-#define USAGE                                                          \
-    F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm i:nst s/S:tep " \
-      "c:ont G:o h/H:alt p:ins F:iles L:oad I:o")
+#define USAGE                                                            \
+    F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep C:ont G:o " \
+      "h/H:alt F:iles L:oad i:nst p:ins")
 
 class Commands Commands;
 
@@ -69,20 +68,6 @@ static uint8_t mem_buffer[16];
 #define MEMORY_DATA(i) ((uintptr_t)(i))
 
 static char str_buffer[40];
-
-static void writeMemory(uint16_t addr, uint8_t data) {
-    const uint8_t lda[] = {0x86, data};
-    const uint8_t sta[] = {0xB7, (uint8_t)(addr >> 8), (uint8_t)addr};
-    Pins.execInst(lda, sizeof(lda));
-    Pins.execInst(sta, sizeof(sta));
-}
-
-static uint8_t readMemory(uint16_t addr) {
-    const uint8_t sta[] = {0xB6, (uint8_t)(addr >> 8), (uint8_t)addr};
-    uint8_t data;
-    Pins.captureReads(sta, sizeof(sta), &data, 1);
-    return data;
-}
 
 static void handleInstruction(uint32_t value, uintptr_t extra, State state) {
     const char c = extra >> 8;
@@ -112,7 +97,7 @@ static void handleInstruction(uint32_t value, uintptr_t extra, State state) {
 static void memoryDump(uint16_t addr, uint16_t len) {
     Regs.save();
     for (uint16_t i = 0; i < len; i++, addr++) {
-        const uint8_t data = readMemory(addr);
+        const uint8_t data = Memory.read(addr);
         if (i % 16 == 0) {
             if (i)
                 cli.println();
@@ -151,28 +136,6 @@ cancel:
     printPrompt();
 }
 
-class Mc6809Memory : public DisMemory {
-public:
-    Mc6809Memory() : DisMemory(0) {}
-    bool hasNext() const override { return true; }
-    void setAddress(uint16_t addr) { resetAddress(addr); }
-
-protected:
-    uint8_t nextByte() {
-        Regs.save();
-        const uint8_t data = readMemory(address());
-        Regs.restore();
-        return data;
-    }
-};
-
-static void print(const char *text, int width) {
-    cli.print(text);
-    for (int i = strlen(text); i < width; i++) {
-        cli.print(' ');
-    }
-}
-
 static void print(const Insn &insn) {
     cli.printHex(insn.address(), 4);
     cli.print(':');
@@ -190,13 +153,12 @@ static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
     Disassembler &disassembler(dis6809);
     disassembler.setCpu(Regs.cpu());
     disassembler.setUppercase(true);
-    class Mc6809Memory memory;
-    memory.setAddress(addr);
     uint16_t num = 0;
     while (num < numInsn) {
         char operands[20];
         Insn insn(addr);
-        disassembler.decode(memory, insn, operands, sizeof(operands));
+        Memory.setAddress(addr);
+        disassembler.decode(Memory, insn, operands, sizeof(operands));
         addr += insn.length();
         num++;
         print(insn);
@@ -205,9 +167,8 @@ static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
             cli.println(disassembler.errorText(disassembler.getError()));
             continue;
         }
-        print(insn.name(), 6);
-        print(operands, 12);
-        cli.println();
+        cli.printStr(insn.name(), -6);
+        cli.printlnStr(operands, -12);
     }
     return addr;
 }
@@ -240,7 +201,7 @@ static void memoryWrite(
         uint16_t addr, const uint8_t values[], const uint8_t len) {
     Regs.save();
     for (uint8_t i = 0; i < len; i++, addr++) {
-        writeMemory(addr, values[i]);
+        Memory.write(addr, values[i]);
     }
     Regs.restore();
 }
@@ -317,20 +278,29 @@ static void handleAssembler(uint32_t value, uintptr_t extra, State state) {
     }
 }
 
-static void handleFileListing() {
-    SD.begin(Pins.sdCardChipSelectPin());
-    File root = SD.open("/");
+static void listDirectory(File dir, const char *parent = nullptr) {
     while (true) {
-        File entry = root.openNextFile();
+        File entry = dir.openNextFile();
         if (!entry)
             break;
-        if (!entry.isDirectory()) {
-            cli.print(entry.name());
-            cli.print('\t');
-            cli.println(entry.size());
+        if (entry.isDirectory()) {
+            listDirectory(entry, entry.name());
+        } else {
+            if (parent) {
+                cli.print(parent);
+                cli.print('/');
+            }
+            cli.printStr(entry.name(), -20);
+            cli.printlnDec(entry.size(), 6);
         }
         entry.close();
     }
+}
+
+static void handleFileListing() {
+    SD.begin(Pins.sdCardChipSelectPin());
+    File root = SD.open("/");
+    listDirectory(root);
     root.close();
 }
 
@@ -436,59 +406,21 @@ static void printIoDevice(State state) {
     cli.println();
 }
 
-static void handleAciaAddr(uint32_t val, uintptr_t extra, State state) {
-    if (state == State::CLI_CANCEL)
-        goto cancel;
-    if (state == State::CLI_DELETE) {
-        cli.backspace();
-        strcpy_P(str_buffer, PSTR("ACIA"));
-        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer), true);
-        return;
-    }
-    Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, val);
-    printIoDevice(state);
-cancel:
-    printPrompt();
-}
-
-static void handleIo(char *line, uintptr_t extra, State state) {
-    if (state == State::CLI_CANCEL)
-        goto cancel;
-    if (state == State::CLI_DELETE) {
-        cli.backspace();
-        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
-        return;
-    }
-    if (state == State::CLI_SPACE &&
-            strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
-        cli.readHex(handleAciaAddr, 0, UINT16_MAX);
-        return;
-    }
-    if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
-        Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, Pins.ioBaseAddress());
-    }
-    printIoDevice(state);
-cancel:
-    printPrompt();
-}
-
 void Commands::exec(char c) {
     switch (c) {
     case 'p':
         cli.print(F("pins:"));
         Pins.print();
         break;
-    case 'R':
-        cli.println(F("RESET"));
-        _target = HALT;
-        Pins.reset(true);
-        Regs.get(true);
-        disassemble(Regs.pc, 1);
-        break;
     case 'i':
         cli.print(F("inst? "));
         cli.readHex(handleInstruction, INST_DATA(c, 0), UINT8_MAX);
         return;
+    case 'R':
+        cli.println(F("Reset"));
+        _target = HALT;
+        Pins.reset(true);
+        goto regs;
     case 'd':
         cli.print(F("dump? "));
         cli.readHex(handleDump, DUMP_ADDR, UINT16_MAX);
@@ -505,49 +437,45 @@ void Commands::exec(char c) {
         cli.print(F("mem? "));
         cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX);
         return;
-    case 's':
-    case 'S':
-        if (_target == HALT) {
-            if (c == 's')
-                cli.print(F("step: "));
-            else
-                cli.println(F("Step"));
-            Pins.step(c == 'S');
-        } else {
-            _target = HALT;
-            Pins.halt(c == 'S');
-        }
+    case 'r':
+        cli.println(F("regs: "));
+    regs:
         Regs.get(true);
         disassemble(Regs.pc, 1);
-        break;
-    case 'r':
-        cli.print(F("regs: "));
-        Regs.get(true);
         break;
     case '=':
         cli.print(F("set reg? "));
         cli.readLetter(handleSetRegister, 0);
         return;
-    case 'c':
+    case 'S':
+    case 's':
+        if (_target != HALT) {
+            halt(c == 'S');
+            return;
+        }
+        cli.println(F("Step"));
+        Pins.step(c == 'S');
+        goto regs;
+    case 'H':
+    case 'h':
+        if (_target != HALT) {
+            halt(c == 'H');
+            return;
+        }
+        break;
+    case 'C':
+        cli.println(F("Continue"));
         _target = STEP;
+        _showRegs = false;
         return;
     case 'G':
         if (_target != RUN) {
             cli.println(F("GO"));
             _target = RUN;
+            _showRegs = true;
             Pins.run();
         }
         return;
-    case 'h':
-    case 'H':
-        if (_target != HALT) {
-            _target = HALT;
-            Pins.halt(c == 'H');
-            cli.println(F("HALT"));
-            Regs.get(true);
-            disassemble(Regs.pc, 1);
-        }
-        break;
     case 'F':
         cli.println(F("Files"));
         handleFileListing();
@@ -555,10 +483,6 @@ void Commands::exec(char c) {
     case 'L':
         cli.print(F("Load? "));
         cli.readLine(handleLoadFile, 0, str_buffer, sizeof(str_buffer));
-        return;
-    case 'I':
-        cli.print(F("Io? "));
-        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
         cli.println(VERSION_TEXT);
@@ -574,6 +498,14 @@ void Commands::exec(char c) {
     printPrompt();
 }
 
+void Commands::halt(bool show) {
+    _target = HALT;
+    Pins.halt(show);
+    Regs.get(_showRegs);
+    disassemble(Regs.pc, 1);
+    printPrompt();
+}
+
 void Commands::begin() {
     printPrompt();
     _target = HALT;
@@ -585,3 +517,10 @@ void Commands::loop() {
         Regs.get(true);
     }
 }
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// End:
+// vim: set ft=cpp et ts=4 sw=4:
