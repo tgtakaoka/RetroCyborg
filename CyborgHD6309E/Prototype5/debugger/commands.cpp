@@ -399,11 +399,8 @@ static void printIoDevice(State state) {
     uint16_t baseAddr;
     if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
         cli.print(F("ACIA (MC6850) at $"));
-    } else {
-        cli.print(F("SCI (" MPU_NAME ") at $"));
+        cli.printlnHex(baseAddr, 4);
     }
-    cli.printHex(baseAddr, 4);
-    cli.println();
 }
 
 void Commands::exec(char c) {
@@ -485,6 +482,8 @@ void Commands::exec(char c) {
         cli.readLine(handleLoadFile, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
+        cli.print(F("* Cyborg"));
+        cli.print(Regs.cpu());
         cli.println(VERSION_TEXT);
         cli.println(USAGE);
         break;

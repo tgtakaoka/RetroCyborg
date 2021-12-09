@@ -36,7 +36,7 @@ void Regs::setCpuType() {
 }
 
 const char *Regs::cpu() const {
-    return _cpuType;
+    return _cpuType ? _cpuType : MC6809;
 }
 
 void Regs::reset() {

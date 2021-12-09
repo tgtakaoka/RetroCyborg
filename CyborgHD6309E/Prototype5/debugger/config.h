@@ -4,9 +4,7 @@
 
 #include <Arduino.h>
 
-#define MPU_NAME "HD6309E"
-
-#define VERSION_TEXT F("* Cyborg" MPU_NAME " Prototype5 2.3.1")
+#define VERSION_TEXT F("E Prototype5 2.3.1")
 
 #define IO_BASE_ADDR 0xDF00
 
