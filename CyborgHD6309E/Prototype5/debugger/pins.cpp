@@ -1,5 +1,3 @@
-/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
-
 #include "pins.h"
 
 #include <Arduino.h>
@@ -466,7 +464,7 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
         setData(inst[i]);
         Signals &signals = cycle(prev);
         if (signals.readCycle(prev)) {
-            signals.debug('A' + i);
+            signals.debug('i');
             i++;
         } else {
             signals.debug('-');
@@ -481,11 +479,14 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint8_t *capBuf,
         _dbus.capture(true);
     for (;;) {
         Signals &signals = cycle(prev);
-        if ((capWrite && signals.writeCycle(prev)) ||
-                (capRead && signals.readCycle(prev))) {
-            signals.debug('a' + cap);
-            if (cap < max)
-                capBuf[cap++] = signals.dbus();
+        if (cap >= max) {
+            signals.debug('/');
+        } else if (capWrite && signals.writeCycle(prev)) {
+            capBuf[cap++] = signals.dbus();
+            signals.debug('w');
+        } else if (capRead && signals.readCycle(prev)) {
+            capBuf[cap++] = signals.dbus();
+            signals.debug('r');
         } else {
             signals.debug('-');
         }
@@ -638,3 +639,10 @@ void Pins::acknowledgeIoRequest() {
 int Pins::sdCardChipSelectPin() const {
     return SD_CS_PIN;
 }
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// End:
+// vim: set ft=cpp et ts=4 sw=4:
