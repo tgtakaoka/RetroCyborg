@@ -69,10 +69,9 @@ void Mc6850::loop() {
         sei();
 #ifdef DEBUG_READ
         cli.print(F("@@ Recv "));
-        cli.printHex8(_rxData);
+        cli.printHex(_rxData, 2);
         cli.print(' ');
-        cli.printHex8(_status);
-        cli.println();
+        cli.printlnHex(_status, 2);
 #endif
     }
     // TODO: Implement flow control
@@ -87,10 +86,9 @@ void Mc6850::loop() {
             _serial.write(data);
 #ifdef DEBUG_WRITE
             cli.print(F("@@ Send "));
-            cli.printHex8(_txData);
+            cli.printHex(_txData, 2);
             cli.print(' ');
-            cli.printHex8(_status);
-            cli.println();
+            cli.printlnHex(_status, 2);
 #endif
         }
     }
@@ -100,8 +98,7 @@ void Mc6850::write(uint8_t data, uint16_t addr) {
     if (addr == _baseAddr) {
 #ifdef DEBUG_CONTROL
         cli.print(F("@@ Control "));
-        cli.printHex8(data);
-        cli.println();
+        cli.printlnHex(data, 2);
 #endif
         const uint8_t delta = _control ^ data;
         _control = data;
@@ -132,9 +129,9 @@ void Mc6850::write(uint8_t data, uint16_t addr) {
             negateIrq(_txInt);
 #ifdef DEBUG_WRITE
         cli.print(F("@@ Write "));
-        cli.printHex8(data);
+        cli.printHex(data, 2);
         cli.print(' ');
-        cli.printHex8(_status);
+        cli.printHex(_status, 2);
         cli.println();
 #endif
     }
@@ -146,7 +143,7 @@ uint8_t Mc6850::read(uint16_t addr) {
 #ifdef DEBUG_STATUS
         if (rxRegFull() || !txRegEmpty()) {
             cli.print(F("@@ Status "));
-            cli.printHex8(_status);
+            cli.printHex(_status, 2);
             cli.println();
         }
 #endif
@@ -160,11 +157,11 @@ uint8_t Mc6850::read(uint16_t addr) {
         _readFlags = _nextFlags = 0;
 #ifdef DEBUG_READ
         cli.print(F("@@ Read "));
-        cli.printHex8(_rxData);
+        cli.printHex(_rxData, 2);
         cli.print(' ');
-        cli.printHex8(prev_status);
+        cli.printHex(prev_status, 2);
         cli.print(F("->"));
-        cli.printHex8(_status);
+        cli.printHex(_status, 2);
         cli.println();
 #endif
         if (rxIntEnabled()) {

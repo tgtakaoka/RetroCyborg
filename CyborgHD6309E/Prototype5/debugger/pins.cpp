@@ -296,7 +296,6 @@ static void ioRequest() {
     const bool ioWrite = Pins.ioRequestWrite();
     if (Acia.isSelected(ioAddr)) {
         if (ioWrite) {
-            toggle_led();
             Acia.write(Pins.ioGetData(), ioAddr);
         } else {
             Pins.ioSetData(Acia.read(ioAddr));
