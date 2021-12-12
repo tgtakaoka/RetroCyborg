@@ -286,7 +286,6 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
         break;
     }
     restore();
-    print();
     return true;
 }
 

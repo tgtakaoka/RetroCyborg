@@ -113,6 +113,17 @@ void Signals::print(const Signals *prev) const {
     cli.println(buffer);
 }
 
+void Signals::printSignals() {
+    Signals s;
+    s.get();
+    static char buffer[6 + 5];
+    outPin(buffer, s.resetAsserted(), F("RESET "));
+    outPin(buffer + 6, s.haltAsserted(), F("HALT"));
+    buffer[10] = 0;
+    cli.print(buffer);
+    s.print();
+}
+
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4

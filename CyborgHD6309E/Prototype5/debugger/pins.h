@@ -13,7 +13,7 @@ public:
     void loop();
     bool isRunning() const { return _freeRunning; }
 
-    void print();
+    void printSignals();
     void reset(bool show = false);
     void halt(bool show = false);
     void step(bool show = false);

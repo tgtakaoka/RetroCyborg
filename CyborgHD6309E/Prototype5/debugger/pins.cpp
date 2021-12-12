@@ -145,10 +145,8 @@ void Pins::Dbus::capture(bool enabled) {
     _capture = enabled;
 }
 
-void Pins::print() {
-    Signals &signals = Signals::currCycle();
-    signals.get();
-    signals.print();
+void Pins::printSignals() {
+    Signals::printSignals();
 }
 
 /*

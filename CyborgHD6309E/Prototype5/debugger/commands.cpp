@@ -41,7 +41,7 @@ extern libcli::Cli &cli;
 
 #define USAGE                                                            \
     F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep C:ont G:o " \
-      "h/H:alt F:iles L:oad i:nst p:ins")
+      "h/H:alt F:iles L:oad I:nst p:ins")
 
 class Commands Commands;
 
@@ -61,7 +61,7 @@ static uint16_t last_addr;
 #define ASM_ADDR 0
 #define DIS_ADDR 0
 #define DIS_LENGTH 1
-#define INST_DATA(c, i) ((uintptr_t)((c << 8) | i))
+#define INST_DATA(i) ((uintptr_t)i)
 
 static uint8_t mem_buffer[16];
 #define MEMORY_ADDR static_cast<uintptr_t>(sizeof(mem_buffer) + 10)
@@ -70,13 +70,14 @@ static uint8_t mem_buffer[16];
 static char str_buffer[40];
 
 static void handleInstruction(uint32_t value, uintptr_t extra, State state) {
-    const char c = extra >> 8;
     uint16_t index = extra & 0xFF;
+    if (state == State::CLI_CANCEL)
+        goto cancel;
     if (state == State::CLI_DELETE) {
         if (index > 0) {
             index--;
             cli.backspace();
-            cli.readHex(handleInstruction, INST_DATA(c, index), UINT8_MAX,
+            cli.readHex(handleInstruction, INST_DATA(index), UINT8_MAX,
                     mem_buffer[index]);
         }
         return;
@@ -85,12 +86,13 @@ static void handleInstruction(uint32_t value, uintptr_t extra, State state) {
     mem_buffer[index++] = value;
     if (state == State::CLI_SPACE) {
         if (index < sizeof(mem_buffer)) {
-            cli.readHex(handleInstruction, INST_DATA(c, index), UINT8_MAX);
+            cli.readHex(handleInstruction, INST_DATA(index), UINT8_MAX);
             return;
         }
-        cli.println();
     }
-    Pins.execInst(mem_buffer, index, c == 'I');
+    cli.println();
+    Pins.execInst(mem_buffer, index, true);
+ cancel:
     printPrompt();
 }
 
@@ -247,6 +249,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
         printPrompt();
         return;
     }
+    cli.println();
     mc6809::AsmMc6809 as6809;
     Assembler &assembler(as6809);
     assembler.setCpu(Regs.cpu());
@@ -271,11 +274,10 @@ static void handleAssembler(uint32_t value, uintptr_t extra, State state) {
         return;
     }
     last_addr = value;
-    if (state == State::CLI_NEWLINE) {
-        cli.printHex(last_addr, 4);
-        cli.print('?');
-        cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));
-    }
+    cli.println();
+    cli.printHex(last_addr, 4);
+    cli.print('?');
+    cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));
 }
 
 static void listDirectory(File dir, const char *parent = nullptr) {
@@ -386,6 +388,8 @@ static void handleSetRegister(char reg, uintptr_t extra) {
 
 static void handleRegisterValue(uint32_t value, uintptr_t reg, State state) {
     if (Regs.setRegValue(reg, value, state)) {
+        cli.println();
+        Regs.print();
         printPrompt();
     } else {
         cli.readLetter(handleSetRegister, 0);
@@ -406,12 +410,12 @@ static void printIoDevice(State state) {
 void Commands::exec(char c) {
     switch (c) {
     case 'p':
-        cli.print(F("pins:"));
-        Pins.print();
+        cli.println(F("pins:"));
+        Pins.printSignals();
         break;
-    case 'i':
+    case 'I':
         cli.print(F("inst? "));
-        cli.readHex(handleInstruction, INST_DATA(c, 0), UINT8_MAX);
+        cli.readHex(handleInstruction, 0, UINT8_MAX);
         return;
     case 'R':
         cli.println(F("Reset"));

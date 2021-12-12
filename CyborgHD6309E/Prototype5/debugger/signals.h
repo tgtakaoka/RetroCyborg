@@ -32,6 +32,7 @@ public:
     static Signals &currCycle();
     static void resetCycles();
     static void nextCycle();
+    static void printSignals();
 
 private:
     enum : uint8_t {
@@ -60,6 +61,9 @@ private:
     uint8_t _pins;
     uint8_t _dbus;
     char _debug;
+
+    bool resetAsserted() const { return (_pins & reset) == 0; }
+    bool haltAsserted() const { return (_pins & halt) == 0; }
 
     static constexpr auto MAX_CYCLES = 60;
     static uint8_t _cycles;
