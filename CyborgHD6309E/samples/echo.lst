@@ -85,14 +85,16 @@
 100E:
 100E:                receive_loop:
 100E: B6 DF 00                       LDA   ACIA_status
-1011: 85 01                          BITA  #RDRF_bm
-1013: 27 F9                          BEQ   receive_loop
+1011: 44                             LSRA
+1012: 12                             NOP
+1013: 24 F9                          BCC   receive_loop
 1015:                receive_data:
 1015: F6 DF 01                       LDB   ACIA_data
 1018:                transmit_loop:
 1018: B6 DF 00                       LDA   ACIA_status
-101B: 85 02                          BITA  #TDRE_bm
-101D: 27 F9                          BEQ   transmit_loop
+101B: 44                             LSRA
+101C: 44                             LSRA
+101D: 24 F9                          BCC   transmit_loop
 101F:                transmit_data:
 101F: F7 DF 01                       STB   ACIA_data
 1022: C1 0D                          CMPB  #$0d

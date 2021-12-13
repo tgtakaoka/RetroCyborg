@@ -19,14 +19,16 @@ initialize:
 
 receive_loop:
         lda     ACIA_status
-        bita    #RDRF_bm
-        beq     receive_loop
+        lsra
+        nop
+        bcc     receive_loop
 receive_data:
         ldb     ACIA_data
 transmit_loop:
         lda     ACIA_status
-        bita    #TDRE_bm
-        beq     transmit_loop
+        lsra
+        lsra
+        bcc     transmit_loop
 transmit_data:
         stb     ACIA_data
         cmpb    #$0d
