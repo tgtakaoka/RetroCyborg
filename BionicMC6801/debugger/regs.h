@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #include <dis_memory.h>
-#include <libcli.h>
 #include "signals.h"
 
 struct Regs {
@@ -28,10 +27,9 @@ struct Regs {
     bool isHd63() const;
 
     void printRegList() const;
-    bool validUint8Reg(char reg) const;
-    bool validUint16Reg(char reg) const;
-    typedef libcli::Cli::State State;
-    bool setRegValue(char reg, uint32_t value, State state);
+    char validUint8Reg(const char *word) const;
+    char validUint16Reg(const char *word) const;
+    void setRegValue(char reg, uint32_t value);
 };
 
 extern Regs Regs;
