@@ -174,6 +174,20 @@ static void memoryWrite(
 }
 
 static void handleMemory(uint32_t value, uintptr_t extra, State state) {
+    if (state == State::CLI_DELETE) {
+        if (extra == MEMORY_ADDR)
+            return;
+        cli.backspace();
+        uint16_t index = extra;
+        if (index == 0) {
+            cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX, last_addr);
+        } else {
+            index--;
+            cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX,
+                    mem_buffer[index]);
+        }
+        return;
+    }
     if (state != State::CLI_CANCEL) {
         if (extra == MEMORY_ADDR) {
             last_addr = value;
@@ -181,17 +195,6 @@ static void handleMemory(uint32_t value, uintptr_t extra, State state) {
             return;
         }
         uint16_t index = extra;
-        if (state == State::CLI_DELETE) {
-            cli.backspace();
-            if (index == 0) {
-                cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX, last_addr);
-            } else {
-                index--;
-                cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX,
-                        mem_buffer[index]);
-            }
-            return;
-        }
         mem_buffer[index++] = value;
         if (state == State::CLI_SPACE) {
             if (index < sizeof(mem_buffer)) {
@@ -234,6 +237,8 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
 }
 
 static void handleAssembler(uint32_t value, uintptr_t extra, State state) {
+    if (state == State::CLI_DELETE)
+        return;
     if (state == State::CLI_CANCEL) {
         printPrompt();
         return;
@@ -303,8 +308,8 @@ static int loadS19Record(const char *line) {
 
 static void handleLoadFile(char *line, uintptr_t extra, State state) {
     (void)extra;
-    cli.println();
     if (state != State::CLI_CANCEL && *line) {
+        cli.println();
         SD.begin(BUILTIN_SDCARD);
         File file = SD.open(line);
         if (!file) {
@@ -335,16 +340,23 @@ static void handleLoadFile(char *line, uintptr_t extra, State state) {
 
 static void handleRegisterValue(uint32_t, uintptr_t, State);
 
-static void handleSetRegister(char reg, uintptr_t extra) {
-    (void)extra;
-    if (Regs.validUint16Reg(reg)) {
+static void handleSetRegister(char *word, uintptr_t extra, State state) {
+    if (state == State::CLI_DELETE)
+        return;
+    char reg;
+    if ((reg = Regs.validUint8Reg(word)) != 0) {
+        cli.print('?');
+        cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT8_MAX);
+        return;
+    }
+    if ((reg = Regs.validUint16Reg(word)) != 0) {
         cli.print('?');
         cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT16_MAX);
         return;
     }
-    if (Regs.validUint8Reg(reg)) {
+    if ((reg = Regs.validUint32Reg(word)) != 0) {
         cli.print('?');
-        cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT8_MAX);
+        cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT32_MAX);
         return;
     }
     Regs.printRegList();
@@ -352,11 +364,18 @@ static void handleSetRegister(char reg, uintptr_t extra) {
 }
 
 static void handleRegisterValue(uint32_t value, uintptr_t reg, State state) {
-    if (Regs.setRegValue(reg, value, state)) {
-        printPrompt();
-    } else {
-        cli.readLetter(handleSetRegister, 0);
+    if (state == State::CLI_DELETE) {
+        cli.backspace(2);  // ' ', '?'
+        cli.readWord(
+                handleSetRegister, 0, str_buffer, sizeof(str_buffer), true);
+        return;
     }
+    if (state != State::CLI_CANCEL) {
+        Regs.setRegValue(reg, value);
+        cli.println();
+        Regs.print();
+    }
+    printPrompt();
 }
 
 static void handleIo(char *line, uintptr_t extra, State state);
@@ -406,34 +425,34 @@ cancel:
 void Commands::exec(char c) {
     switch (c) {
     case 'R':
-        cli.println(F("RESET"));
+        cli.println(F("Reset"));
         Pins.reset(true);
         goto regs;
     case 'd':
-        cli.print(F("dump? "));
+        cli.print(F("Dump? "));
         cli.readHex(handleDump, DUMP_ADDR, UINT16_MAX);
         return;
     case 'D':
-        cli.print(F("Dis? "));
+        cli.print(F("Disassemble? "));
         cli.readHex(handleDisassemble, DIS_ADDR, UINT16_MAX);
         return;
     case 'A':
-        cli.print(F("Asm? "));
+        cli.print(F("Assemble? "));
         cli.readHex(handleAssembler, 0, UINT16_MAX);
         return;
     case 'm':
-        cli.print(F("mem? "));
+        cli.print(F("Memory? "));
         cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX);
         return;
     case 'r':
-        cli.println(F("regs: "));
+        cli.println(F("Registers"));
     regs:
         Regs.print();
         disassemble(Regs.pc, 1);
         break;
     case '=':
-        cli.print(F("set reg? "));
-        cli.readLetter(handleSetRegister, 0);
+        cli.print(F("Set register? "));
+        cli.readWord(handleSetRegister, 0, str_buffer, sizeof(str_buffer));
         return;
     case 'S':
     case 's':
@@ -441,7 +460,7 @@ void Commands::exec(char c) {
             halt(c == 'S');
             return;
         }
-        cli.println(F("STEP"));
+        cli.println(F("Step"));
         Pins.step(c == 'S');
         goto regs;
     case 'H':
@@ -459,7 +478,7 @@ void Commands::exec(char c) {
         return;
     case 'G':
         if (_target != RUN) {
-            cli.println(F("GO"));
+            cli.println(F("Go"));
             _target = RUN;
             _showRegs = false;
             Pins.run();
@@ -478,7 +497,7 @@ void Commands::exec(char c) {
         cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
-        cli.print(F("* Bionic "));
+        cli.print(F("* Bionic"));
         cli.print(Regs.cpu());
         cli.println(VERSION_TEXT);
         cli.println(USAGE);
