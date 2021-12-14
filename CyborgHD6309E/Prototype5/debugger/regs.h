@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #include <dis_memory.h>
-#include <libcli.h>
 
 struct Regs {
     uint16_t s;
@@ -28,6 +27,13 @@ struct Regs {
         f = w;
         e = w >> 8;
     }
+    uint32_t getQ() const {
+        return (static_cast<uint32_t>(getD()) << 16) | getW();
+    }
+    void setQ(uint32_t q) {
+        setW(q);
+        setD(q >> 16);
+    }
     uint16_t v;
 
     void print() const;
@@ -40,10 +46,10 @@ struct Regs {
     const char *cpu() const;
 
     void printRegList() const;
-    bool validUint8Reg(char reg) const;
-    bool validUint16Reg(char reg) const;
-    typedef libcli::Cli::State State;
-    bool setRegValue(char reg, uint32_t value, State state);
+    char validUint8Reg(const char *word) const;
+    char validUint16Reg(const char *word) const;
+    char validUint32Reg(const char *word) const;
+    void setRegValue(char reg, uint32_t value);
 
 private:
     const char *_cpuType;
@@ -64,7 +70,7 @@ public:
     uint8_t read(uint16_t addr) const;
     void write(uint16_t addr, uint8_t data);
 
-    protected:
+protected:
     uint8_t nextByte() override;
 };
 

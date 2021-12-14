@@ -1,5 +1,6 @@
 #include "regs.h"
 
+#include <libcli.h>
 #include "pins.h"
 #include "string_util.h"
 
@@ -150,8 +151,8 @@ void Regs::save() {
 }
 
 void Regs::restore() {
-    static uint8_t LDS[] = {0x10, 0xCE, 0, 0};      // LDS #s-12
-    static uint8_t PULS_ALL[2 + 12] = {0x35, 0xFF}; // PULS CC,A,B,DP,X,Y,U,PC
+    static uint8_t LDS[] = {0x10, 0xCE, 0, 0};       // LDS #s-12
+    static uint8_t PULS_ALL[2 + 12] = {0x35, 0xFF};  // PULS CC,A,B,DP,X,Y,U,PC
 
     const uint16_t sp = s - 12;
     LDS[2] = hi(sp);
@@ -176,9 +177,9 @@ void Regs::restore() {
 }
 
 void Regs::save6309() {
-    static const uint8_t TFR_WY[] = {0x1F, 0x62};    // TFR W,Y
-    static const uint8_t TFR_VX[] = {0x1F, 0x71};    // TFR V,X
-    static const uint8_t PSHU_YX[] = {0x36, 0x30};   // PSHU Y,X
+    static const uint8_t TFR_WY[] = {0x1F, 0x62};   // TFR W,Y
+    static const uint8_t TFR_VX[] = {0x1F, 0x71};   // TFR V,X
+    static const uint8_t PSHU_YX[] = {0x36, 0x30};  // PSHU Y,X
     static uint8_t buffer[4];
 
     Pins.execInst(TFR_WY, sizeof(TFR_WY));
@@ -190,9 +191,9 @@ void Regs::save6309() {
 }
 
 void Regs::restore6309() {
-    static uint8_t LDD[] = {0xCC, 0, 0};          // LDD #v
-    static const uint8_t TFR_DV[] = {0x1F, 0x07}; // TFR D,V
-    static uint8_t LDW[] = {0x10, 0x86, 0, 0};    // LDW #w
+    static uint8_t LDD[] = {0xCC, 0, 0};           // LDD #v
+    static const uint8_t TFR_DV[] = {0x1F, 0x07};  // TFR D,V
+    static uint8_t LDW[] = {0x10, 0x86, 0, 0};     // LDW #w
 
     LDD[1] = hi(v);
     LDD[2] = lo(v);
@@ -204,43 +205,62 @@ void Regs::restore6309() {
 }
 
 void Regs::printRegList() const {
-    cli.print(F("?Reg: pc s u x y a b d"));
-    if (is6309())
-        cli.print(F(" w e f v"));
-    cli.println(F(" DP cc"));
+    if (is6309()) {
+        cli.print(F("?Reg: PC S U X Y A B E F D W Q V CC DP"));
+    } else {
+        cli.print(F("?Reg: PC S U X Y A B D CC DP"));
+    }
 }
 
-bool Regs::validUint8Reg(char reg) const {
-    if (reg == 'D' || reg == 'a' || reg == 'b' || reg == 'c' ||
-            (is6309() && (reg == 'e' || reg == 'f'))) {
-        cli.print(reg);
-        if (reg == 'D')
-            cli.print('P');
-        if (reg == 'c')
-            cli.print('c');
-        return true;
+char Regs::validUint8Reg(const char *word) const {
+    if (strcasecmp_P(word, PSTR("A")) == 0)
+        return 'a';
+    if (strcasecmp_P(word, PSTR("B")) == 0)
+        return 'b';
+    if (strcasecmp_P(word, PSTR("CC")) == 0)
+        return 'c';
+    if (strcasecmp_P(word, PSTR("DP")) == 0)
+        return 'D';
+    if (is6309()) {
+        if (strcasecmp_P(word, PSTR("E")) == 0)
+            return 'e';
+        if (strcasecmp_P(word, PSTR("F")) == 0)
+            return 'f';
     }
-    return false;
+    return 0;
 }
 
-bool Regs::validUint16Reg(char reg) const {
-    if (reg == 'p' || reg == 's' || reg == 'u' || reg == 'y' || reg == 'x' ||
-            reg == 'd' || (is6309() && (reg == 'w' || reg == 'v'))) {
-        cli.print(reg);
-        if (reg == 'p')
-            cli.print('c');
-        return true;
+char Regs::validUint16Reg(const char *word) const {
+    if (strcasecmp_P(word, PSTR("PC")) == 0)
+        return 'p';
+    if (strcasecmp_P(word, PSTR("S")) == 0)
+        return 's';
+    if (strcasecmp_P(word, PSTR("U")) == 0)
+        return 'u';
+    if (strcasecmp_P(word, PSTR("Y")) == 0)
+        return 'y';
+    if (strcasecmp_P(word, PSTR("X")) == 0)
+        return 'x';
+    if (strcasecmp_P(word, PSTR("D")) == 0)
+        return 'd';
+    if (is6309()) {
+        if (strcasecmp_P(word, PSTR("W")) == 0)
+            return 'w';
+        if (strcasecmp_P(word, PSTR("V")) == 0)
+            return 'v';
     }
-    return false;
+    return 0;
 }
 
-bool Regs::setRegValue(char reg, uint32_t value, State state) {
-    if (state == State::CLI_CANCEL)
-        return true;
-    if (state == State::CLI_DELETE) {
-        cli.backspace(reg == 'p' || reg == 'D' || reg == 'c' ? 3 : 2);
-        return false;
+char Regs::validUint32Reg(const char *word) const {
+    if (is6309()) {
+        if (strcasecmp_P(word, PSTR("Q")) == 0)
+            return 'q';
     }
+    return 0;
+}
+
+void Regs::setRegValue(char reg, uint32_t value) {
     switch (reg) {
     case 'p':
         pc = value;
@@ -284,13 +304,16 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
     case 'c':
         cc = value;
         break;
+    case 'q':
+        setQ(value);
+        break;
     }
     restore();
     return true;
 }
 
 uint8_t Memory::read(uint16_t addr) const {
-    static uint8_t LDA[] = {0xB6, 0, 0}; // LDA $addr
+    static uint8_t LDA[] = {0xB6, 0, 0};  // LDA $addr
     LDA[1] = hi(addr);
     LDA[2] = lo(addr);
     uint8_t data;
@@ -299,8 +322,8 @@ uint8_t Memory::read(uint16_t addr) const {
 }
 
 void Memory::write(uint16_t addr, uint8_t data) {
-    static uint8_t LDA[] = {0x86, 0};    // LDA #data
-    static uint8_t STA[] = {0xB7, 0, 0}; // STA $addr
+    static uint8_t LDA[] = {0x86, 0};     // LDA #data
+    static uint8_t STA[] = {0xB7, 0, 0};  // STA $addr
     LDA[1] = data;
     STA[1] = hi(addr);
     STA[2] = lo(addr);
