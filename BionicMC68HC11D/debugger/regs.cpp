@@ -1,5 +1,6 @@
 #include "regs.h"
 
+#include <libcli.h>
 #include "config.h"
 #include "pins.h"
 #include "string_util.h"
@@ -148,39 +149,34 @@ void Regs::capture(const Signals *stack) {
 }
 
 void Regs::printRegList() const {
-    cli.println(F("?Reg: pc sp y x a b d cc"));
+    cli.println(F("?Reg: PC SP X Y A B D CC"));
 }
 
-bool Regs::validUint8Reg(char reg) const {
-    if (reg == 'a' || reg == 'b' || reg == 'c') {
-        cli.print(reg);
-        if (reg == 'c')
-            cli.print('c');
-        return true;
-    }
-    return false;
+char Regs::validUint8Reg(const char *word) const {
+    if (strcasecmp(word, "A") == 0)
+        return 'a';
+    if (strcasecmp(word, "B") == 0)
+        return 'b';
+    if (strcasecmp(word, "CC") == 0)
+        return 'c';
+    return 0;
 }
 
-bool Regs::validUint16Reg(char reg) const {
-    if (reg == 'p' || reg == 's' || reg == 'y' || reg == 'x' || reg == 'd') {
-        cli.print(reg);
-        if (reg == 'p')
-            cli.print('c');
-        if (reg == 's')
-            cli.print('p');
-        return true;
-    }
-    return false;
+char Regs::validUint16Reg(const char *word) const {
+    if (strcasecmp(word, "PC") == 0)
+        return 'p';
+    if (strcasecmp(word, "SP") == 0)
+        return 's';
+    if (strcasecmp(word, "X") == 0)
+        return 'x';
+    if (strcasecmp(word, "Y") == 0)
+        return 'y';
+    if (strcasecmp(word, "D") == 0)
+        return 'd';
+    return 0;
 }
 
-bool Regs::setRegValue(char reg, uint32_t value, State state) {
-    if (state == State::CLI_CANCEL)
-        return true;
-    if (state == State::CLI_DELETE) {
-        cli.backspace(reg == 'p' || reg == 's' || reg == 'c' ? 3 : 2);
-        return false;
-    }
-    cli.println();
+void Regs::setRegValue(char reg, uint32_t value) {
     switch (reg) {
     case 'p':
         pc = value;
@@ -207,8 +203,6 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
         cc = value;
         break;
     }
-    print();
-    return true;
 }
 
 void Memory::setRamDevBase(uint16_t ram, uint16_t dev) {
