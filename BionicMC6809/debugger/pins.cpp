@@ -383,10 +383,10 @@ void Pins::reset(bool show) {
     cycle().debug('v');
     // non-VMA
     cycle().debug('-');
-    if (show)
-        Signals::printCycles();
     Regs.reset();
     Regs.save(show);
+    if (show)
+        Signals::printCycles();
 }
 
 void Pins::idle() {

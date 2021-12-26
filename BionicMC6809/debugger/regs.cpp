@@ -1,5 +1,6 @@
 #include "regs.h"
 
+#include <libcli.h>
 #include "config.h"
 #include "digital_fast.h"
 #include "pins.h"
@@ -263,44 +264,61 @@ void Regs::capture(const Signals *stack, bool native6309) {
 
 void Regs::printRegList() const {
     if (is6309()) {
-        cli.println(F("?Reg: pc s u y x a b d e f w v cc DP"));
+        cli.println(F("?Reg: PC S U Y X A B E F D W Q V CC DP"));
     } else {
-        cli.println(F("?Reg: pc s u y x a b d cc DP"));
+        cli.println(F("?Reg: PC S U Y X A B D CC DP"));
     }
 }
 
-bool Regs::validUint8Reg(char reg) const {
-    if (reg == 'a' || reg == 'b' || reg == 'c' || reg == 'D'
-        || (is6309() && (reg == 'e' || reg == 'f'))) {
-        cli.print(reg);
-        if (reg == 'c')
-            cli.print('c');
-        if (reg == 'D')
-            cli.print('P');
-        return true;
+char Regs::validUint8Reg(const char *word) const {
+    if (strcasecmp(word, "A") == 0)
+        return 'a';
+    if (strcasecmp(word, "B") == 0)
+        return 'b';
+    if (strcasecmp(word, "CC") == 0)
+        return 'c';
+    if (strcasecmp(word, "DP") == 0)
+        return 'D';
+    if (is6309()) {
+        if (strcasecmp(word, "E") == 0)
+            return 'e';
+        if (strcasecmp(word, "F") == 0)
+            return 'f';
     }
-    return false;
+    return 0;
 }
 
-bool Regs::validUint16Reg(char reg) const {
-    if (reg == 'p' || reg == 's' || reg == 'u' || reg == 'y' || reg == 'x' || reg == 'd'
-        || (is6309() && (reg == 'w' || reg == 'v'))) {
-        cli.print(reg);
-        if (reg == 'p')
-            cli.print('c');
-        return true;
+char Regs::validUint16Reg(const char *word) const {
+    if (strcasecmp(word, "PC") == 0)
+        return 'p';
+    if (strcasecmp(word, "S") == 0)
+        return 's';
+    if (strcasecmp(word, "U") == 0)
+        return 'u';
+    if (strcasecmp(word, "Y") == 0)
+        return 'y';
+    if (strcasecmp(word, "X") == 0)
+        return 'x';
+    if (strcasecmp(word, "D") == 0)
+        return 'd';
+    if (is6309()) {
+        if (strcasecmp(word, "W") == 0)
+            return 'w';
+        if (strcasecmp(word, "V") == 0)
+            return 'v';
     }
-    return false;
+    return 0;
 }
 
-bool Regs::setRegValue(char reg, uint32_t value, State state) {
-    if (state == State::CLI_CANCEL)
-        return true;
-    if (state == State::CLI_DELETE) {
-        cli.backspace(reg == 'p' || reg == 'c' || reg == 'D' ? 3 : 2);
-        return false;
+char Regs::validUint32Reg(const char *word) const {
+    if (is6309()) {
+        if (strcasecmp(word, "Q") == 0)
+            return 'q';
     }
-    cli.println();
+    return 0;
+}
+
+void Regs::setRegValue(char reg, uint32_t value) {
     switch (reg) {
     case 'p':
         pc = value;
@@ -344,9 +362,10 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
     case 'v':
         v = value;
         break;
+    case 'q':
+        setQ(value);
+        break;
     }
-    print();
-    return true;
 }
 
 bool Memory::is_internal(uint16_t addr) {
