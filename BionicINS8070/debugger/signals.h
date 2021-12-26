@@ -4,9 +4,10 @@
 #include <stdint.h>
 
 struct Signals {
-    void getAddr1();
-    void getAddr2();
-    void getDirection();
+    bool getDirection();
+    bool read() const { return rds == 0; }
+    bool write() const { return wds == 0; }
+    void getAddr();
     void getData();
     void clear();
     static void inject(uint8_t data);
@@ -16,7 +17,8 @@ struct Signals {
 
     uint16_t addr;
     uint8_t data;
-    uint8_t rw;
+    uint8_t rds;
+    uint8_t wds;
 
     bool readRam() const { return _inject == false; }
     bool writeRam() const { return _capture == false; }
@@ -25,14 +27,13 @@ struct Signals {
     static Signals &currCycle();
     static void resetCycles();
     static void nextCycle();
-    static void flushWrites(const Signals *end);
 
 private:
     bool _inject;
     bool _capture;
     char _debug;
 
-    static constexpr uint8_t MAX_CYCLES = 40;
+    static constexpr uint8_t MAX_CYCLES = 60;
     static uint8_t _cycles;
     static Signals _signals[MAX_CYCLES + 1];
 };

@@ -30,8 +30,7 @@ public:
     void negateIrq(const uint8_t irq);
 
     enum SerialDevice : uint8_t {
-        DEV_SCI = 0,   // MC6803/HD6303 SCI
-        DEV_ACIA = 1,  // MC6850 ACIA
+        DEV_ACIA = 0,  // MC6850 ACIA
     };
     SerialDevice getIoDevice(uint16_t &baseAddr);
     void setIoDevice(SerialDevice device, uint16_t addr);
@@ -41,10 +40,14 @@ private:
     uint8_t _irq;
     SerialDevice _ioDevice;
 
+    Signals &prepareCycle();
+    Signals &completeCycle(Signals &signals);
     Signals &cycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
     void suspend(bool show = false);
+    static bool isInsnFetch(const Signals *c0, const Signals *c1,
+            const Signals *c2, const Signals *c3, const Signals *c4);
 };
 
 extern Pins Pins;

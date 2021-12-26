@@ -22,8 +22,8 @@
 #include "commands.h"
 
 #include <SD.h>
-#include <asm_mc6800.h>
-#include <dis_mc6800.h>
+#include <asm_ins8070.h>
+#include <dis_ins8070.h>
 #include <libcli.h>
 #include <string.h>
 
@@ -117,8 +117,8 @@ static void print(const Insn &insn) {
 }
 
 static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
-    mc6800::DisMc6800 dis6800;
-    Disassembler &disassembler = dis6800;
+    ins8070::DisIns8070 dis8070;
+    Disassembler &disassembler = dis8070;
     disassembler.setCpu(Regs.cpu());
     disassembler.setUppercase(true);
     uint16_t num = 0;
@@ -218,8 +218,8 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
         return;
     }
     cli.println();
-    mc6800::AsmMc6800 as6800;
-    Assembler &assembler(as6800);
+    ins8070::AsmIns8070 as8070;
+    Assembler &assembler = as8070;
     assembler.setCpu(Regs.cpu());
     Insn insn(last_addr);
     if (assembler.encode(line, insn)) {
@@ -288,21 +288,24 @@ static uint16_t toInt16Hex(const char *text) {
     return ((uint16_t)toInt8Hex(text) << 8) | toInt8Hex(text + 2);
 }
 
-static int loadS19Record(const char *line) {
+static int loadIHexRecord(const char *line) {
     int len = strlen(line);
-    if (len == 0 || line[0] != 'S' || line[1] != '1')
+    if (len == 0 || line[0] != ':')
         return 0;
-    const int num = toInt8Hex(line + 2) - 3;
-    const uint16_t addr = toInt16Hex(line + 4);
-    uint8_t buffer[num];
-    for (int i = 0; i < num; i++) {
-        buffer[i] = toInt8Hex(line + i * 2 + 8);
+    const auto num = toInt8Hex(line + 1);
+    const uint16_t addr = toInt16Hex(line + 3);
+    const auto type = toInt8Hex(line + 7);
+    if (type == 0) {
+        uint8_t buffer[num];
+        for (int i = 0; i < num; i++) {
+            buffer[i] = toInt8Hex(line + i * 2 + 9);
+        }
+        memoryWrite(addr, buffer, num);
+        cli.printHex(addr, 4);
+        cli.print(':');
+        cli.printHex(num, 2);
+        cli.print(' ');
     }
-    memoryWrite(addr, buffer, num);
-    cli.printHex(addr, 4);
-    cli.print(':');
-    cli.printHex(num, 2);
-    cli.print(' ');
     return num;
 }
 
@@ -317,15 +320,15 @@ static void handleLoadFile(char *line, uintptr_t extra, State state) {
             cli.println(F(" not found"));
         } else {
             uint16_t size = 0;
-            char s19[80];
-            char *p = s19;
+            char ihex[80];
+            char *p = ihex;
             while (file.available() > 0) {
                 const char c = file.read();
                 if (c == '\n') {
                     *p = 0;
-                    size += loadS19Record(s19);
-                    p = s19;
-                } else if (c != '\r' && p < s19 + sizeof(s19) - 1) {
+                    size += loadIHexRecord(ihex);
+                    p = ihex;
+                } else if (c != '\r' && p < ihex + sizeof(ihex) - 1) {
                     *p++ = c;
                 }
             }
@@ -381,10 +384,6 @@ static void printIoDevice(State state) {
     if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
         cli.print(F("ACIA (MC6850) at $"));
         cli.printlnHex(baseAddr, 4);
-    } else {
-        cli.print(F("SCI ("));
-        cli.print(Regs.cpu());
-        cli.println(')');
     }
 }
 
@@ -413,9 +412,7 @@ static void handleIo(char *line, uintptr_t extra, State state) {
         cli.readHex(handleAciaAddr, 0, UINT16_MAX);
         return;
     }
-    if (strcasecmp_P(str_buffer, PSTR("sci")) == 0) {
-        Pins.setIoDevice(Pins::SerialDevice::DEV_SCI, 0);
-    } else if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
+    if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
         Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, Pins.ioBaseAddress());
     }
     printIoDevice(state);
@@ -449,7 +446,7 @@ void Commands::exec(char c) {
         cli.println(F("Registers"));
     regs:
         Regs.print();
-        disassemble(Regs.pc, 1);
+        disassemble(Regs.pc + 1, 1);
         break;
     case '=':
         cli.print(F("Set register? "));
@@ -498,8 +495,6 @@ void Commands::exec(char c) {
         cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
-        cli.print(F("* Bionic"));
-        cli.print(Regs.cpu());
         cli.println(VERSION_TEXT);
         cli.println(USAGE);
         break;
@@ -518,7 +513,7 @@ void Commands::halt(bool show) {
     Pins.halt(show);
     if (!_showRegs)
         Regs.print();
-    disassemble(Regs.pc, 1);
+    disassemble(Regs.pc + 1, 1);
     printPrompt();
 }
 

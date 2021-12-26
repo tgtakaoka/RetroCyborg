@@ -4,101 +4,123 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define MPU_MODE 2  // Non-Multiplexed Mode (Internal RAM enabled)
+#define MPU_NAME "INS8070"
 
-#define VERSION_TEXT F(" 0.1")
+#define VERSION_TEXT F("* Bionic " MPU_NAME " 0.1")
 #define Console Serial
 
 #define IO_BASE_ADDR 0xDF00
 
 #if defined(ARDUINO_TEENSY35)
-#define PORT_AD D     /* GPIOD */
-#define AD_gp 0       /* PTD00-PTD07 */
-#define AD_gm 0xFF    /* PTD00-PTD07 */
-#define AD_vp 0       /* AD0-AD7 */
-#define PIN_AD0 2     /* PTD00 */
-#define PIN_AD1 14    /* PTD01 */
-#define PIN_AD2 7     /* PTD02 */
-#define PIN_AD3 8     /* PTD03 */
-#define PIN_AD4 6     /* PTD04 */
-#define PIN_AD5 20    /* PTD05 */
-#define PIN_AD6 21    /* PTD06 */
-#define PIN_AD7 5     /* PTD07 */
-#define PORT_AH C     /* GPIOC */
-#define AH_gp 0       /* PTC00-PTC07 */
-#define AH_gm 0xFF    /* PTC00-PTC07 */
-#define AH_vp 8       /* A8-A15 */
-#define PIN_AH8 15    /* PTC00 */
-#define PIN_AH9 22    /* PTC01 */
-#define PIN_AH10 23   /* PTC02 */
-#define PIN_AH11 9    /* PTC03 */
-#define PIN_AH12 10   /* PTC04 */
-#define PIN_AH13 13   /* PTC05 */
-#define PIN_AH14 11   /* PTC06 */
-#define PIN_AH15 12   /* PTC07 */
-#define PIN_AS 16     /* PTB00 */
-#define PIN_RW 17     /* PTB01 */
-#define PIN_IRQ1 19   /* PTB02 */
-#define PIN_NMI 18    /* PTB03 */
-#define PIN_SCITXD 0  /* PTB16 */
-#define PIN_SCIRXD 1  /* PTB17 */
-#define PIN_EXTAL 29  /* PTB18 */
-#define PIN_E 30      /* PTB19 */
-#define PIN_PC0 33    /* PTE24 */
-#define PIN_PC1 34    /* PTE25 */
-#define PIN_PC2 24    /* PTE26 */
-#define PIN_RESET 25  /* PTA05 */
-#define PIN_XTAL 39   /* PTA17 */
+#define PORT_D D      /* GPIOD */
+#define D_gp 0        /* PTD00-PTD07 */
+#define D_gm 0xFF     /* PTD00-PTD07 */
+#define D_vp 0        /* D0-D7 */
+#define PIN_D0 2      /* PTD00 */
+#define PIN_D1 14     /* PTD01 */
+#define PIN_D2 7      /* PTD02 */
+#define PIN_D3 8      /* PTD03 */
+#define PIN_D4 6      /* PTD04 */
+#define PIN_D5 20     /* PTD05 */
+#define PIN_D6 21     /* PTD06 */
+#define PIN_D7 5      /* PTD07 */
+#define PORT_AL C     /* GPIOC */
+#define AL_gp 0       /* PTC00-PTC11 */
+#define AL_gm 0xFFF   /* PTC00-PTC11 */
+#define AL_vp 0       /* A0-A11 */
+#define PIN_AL0 15    /* PTC00 */
+#define PIN_AL1 22    /* PTC01 */
+#define PIN_AL2 23    /* PTC02 */
+#define PIN_AL3 9     /* PTC03 */
+#define PIN_AL4 10    /* PTC04 */
+#define PIN_AL5 13    /* PTC05 */
+#define PIN_AL6 11    /* PTC06 */
+#define PIN_AL7 12    /* PTC07 */
+#define PIN_AL8 35    /* PTC08 */
+#define PIN_AL9 36    /* PTC09 */
+#define PIN_AL10 37   /* PTC10 */
+#define PIN_AL11 38   /* PTC11 */
+#define PORT_AH A     /* GPIOA */
+#define AH_gp 12      /* PTA12 */
+#define AH_gm 0xF     /* PTA12-PTA15 */
+#define AH_vp 12      /* A12-A15 */
+#define PIN_AH12 3    /* PTA12 */
+#define PIN_AH13 4    /* PTA13 */
+#define PIN_AH14 26   /* PTA14 */
+#define PIN_AH15 27   /* PTA15 */
+#define PIN_WDS 17    /* PTB01 */
+#define PIN_SA 19     /* PTB02 */
+#define PIN_SB 18     /* PTB03 */
+#define PIN_F1 0      /* PTB16 */
+#define PIN_F2 1      /* PTB17 */
+#define PIN_XIN 29    /* PTB18 */
+#define PIN_BREQ 30   /* PTB19 */
+#define PIN_RDS 33    /* PTE24 */
+#define PIN_F3 34     /* PTE25 */
+#define PIN_HOLD 24   /* PTE26 */
+#define PIN_RST 25    /* PTA05 */
+#define PIN_ENIN 28   /* PTA16 */
+#define PIN_ENOUT 39  /* PTA17 */
 #define PIN_USRSW 31  /* PTB10 */
 #define PIN_USRLED 32 /* PTB11 */
-/**
- * For LILBUG's trace, Timer ouput (P21/PC1) is connected to #NMI on board.
- */
 #endif
 
 #if defined(ARDUINO_TEENSY41)
-#define PORT_AD 6     /* GPIO6 */
-#define AD_gp 16      /* P6.16 */
-#define AD_gm 0xFF    /* P6.16-P6.23 */
-#define AD_vp 0       /* AD0-AD7 */
-#define PIN_AD0 19    /* P6.16 */
-#define PIN_AD1 18    /* P6.17 */
-#define PIN_AD2 14    /* P6.18 */
-#define PIN_AD3 15    /* P6.19 */
-#define PIN_AD4 40    /* P6.20 */
-#define PIN_AD5 41    /* P6.21 */
-#define PIN_AD6 17    /* P6.22 */
-#define PIN_AD7 16    /* P6.23 */
-#define PORT_AH 6     /* GPIO6 */
-#define AH_gp 24      /* P6.24-P6.31 */
-#define AH_gm 0xFF    /* P6.00-P6.07 */
-#define AH_vp 8       /* A8-A15 */
-#define PIN_AH8 22    /* P6.24 */
-#define PIN_AH9 23    /* P6.25 */
-#define PIN_AH10 20   /* P6.26 */
-#define PIN_AH11 21   /* P6.27 */
-#define PIN_AH12 38   /* P6.28 */
-#define PIN_AH13 39   /* P6.29 */
-#define PIN_AH14 26   /* P6.30 */
-#define PIN_AH15 27   /* P6.31 */
-#define PIN_AS 2      /* P9.04 */
-#define PIN_RW 3      /* P9.05 */
-#define PIN_IRQ1 4    /* P9.06 */
-#define PIN_NMI 33    /* P9.07 */
-#define PIN_SCITXD 0  /* P6.03 */
-#define PIN_SCIRXD 1  /* P6.02 */
-#define PIN_EXTAL 5   /* P9.08 */
-#define PIN_E 29      /* P9.31 */
-#define PIN_PC0 6     /* P7.10 */
-#define PIN_PC1 9     /* P7.11 */
-#define PIN_PC2 32    /* P7.12 */
-#define PIN_RESET 28  /* P8.18 */
-#define PIN_XTAL 30   /* P8.23 */
+#define PORT_D 6      /* GPIO6 */
+#define D_gp 16       /* P6.16-P6.23 */
+#define D_gm 0xFF     /* P6.16-P6.23 */
+#define D_vp 0        /* D0-D7 */
+#define PIN_D0 19     /* P6.16 */
+#define PIN_D1 18     /* P6.17 */
+#define PIN_D2 14     /* P6.18 */
+#define PIN_D3 15     /* P6.19 */
+#define PIN_D4 40     /* P6.20 */
+#define PIN_D5 41     /* P6.21 */
+#define PIN_D6 17     /* P6.22 */
+#define PIN_D7 16     /* P6.23 */
+#define PORT_AL 6     /* GPIO6 */
+#define AL_gp 24      /* P6.24-P6.31 */
+#define AL_gm 0xFF    /* P6.24-P6.31 */
+#define AL_vp 0       /* A0-A7 */
+#define PIN_AL0 22    /* P6.24 */
+#define PIN_AL1 23    /* P6.25 */
+#define PIN_AL2 20    /* P6.26 */
+#define PIN_AL3 21    /* P6.27 */
+#define PIN_AL4 38    /* P6.28 */
+#define PIN_AL5 39    /* P6.29 */
+#define PIN_AL6 26    /* P6.30 */
+#define PIN_AL7 27    /* P6.31 */
+#define PORT_AM 7     /* GPIO7 */
+#define AM_gp 0       /* P7.00-P7.03 */
+#define AM_gm 0xF     /* P7.12-P7.15 */
+#define AM_vp 8       /* A8-A11 */
+#define PIN_AM8 10    /* P7.00 */
+#define PIN_AM9 12    /* P7.01 */
+#define PIN_AM10 11   /* P7.02 */
+#define PIN_AM11 13   /* P7.03 */
+#define PORT_AH 7     /* P7.16-P7.19 */
+#define AH_gp 16      /* P7.16-P7.19 */
+#define AH_gm 0xF     /* P7.16-P7.19 */
+#define AH_vp 12      /* A12-A15 */
+#define PIN_AH12 8    /* P7.16 */
+#define PIN_AH13 7    /* P7.17 */
+#define PIN_AH14 36   /* P7.18 */
+#define PIN_AH15 37   /* P7.19 */
+#define PIN_WDS 3     /* P9.05 */
+#define PIN_SA 4      /* P9.06 */
+#define PIN_SB 33     /* P9.07 */
+#define PIN_F1 0      /* P6.03 */
+#define PIN_F2 1      /* P6.04 */
+#define PIN_XIN 5     /* P9.08 */
+#define PIN_BREQ 29   /* P9.31 */
+#define PIN_RDS 6     /* P7.10 */
+#define PIN_F3 9      /* P7.11 */
+#define PIN_HOLD 32   /* P7.12 */
+#define PIN_RST 28    /* P8.18 */
+#define PIN_ENIN 31   /* P8.22 */
+#define PIN_ENOUT 30  /* P8.23 */
 #define PIN_USRSW 35  /* P7.28 */
 #define PIN_USRLED 34 /* P7.29 */
-/**
- * For LILBUG's trace, Timer ouput (P21/PC1) is connected to #NMI on board.
- */
 #endif
 
 #endif

@@ -5,133 +5,132 @@
 #include "commands.h"
 #include "config.h"
 #include "digital_fast.h"
-#include "mc6801_sci_handler.h"
 #include "mc6850.h"
 #include "regs.h"
+#include "signals.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
 
 class Pins Pins;
 Mc6850 Acia(Console);
-Mc6801SciHandler<PIN_SCIRXD, PIN_SCITXD> SciH(Console);
 
 static constexpr bool debug_cycles = false;
 
 /**
- * MC6801 bus cycle.
- *          __    __    __    __    __    __    __    __    __
- * EXTAL __|c1|__|c2|__|c3|__|c4|__|c1|__|c2|__|c3|__|c4|__|c1|_
- *          \     \  \___________\  \     \  \___________\  \
- *     E ____________|           |___________|           |______
- *           _____                    _____   \               __
- *    AS ___|     |__________________|     |_________________|
- *       ________________________                         ______
- *   R/W                         |_______________________|
- *                           ____               _________
- *  Data -------------------<rrrr>-------------<wwwwwwwww>------
+ * INS8070 External Bus cycle
+ *       __    __    __    __    __    __    __    __    __    __
+ *  XOUT   |__|  |__|  |__|  |__|  |__|  |__|  |__|  |__|  |__|  |__
+ *         __    __    __    __    __    __    __    __    __    __
+ *   XIN _|  |__| 1|__| 2|__| 3|__| 4|__| 5|__| 6|__| 7|__| 8|__|  |
+ *       ________\        \     \     \                 \     \ ____
+ * #BREQ         |_____________________________________________|
+ *                          _________________________________
+ *  ADDR-------------------<_________________________________>------
+ *       ________________________                         __________
+ *  #RDS                         |______________________r|r
+ *       _____________________________                    __________
+ *  #WDS                              |wwwwwwwwwwwwwwwwww|
  *
- * - EXTAL falling-edge to E edges takes 50ns.
- * - EXTAL raising-edge of c1 to AS edges takes 40ns.
- * - EXTAL falling-edge of c4 to R/W edges takes 100ns.
- * - R/W is valid before raising edge of c1.
- * - Read data setup to falling E egde is 80ns.
- * - Write data gets valid after 225ns of raising E edge.
+ * - XIN edges to XOUT edges are 8ns.
+ * - XIN 1st raising edge to #BREQ falling edge is 72ns.
+ * - XIN 3rd falling edge to #RDS falling edge is 84ns.
+ * - XIN 7th falling edge to #RDS raising edge is 88ns.
+ * - XIN 8th falling edge to #BREQ raising edge is 176ns.
+ * - #BREQ falling edge to #RDS/#WDS falling edge is 2 cycles/
+ * - #RST rising edge to 1st #BREQ takes ~14 XIN cycles.
  */
 
 #if defined(ARDUINO_TEENSY35)
-static constexpr auto extal_hi_ns = 120;
-static constexpr auto extal_lo_ns = 120;
-static constexpr auto c1_lo_ns = 0;
-static constexpr auto c1_hi_ns = 70;
-static constexpr auto c2_lo_ns = 52;
-static constexpr auto c2_hi_ns = 118;
-static constexpr auto c3_read_lo_ns = 1;
-static constexpr auto c3_read_hi_ns = 50;
-static constexpr auto c4_read_lo_ns = 10;
-static constexpr auto c4_read_hi_ns = 45;
-static constexpr auto c3_write_lo_ns = 40;
-static constexpr auto c3_write_hi_ns = 65;
-static constexpr auto c4_write_lo_ns = 0;
-static constexpr auto c4_write_hi_ns = 100;
-static constexpr auto next_c1_lo_ns = 40;
+static constexpr auto xin_hi_ns = 125;
+static constexpr auto xin_lo_ns = 115;
 #endif
 #if defined(ARDUINO_TEENSY41)
-static constexpr auto extal_hi_ns = 118;
-static constexpr auto extal_lo_ns = 108;
-static constexpr auto c1_lo_ns = 0;
-static constexpr auto c1_hi_ns = 85;
-static constexpr auto c2_lo_ns = 70;
-static constexpr auto c2_hi_ns = 100;
-static constexpr auto c3_read_lo_ns = 88;
-static constexpr auto c3_read_hi_ns = 74;
-static constexpr auto c4_read_lo_ns = 74;
-static constexpr auto c4_read_hi_ns = 85;
-static constexpr auto c3_write_lo_ns = 88;
-static constexpr auto c3_write_hi_ns = 78;
-static constexpr auto c4_write_lo_ns = 75;
-static constexpr auto c4_write_hi_ns = 103;
-static constexpr auto next_c1_lo_ns = 40;
+static constexpr auto xin_hi_ns = 110;
+static constexpr auto xin_lo_ns = 105;
 #endif
 
-static inline void extal_hi() __attribute__((always_inline));
-static inline void extal_hi() {
-    digitalWriteFast(PIN_EXTAL, HIGH);
+static inline void xin_hi() __attribute__((always_inline));
+static inline void xin_hi() {
+    digitalWriteFast(PIN_XIN, HIGH);
 }
 
-static inline void extal_lo() __attribute__((always_inline));
-static inline void extal_lo() {
-    digitalWriteFast(PIN_EXTAL, LOW);
+static inline void xin_lo() __attribute__((always_inline));
+static inline void xin_lo() {
+    digitalWriteFast(PIN_XIN, LOW);
 }
 
 static inline void clock_cycle() __attribute__((always_inline));
 static inline void clock_cycle() {
-    extal_hi();
-    delayNanoseconds(extal_hi_ns);
-    extal_lo();
-    delayNanoseconds(extal_lo_ns);
+    xin_hi();
+    delayNanoseconds(xin_hi_ns);
+    xin_lo();
+    delayNanoseconds(xin_lo_ns);
 }
 
-static uint8_t clock_e() {
-    return digitalReadFast(PIN_E);
+static inline uint8_t signal_breq() __attribute__((always_inline));
+static inline uint8_t signal_breq() {
+    return digitalReadFast(PIN_BREQ);
 }
 
-static void assert_nmi() {
-    digitalWriteFast(PIN_NMI, LOW);
-    // #NMI is connected to P21/PC1 for LILBUG trace.
-    pinMode(PIN_NMI, OUTPUT_OPENDRAIN);
+static inline uint8_t signal_wds() __attribute__((always_inline));
+static inline uint8_t signal_wds() {
+    return digitalReadFast(PIN_WDS);
 }
 
-static void negate_nmi() {
-    digitalWriteFast(PIN_NMI, HIGH);
-    // #NMI is connected to P21/PC1 for LILBUG trace.
-    pinMode(PIN_NMI, INPUT_PULLUP);
+static inline uint8_t signal_rds() __attribute__((always_inline));
+static inline uint8_t signal_rds() {
+    return digitalReadFast(PIN_RDS);
 }
 
-static void assert_irq1() {
-    digitalWriteFast(PIN_IRQ1, LOW);
+static void assert_sa() __attribute__((unused));
+static void assert_sa() {
+    digitalWriteFast(PIN_SA, LOW);
 }
 
-static void negate_irq1() {
-    digitalWriteFast(PIN_IRQ1, HIGH);
+static void negate_sa() {
+    digitalWriteFast(PIN_SA, HIGH);
+}
+
+static void assert_sb() __attribute__((unused));
+static void assert_sb() {
+    digitalWriteFast(PIN_SB, LOW);
+}
+
+static void negate_sb() {
+    digitalWriteFast(PIN_SB, HIGH);
+}
+
+static void assert_hold() __attribute__((unused));
+static void assert_hold() {
+    digitalWriteFast(PIN_HOLD, LOW);
+}
+
+static void negate_hold() __attribute__((unused));
+static void negate_hold() {
+    digitalWriteFast(PIN_HOLD, HIGH);
+}
+
+static void assert_enin() {
+    digitalWriteFast(PIN_ENIN, LOW);
+}
+
+static void negate_enin() {
+    digitalWriteFast(PIN_ENIN, HIGH);
 }
 
 static void assert_reset() {
     // Drive RESET condition
-    digitalWriteFast(PIN_RESET, LOW);
-    negate_nmi();
-    negate_irq1();
-
-    // Toggle reset to put MC6803/HD6303 in reset
-    clock_cycle();
-    clock_cycle();
-    clock_cycle();
-    clock_cycle();
+    digitalWriteFast(PIN_RST, LOW);
+    negate_sa();
+    negate_sb();
+    negate_hold();
+    negate_enin();
 }
 
 static void negate_reset() {
     // Release RESET conditions
-    digitalWriteFast(PIN_RESET, HIGH);
+    digitalWriteFast(PIN_RST, HIGH);
 }
 
 static void turn_on_led() {
@@ -152,121 +151,124 @@ static uint8_t user_sw() {
 }
 
 static const uint8_t BUS_PINS[] = {
-        PIN_AD0,
-        PIN_AD1,
-        PIN_AD2,
-        PIN_AD3,
-        PIN_AD4,
-        PIN_AD5,
-        PIN_AD6,
-        PIN_AD7,
-        PIN_AH8,
-        PIN_AH9,
-        PIN_AH10,
-        PIN_AH11,
+        PIN_D0,
+        PIN_D1,
+        PIN_D2,
+        PIN_D3,
+        PIN_D4,
+        PIN_D5,
+        PIN_D6,
+        PIN_D7,
+        PIN_AL0,
+        PIN_AL1,
+        PIN_AL2,
+        PIN_AL3,
+        PIN_AL4,
+        PIN_AL5,
+        PIN_AL6,
+        PIN_AL7,
+#if defined(PIN_AL8)
+        PIN_AL8,
+        PIN_AL9,
+        PIN_AL10,
+        PIN_AL11,
+#endif
+#if defined(PIN_AM8)
+        PIN_AM8,
+        PIN_AM9,
+        PIN_AM10,
+        PIN_AM11,
+#endif
         PIN_AH12,
         PIN_AH13,
         PIN_AH14,
         PIN_AH15,
+        PIN_F1,
+        PIN_F2,
+        PIN_F3,
 };
 
 void Pins::begin() {
     // Set directions.
     for (uint8_t i = 0; i < sizeof(BUS_PINS); i++)
-        pinMode(BUS_PINS[i], INPUT);
-    busMode(AD, INPUT);
-    busMode(AH, INPUT);
-
-    pinMode(PIN_PC0, INPUT_PULLUP);
-    pinMode(PIN_PC1, INPUT_PULLUP);
-    pinMode(PIN_PC2, INPUT_PULLUP);
-    pinMode(PIN_AS, INPUT);
-    pinMode(PIN_RW, INPUT);
-    pinMode(PIN_IRQ1, OUTPUT);
-    // #NMI is connected to P21/PC1 for LILBUG trace.
-    pinMode(PIN_NMI, OUTPUT_OPENDRAIN);
-    pinMode(PIN_EXTAL, OUTPUT);
-    pinMode(PIN_XTAL, INPUT_PULLUP);
-    pinMode(PIN_E, INPUT);
-    pinMode(PIN_RESET, OUTPUT);
+        pinMode(BUS_PINS[i], INPUT_PULLUP);
+    pinMode(PIN_XIN, OUTPUT);
+    pinMode(PIN_BREQ, INPUT_PULLUP);
+    pinMode(PIN_RDS, INPUT_PULLUP);
+    pinMode(PIN_WDS, INPUT_PULLUP);
+    pinMode(PIN_SA, OUTPUT);
+    pinMode(PIN_SB, OUTPUT);
+    pinMode(PIN_HOLD, OUTPUT);
+    pinMode(PIN_RST, OUTPUT);
+    pinMode(PIN_ENIN, OUTPUT);
+    pinMode(PIN_ENOUT, INPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
     turn_off_led();
 
     assert_reset();
-    extal_lo();
+    xin_lo();
     _freeRunning = false;
 
-    setIoDevice(SerialDevice::DEV_SCI, 0);
+    setIoDevice(SerialDevice::DEV_ACIA, ioBaseAddress());
+
+    reset();
 }
 
-Signals &Pins::cycle() {
-    // MC6803/HD6303 clock E is CLK/4, so we toggle CLK 4 times
-    // c1
-    delayNanoseconds(c1_lo_ns);
+Signals &Pins::prepareCycle() {
     Signals &signals = Signals::currCycle();
-    signals.getDirection();
-    extal_hi();
-    delayNanoseconds(c1_hi_ns);
-    signals.getAddr1();
-    extal_lo();
-    // c2
-    signals.getAddr2();
-    delayNanoseconds(c2_lo_ns);
-    extal_hi();
-    delayNanoseconds(c2_hi_ns);
-    extal_lo();
-    if (signals.rw == HIGH) {
-        // c3
-        delayNanoseconds(c3_read_lo_ns);
-        extal_hi();
-        if (SciH.isSelected(signals.addr)) {
-            signals.debug('s').data = SciH.read(signals.addr);
-        } else if (Acia.isSelected(signals.addr)) {
-            signals.debug('a').data = Acia.read(signals.addr);
-        } else if (signals.readRam()) {
-            signals.debug('m').data = Memory.raw_read(signals.addr);
-        } else {
-            ;  // inject data from signals.data
-        }
-        delayNanoseconds(c3_read_hi_ns);
-        extal_lo();
-        // c4
-        delayNanoseconds(c4_read_lo_ns);
-        busWrite(AD, signals.data);
-        extal_hi();
-        // change data bus to output
-        busMode(AD, OUTPUT);
-        Signals::nextCycle();
-        delayNanoseconds(c4_read_hi_ns);
-    } else {
-        // c3
-        delayNanoseconds(c3_write_lo_ns);
-        extal_hi();
-        delayNanoseconds(c3_write_hi_ns);
+    while (signal_breq() != LOW) {
+        clock_cycle();
+    }
+    assert_enin();
+    // #BREQ=LOW
+    while (!signals.getDirection()) {
+        clock_cycle();
+    }
+    signals.getAddr();
+    return signals;
+}
+
+Signals &Pins::completeCycle(Signals &signals) {
+    if (signals.write()) {
         signals.getData();
-        extal_lo();
-        // c4
-        if (SciH.isSelected(signals.addr)) {
-            SciH.write(signals.debug('s').data, signals.addr);
-        } else if (Acia.isSelected(signals.addr)) {
+        if (Acia.isSelected(signals.addr)) {
             Acia.write(signals.debug('a').data, signals.addr);
         } else if (signals.writeRam()) {
             Memory.raw_write(signals.addr, signals.debug('m').data);
         } else {
             ;  // capture data to signals.data
         }
-        delayNanoseconds(c4_write_lo_ns);
-        extal_hi();
-        Signals::nextCycle();
-        delayNanoseconds(c4_write_hi_ns);
+        while (signal_wds() == LOW) {
+            clock_cycle();
+        }
+    } else {
+        if (Acia.isSelected(signals.addr)) {
+            signals.debug('a').data = Acia.read(signals.addr);
+        } else if (signals.readRam()) {
+            signals.debug('m').data = Memory.raw_read(signals.addr);
+        } else {
+            ;  // inject data from signals.data
+        }
+        busWrite(D, signals.data);
+        busMode(D, OUTPUT);
+        while (signal_rds() == LOW) {
+            clock_cycle();
+        }
     }
-    // To ensure data hold time (10ns).
-    extal_lo();
-    delayNanoseconds(next_c1_lo_ns);
-    busMode(AD, INPUT);
-
+    busMode(D, INPUT);
+    Signals::nextCycle();
+    for (auto i = 0; signal_breq() == LOW && i < 2; i++) {
+        clock_cycle();
+    }
+    if (signal_breq() != LOW) {
+        negate_enin();
+    }
     return signals;
+}
+
+Signals &Pins::cycle() {
+    return completeCycle(prepareCycle());
 }
 
 void Pins::execInst(const uint8_t *inst, uint8_t len) {
@@ -280,7 +282,7 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
-    for (uint8_t i = 0; i < len; i++) {
+    for (auto i = 0; i < len; i++) {
         Signals::inject(inst[i]);
         cycle();
     }
@@ -297,83 +299,28 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
     return cap;
 }
 
-static inline void inject_mode_pin(uint8_t pin, uint8_t val) {
-    if (val) {
-        pinMode(pin, INPUT_PULLUP);
-    } else {
-        digitalWriteFast(pin, LOW);
-        pinMode(pin, OUTPUT);
-    }
-}
-
-static void inject_mode(uint8_t mode) {
-    inject_mode_pin(PIN_PC2, mode & 4);
-    inject_mode_pin(PIN_PC1, mode & 2);
-    inject_mode_pin(PIN_PC0, mode & 1);
-}
-
-static void release_mode() {
-    // #NMI is connected to P21/PC1 for LILBUG trace.
-    pinMode(PIN_PC2, INPUT_PULLUP);
-    pinMode(PIN_PC1, INPUT_PULLUP);
-    pinMode(PIN_PC0, INPUT_PULLUP);
-}
-
 void Pins::reset(bool show) {
-    // Reset vector should not point internal registers.
-    const uint16_t reset_vec = Memory.raw_read_uint16(Memory::reset_vector);
-    if (Memory::is_internal(reset_vec))
-        Memory.raw_write_uint16(Memory::reset_vector, 0x0020);
-
     assert_reset();
-    // Synchronize clock output and E clock input.
-    while (clock_e() == LOW)
+    // #RST must remain low is 8 Tc.
+    for (auto i = 0; i < 4 * 8 * 10; i++)
         clock_cycle();
-    while (clock_e() != LOW)
-        clock_cycle();
-    Signals::resetCycles();
-    // #RESET Low Pulse Width: min 3 E cycles
-    cycle().debug('R');
-    // Mode Programming Setup Time: min 2 E cycles
-    inject_mode(MPU_MODE);
-    cycle().debug('R');
-    cycle().debug('R');
     negate_reset();
-    cycle().debug('r');
-    // Mode Programming Hold Time: min MC6803:100ns HD6303:150ns
-    release_mode();
-    if (Regs.isHd63())
-        cycle().debug('e');
-    // Read Reset vector
-    cycle().debug('v');
-    cycle().debug('v');
-    if (show)
-        Signals::printCycles();
-    // The first instruction will be saving registers, and certainly can be
-    // injected.
+    negate_enin();
+    // The first instruction will be fetched within 13 Tc after #RST
+    // has gone high.
+    for (auto i = 0; i < 4 * 13; i++)
+        clock_cycle();
     Regs.save(show);
-    if (Memory::is_internal(reset_vec)) {
-        Memory.raw_write_uint16(Memory::reset_vector, reset_vec);
-        Regs.pc = reset_vec;
-    }
-
-    SciH.reset();
 }
 
 void Pins::idle() {
-    // Inject "BRA *"
-    Signals::inject(0x20);
-    cycle();
-    Signals::inject(0xFE);
-    cycle();
-    Signals::inject(0);
-    cycle();
+    // #ENIN is HIGH and bus cycle is suspened.
+    clock_cycle();
 }
 
 void Pins::loop() {
     if (_freeRunning) {
         Acia.loop();
-        SciH.loop();
         cycle();
         if (user_sw() == LOW)
             Commands.halt(true);
@@ -382,42 +329,81 @@ void Pins::loop() {
     }
 }
 
-void Pins::suspend(bool show) {
-    uint8_t writes = 0;
-    assert_nmi();
-    // Wait for consequtive 7 writes which means registers saved onto stack.
-    while (writes < 7) {
-        Signals::capture();
-        Signals &signals = cycle();
-        if (signals.rw == LOW) {
-            writes++;
-            signals.debug('0' + writes);
-        } else {
-            writes = 0;
+bool Pins::isInsnFetch(const Signals *c0, const Signals *c1, const Signals *c2,
+        const Signals *c3, const Signals *c4) {
+    if (c4->addr == c2->addr + 1 && c2->addr == c1->addr + 1) {
+        if (c1->read() && c2->read()) {
+            // 8 bit operation
+            if (debug_cycles)
+                cli.println(F("8 bit operation"));
+            return true;
         }
     }
-    negate_nmi();
-    // Capture registers pushed onto stack.
-    const Signals *end = &Signals::currCycle() - writes;
-    Regs.capture(end);
-    if (!Regs.isHd63())
-        cycle().debug('n');
-    // Inject the current PC as NMI vector.
-    Signals::inject(Regs.pc >> 8);
-    cycle().debug('v');
-    Signals::inject(Regs.pc);
-    cycle().debug('v');
-    Signals::flushWrites(end);
-    if (debug_cycles) {
-        Signals::printCycles();
-    } else if (show) {
-        Signals::printCycles(end);
+    if (c4->addr == c1->addr + 1 && c1->addr == c0->addr + 1) {
+        if (c0->read() && c1->read()) {
+            if (c3->addr == c2->addr + 1 && c2->read() == c3->read()) {
+                // 16 bit operation
+                if (debug_cycles)
+                    cli.println(F("16 bit operation"));
+                return true;
+            }
+            if (c3->addr == c2->addr && c2->read() && c3->write()) {
+                // read-modify-write operation
+                if (debug_cycles)
+                    cli.println(F("read-modify-write operation"));
+                return true;
+            }
+        }
     }
+    if (c2->read() && (c2->data & ~0x1B) == 0x64 && c3->addr == c2->addr + 1 &&
+            c3->read()) {
+        const auto target = c3->addr + static_cast<int8_t>(c3->data);
+        if (c4->addr == target + 1) {
+            // branch operation
+            if (debug_cycles)
+                cli.println(F("branch operation"));
+            return true;
+        }
+    }
+    if (c1->read() && c1->data == 0x24 && c2->addr == c1->addr + 1 &&
+            c3->addr == c1->addr + 2 && c2->read() && c3->read()) {
+        const auto target = (static_cast<uint16_t>(c3->data) << 8) | c2->data;
+        if (c4->addr == target + 1) {
+            // jump operation
+            if (debug_cycles)
+                cli.println(F("jump operation"));
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Pins::suspend(bool show) {
+    Signals::resetCycles();
+    const Signals *c0 = &cycle();
+    const Signals *c1 = &cycle();
+    const Signals *c2 = &cycle();
+    const Signals *c3 = &cycle();
+    while (true) {
+        Signals &signals = prepareCycle();
+        if (signals.read() && !Acia.isSelected(signals.addr) &&
+                isInsnFetch(c0, c1, c2, c3, &signals)) {
+            Regs.save();
+            break;
+        }
+        completeCycle(signals);
+        c0 = c1;
+        c1 = c2;
+        c2 = c3;
+        c3 = &signals;
+    }
+    if (show)
+        Signals::printCycles(c3 + 1);
 }
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        Signals::resetCycles();
         suspend(show);
         _freeRunning = false;
         turn_off_led();
@@ -431,9 +417,37 @@ void Pins::run() {
 }
 
 void Pins::step(bool show) {
+    const auto insn = Memory.raw_read(Regs.pc + 1);
+    auto bus_cycles = Regs::busCycles(insn);
+    if (bus_cycles == 0)
+        return;
+    auto ea = Regs.effectiveAddr(insn, Regs.pc + 1);
+    if (Memory::is_internal(ea))
+        bus_cycles = Regs::insnLen(insn);
     Regs.restore(debug_cycles);
     Signals::resetCycles();
-    suspend(show);
+    if ((insn & ~1) == 0x2E) {
+        // SSM instruction
+        const Signals &ssm = cycle().debug('1');
+        if (show || debug_cycles)
+            ssm.print();
+        for (auto n = 0; n < 256; n++) {
+            Signals &signals = prepareCycle();
+            if (signals.addr != ea)
+                break;
+            completeCycle(signals).debug('s');
+            if (show || debug_cycles)
+                signals.print();
+            ea++;
+        }
+    } else {
+        for (auto c = 0; c < bus_cycles; c++) {
+            cycle().debug(c < 9 ? '1' + c : 'a' + c - 9);
+        }
+        if (show || debug_cycles)
+            Signals::printCycles();
+    }
+    Regs.save(debug_cycles);
 }
 
 uint8_t Pins::allocateIrq() {
@@ -443,31 +457,28 @@ uint8_t Pins::allocateIrq() {
 
 void Pins::assertIrq(uint8_t irq) {
     _irq |= (1 << irq);
-    if (_irq)
-        assert_irq1();
+    if (_irq) {
+        // #INTA is negative-edge sensed.
+        assert_sa();
+        delayMicroseconds(1);
+        negate_sa();
+    }
 }
 
 void Pins::negateIrq(uint8_t irq) {
     _irq &= ~(1 << irq);
     if (_irq == 0)
-        negate_irq1();
+        negate_sa();
 }
 
 Pins::SerialDevice Pins::getIoDevice(uint16_t &baseAddr) {
-    if (_ioDevice == SerialDevice::DEV_ACIA)
-        baseAddr = Acia.baseAddr();
+    baseAddr = Acia.baseAddr();
     return _ioDevice;
 }
 
 void Pins::setIoDevice(SerialDevice device, uint16_t baseAddr) {
     _ioDevice = device;
-    if (device == SerialDevice::DEV_SCI) {
-        Acia.enable(false, 0);
-        SciH.enable(true);
-    } else {
-        SciH.enable(false);
-        Acia.enable(true, baseAddr);
-    }
+    Acia.enable(true, baseAddr);
 }
 
 // Local Variables:

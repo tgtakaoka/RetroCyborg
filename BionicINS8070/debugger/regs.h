@@ -4,32 +4,38 @@
 #include <stdint.h>
 
 #include <dis_memory.h>
-#include "signals.h"
 
 struct Regs {
-    uint16_t sp;
-    uint16_t pc;
-    uint16_t x;
     uint8_t a;
-    uint8_t b;
-    uint8_t cc;
-    uint16_t getD() const { return (static_cast<uint16_t>(a) << 8) | b; }
-    void setD(uint16_t d) {
-        b = d;
-        a = d >> 8;
+    uint8_t e;
+    uint16_t getEa() const { return (static_cast<uint16_t>(e) << 8) | a; }
+    void setEa(uint16_t ea) {
+        a = ea;
+        e = ea >> 8;
     }
+    uint8_t s;
+    uint16_t t;
+    uint16_t pc;
+    uint16_t sp;
+    uint16_t p2;
+    uint16_t p3;
 
     void print() const;
-    void save(bool show = false, bool undoPrefetch = false);
+    void save(bool show = false);
     void restore(bool show = false);
-    void capture(const Signals *stack);
+    static uint8_t busCycles(uint8_t insn);
+    static uint8_t insnLen(uint8_t insn);
+    uint16_t effectiveAddr(uint8_t insn, uint16_t insnp) const;
+
     const char *cpu() const;
-    bool isHd63() const;
 
     void printRegList() const;
     char validUint8Reg(const char *word) const;
     char validUint16Reg(const char *word) const;
     void setRegValue(char reg, uint32_t value);
+
+private:
+    uint16_t selectBase(uint8_t insn) const;
 };
 
 extern Regs Regs;
@@ -50,7 +56,6 @@ public:
     void raw_write_uint16(uint16_t addr, uint16_t data);
 
     static constexpr auto memory_size = 0x10000;
-    static constexpr auto reset_vector = 0xFFFE;
     static bool is_internal(uint16_t addr);
 
 protected:
