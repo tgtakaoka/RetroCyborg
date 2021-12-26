@@ -14,6 +14,8 @@ class Pins Pins;
 
 Mc6850 Acia(Console);
 
+static constexpr bool debug_cycles = true;
+
 /**
  * MC146805E bus cycle.
  *         __    __    __    __    __    __    __    _
@@ -259,13 +261,13 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
     for (uint8_t i = 0; i < len; i++) {
-        Signals::currCycle().inject(inst[i]);
+        Signals::inject(inst[i]);
         raw_cycle();
     }
     uint8_t cap = 0;
     if (buf) {
         while (cap < max) {
-            Signals::currCycle().capture();
+            Signals::capture();
             const Signals &signals = raw_cycle();
             if (cap == 0 && addr)
                 *addr = signals.addr;
@@ -341,7 +343,6 @@ void Pins::loop() {
 }
 
 void Pins::halt(bool show) {
-    const auto debug = false;
     if (_freeRunning) {
         _freeRunning = false;
         Signals::resetCycles();
@@ -360,7 +361,7 @@ void Pins::halt(bool show) {
         if (show)
             Signals::printCycles();
         turn_off_led();
-        Regs.save(debug);
+        Regs.save(debug_cycles);
     }
 }
 
@@ -371,17 +372,16 @@ void Pins::run() {
 }
 
 void Pins::step(bool show) {
-    const bool debug = false;
     const uint8_t insn = Memory.read(Regs.pc);
     const uint8_t cycles = Regs.cycles(insn);
-    Regs.restore(debug);
+    Regs.restore(debug_cycles);
     Signals::resetCycles();
     for (uint8_t c = 0; c < cycles; c++) {
         raw_cycle().debug(c < 9 ? '1' + c : 'a' + c - 9);
     }
     if (show)
         Signals::printCycles();
-    Regs.save(debug);
+    Regs.save(debug_cycles);
 }
 
 uint8_t Pins::allocateIrq() {

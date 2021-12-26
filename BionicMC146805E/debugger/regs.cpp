@@ -1,5 +1,6 @@
 #include "regs.h"
 
+#include <libcli.h>
 #include "pins.h"
 #include "string_util.h"
 
@@ -360,36 +361,26 @@ void Regs::restore(bool show) {
 }
 
 void Regs::printRegList() const {
-    cli.println(F("?Reg: pc x a cc"));
+    cli.println(F("?Reg: PC X A CC"));
 }
 
-bool Regs::validUint8Reg(char reg) const {
-    if (reg == 'a' || reg == 'x' || reg == 'c') {
-        cli.print(reg);
-        if (reg == 'c')
-            cli.print('c');
-        return true;
-    }
-    return false;
+char Regs::validUint8Reg(const char *word) const {
+    if (strcasecmp(word, "A") == 0)
+        return 'a';
+    if (strcasecmp(word, "X") == 0)
+        return 'x';
+    if (strcasecmp(word, "CC") == 0)
+        return 'c';
+    return 0;
 }
 
-bool Regs::validUint16Reg(char reg) const {
-    if (reg == 'p') {
-        cli.print(reg);
-        cli.print('c');
-        return true;
-    }
-    return false;
+char Regs::validUint16Reg(const char *word) const {
+    if (strcasecmp(word, "PC") == 0)
+        return 'p';
+    return 0;
 }
 
-bool Regs::setRegValue(char reg, uint32_t value, State state) {
-    if (state == State::CLI_CANCEL)
-        return true;
-    if (state == State::CLI_DELETE) {
-        cli.backspace(reg == 'p' || reg == 'c' ? 3 : 2);
-        return false;
-    }
-    cli.println();
+void Regs::setRegValue(char reg, uint32_t value) {
     switch (reg) {
     case 'p':
         pc = value;
@@ -404,8 +395,6 @@ bool Regs::setRegValue(char reg, uint32_t value, State state) {
         cc = value;
         break;
     }
-    print();
-    return true;
 }
 
 bool Memory::is_internal(uint16_t addr) {
