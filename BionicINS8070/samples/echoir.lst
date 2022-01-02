@@ -1,0 +1,278 @@
+   0:                          CPU  ins8070
+   0:                          INCLUDE              "ins8070.inc"
+   0:          ;;; -*- mode: asm; mode: flyspell-prog; -*-
+   0:
+   0:          ;;; INS8070
+   0:          ;;; Status Register
+   0: =$80     S_CY:           EQU  0x80            ; Carry bit
+   0: =$80     S_L:            EQU  0x80            ; Link bit
+   0: =$40     S_OV:           EQU  0x40            ; Overflow bit
+   0: =$20     S_SB:           EQU  0x20            ; Sense B bit
+   0: =$10     S_SA:           EQU  0x10            ; Sense A bit
+   0: =$8      S_F3:           EQU  0x08            ; Flag 3 bit
+   0: =$4      S_F2:           EQU  0x04            ; Flag 2 bit
+   0: =$2      S_F1:           EQU  0x02            ; Flag 1 bit
+   0: =$1      S_IE:           EQU  0x01            ; Interrupt Enable bit
+   0:
+   0:          ;;; Transfer locations
+   0: =$1      ORG_RESTART:    EQU  0x0001          ; Restart transfer location
+   0: =$4      ORG_INTA:       EQU  0x0004          ; Interrupt A transfer location
+   0: =$7      ORG_INTB:       EQU  0x0007          ; Interrupt B transfer location
+   0: =$A      ORG_END:        EQU  0x000A
+   0:
+   0:          ;;; Call vectors
+   0: =$20     VEC_CALL0:      EQU  0x0020          ; Call 0 vector
+   0: =$22     VEC_CALL1:      EQU  0x0022          ; Call 0 vector
+   0: =$24     VEC_CALL2:      EQU  0x0024          ; Call 0 vector
+   0: =$26     VEC_CALL3:      EQU  0x0026          ; Call 0 vector
+   0: =$28     VEC_CALL4:      EQU  0x0028          ; Call 0 vector
+   0: =$2A     VEC_CALL5:      EQU  0x002A          ; Call 0 vector
+   0: =$2C     VEC_CALL6:      EQU  0x002C          ; Call 0 vector
+   0: =$2E     VEC_CALL7:      EQU  0x002E          ; Call 0 vector
+   0: =$30     VEC_CALL8:      EQU  0x0030          ; Call 0 vector
+   0: =$32     VEC_CALL9:      EQU  0x0032          ; Call 0 vector
+   0: =$34     VEC_CALL10:     EQU  0x0034          ; Call 0 vector
+   0: =$36     VEC_CALL11:     EQU  0x0036          ; Call 0 vector
+   0: =$38     VEC_CALL12:     EQU  0x0038          ; Call 0 vector
+   0: =$3A     VEC_CALL13:     EQU  0x003A          ; Call 0 vector
+   0: =$3C     VEC_CALL14:     EQU  0x003C          ; Call 0 vector
+   0: =$3E     VEC_CALL15:     EQU  0x003E          ; Call 0 vector
+   0: =$40     VEC_END:        EQU  0x0040
+   0:
+   0:          ;;; MC6850 Asynchronous Communication Interface Adapter
+   0: =$DF00   ACIA:           EQU  0xDF00
+   0:                          INCLUDE              "mc6850.inc"
+   0:          ;;; -*- mode: asm; mode: flyspell-prog; -*-
+   0:
+   0:          ;;; MC6850
+   0:          ;;; Asynchronous Communication Interface Adapter
+   0:
+   0:          ;;; Control register
+   0: =$DF00   ACIA_control:   EQU  ACIA+0
+   0:          ;; Counter Divider Select Bits
+   0: =$3      CDS_gm:         EQU  0b11            ; Group mask
+   0: =$0      CDS_DIV1_gc:    EQU  0b00000000      ; /1
+   0: =$1      CDS_DIV16_gc:   EQU  0b00000001      ; /16
+   0: =$2      CDS_DIV64_gc:   EQU  0b00000010      ; /64
+   0: =$3      CDS_RESET_gc:   EQU  0b00000011      ; Master Reset
+   0:          ;; Word Select Bits
+   0: =$1C     WSB_gm:         EQU  0b00011100      ; Group mask
+   0: =$0      WSB_7E2_gc:     EQU  0b00000000      ; 7 Bits + Even Parity + 2 Stop Bits
+   0: =$4      WSB_7O2_gc:     EQU  0b00000100      ; 7 bits + Odd Parity  + 2 Stop Bits
+   0: =$8      WSB_7E1_gc:     EQU  0b00001000      ; 7 bits + Even Parity + 1 Stop Bits
+   0: =$C      WSB_7O1_gc:     EQU  0b00001100      ; 7 bits + Odd Parity  + 1 Stop Bits
+   0: =$10     WSB_8N2_gc:     EQU  0b00010000      ; 8 bits + No Parity   + 2 Stop Bits
+   0: =$14     WSB_8N1_gc:     EQU  0b00010100      ; 8 bits + No Parity   + 1 Stop Bits
+   0: =$18     WSB_8E1_gc:     EQU  0b00011000      ; 8 bits + Even Parity + 1 Stop Bits
+   0: =$1C     WSB_8O1_gc:     EQU  0b00011100      ; 8 bits + Odd Parity  + 1 Stop Bits
+   0:          ;; Transmit Control Bits
+   0: =$60     TCB_gm:         EQU  0b01100000      ; Group mask
+   0: =$0      TCB_DI_gc:      EQU  0b00000000      ; RTS=Low,  Tx Interrupt Disabled
+   0: =$20     TCB_EI_gc:      EQU  0b00100000      ; RTS=Low,  Tx Interrupt Enabled
+   0: =$40     TCB_RTS_gc:     EQU  0b01000000      ; RTS=High, Tx Interrupt Disabled
+   0: =$60     TCB_BREAK_gc:   EQU  0b01100000      ; RTS=Low,  Tx Interrupt Disabled
+   0:          ; Transmit Break Level
+   0: =$80     RIEB_bm:        EQU  0b10000000      ; Receive Interrupt Enable Bit mask
+   0:
+   0:          ;;; Status register
+   0: =$DF00   ACIA_status:    EQU  ACIA+0
+   0: =$1      RDRF_bm:        EQU  0b00000001      ; Receive Data Register Full
+   0: =$2      TDRE_bm:        EQU  0b00000010      ; Transmit Data Register Empty
+   0: =$4      DCDF_bm:        EQU  0b00000100      ; Data Carrier Detect Flag
+   0: =$8      CTSF_bm:        EQU  0b00001000      ; Clear To Send Flag
+   0: =$10     FERR_bm:        EQU  0b00010000      ; Frame Error Flag
+   0: =$20     OVRN_bm:        EQU  0b00100000      ; Receiver Overrun Flag
+   0: =$40     PERR_bm:        EQU  0b01000000      ; Parity Error Flag
+   0: =$80     IRQF_bm:        EQU  0b10000000      ; Interrupt Request Flag
+   0:
+   0:          ;;; Data register
+   0: =$DF01   ACIA_data:      EQU  ACIA+1          ; Data register
+   0: =$0      ACIA_C:         EQU  0               ; ACIA control offset
+   0: =$0      ACIA_S:         EQU  0               ; ACIA status offset
+   0: =$1      ACIA_D:         EQU  1               ; ACIA data register offset
+   0:
+   0: =$10     rx_queue_size:  EQU  16
+   0: =$94     RX_INT_TX_NO:   EQU  WSB_8N1_gc|RIEB_bm
+   0:
+2000:                          ORG  0x2000
+2000:          rx_queue:
+2000:                          DS   rx_queue_size
+2010:
+1000:                          ORG  0x1000
+1000:          stack:
+1000:          initialize:
+1000: 25 00 10                 LD   sp, =stack
+1003:          ;; initialize receive queue
+1003: 26 00 20                 LD   p2, =rx_queue
+1006: C4 10                    LD   a, =rx_queue_size
+1008: 20 3F 10                 JSR  queue_init
+100B:
+100B:          ;; initialize ACIA
+100B: 26 00 DF                 LD   p2, =ACIA
+100E: C4 03                    LD   a, =CDS_RESET_gc    ; Master reset
+1010: CA 00                    ST   a, ACIA_C, p2
+1012: C4 94                    LD   a, =RX_INT_TX_NO
+1014: CA 00                    ST   a, ACIA_C, p2
+1016: 3B 01                    OR   s, =S_IE        ; Enable IRQ
+1018:
+1018:          loop:
+1018: 26 00 20                 LD   p2, =rx_queue
+101B: 39 FE                    AND  s, =~S_IE       ; Disable IRQ
+101D: 20 84 10                 JSR  queue_remove
+1020: 3B 01                    OR   s, =S_IE        ; Enable IRQ
+1022: 6C F4                    BZ   loop
+1024:          echo:
+1024: 40                       LD   a, e            ; A=data
+1025: 20 30 10                 JSR  putchar
+1028: E4 0D                    XOR  a, =0x0D        ; carriage return
+102A: 7C EC                    BNZ  loop
+102C: C4 0A                    LD   a, =0x0A
+102E: 48                       LD   e, a            ; E=newline
+102F: 74 F3                    BRA  echo
+1031:
+1031:          putchar:
+1031: 22 00 DF                 PLI  p2, =ACIA
+1034: 0A                       PUSH a
+1035:          transmit_loop:
+1035: C2 00                    LD   a, ACIA_S, p2
+1037: D4 02                    AND  a, =TDRE_bm
+1039: 6C FA                    BZ   transmit_loop
+103B:          transmit_data:
+103B: 38                       POP  a
+103C: CA 01                    ST   a, ACIA_D, p2
+103E: 5E                       POP  p2
+103F: 5C                       RET
+1040:
+1040:                          INCLUDE              "queue.inc"
+1040:          ;;; [queue] queue structure
+1040: =$0      queue_len:      EQU  0               ; queue length
+1040: =$1      queue_size:     EQU  1               ; buffer size
+1040: =$2      queue_put:      EQU  2               ; queue put index
+1040: =$3      queue_get:      EQU  3               ; queue get index
+1040: =$4      queue_buf:      EQU  4               ; buffer start offset
+1040:
+1040:          ;;; [queue] Initialize queue
+1040:          ;;; @param P2 queue work space pointer
+1040:          ;;; @param A queue work space size
+1040:          ;;; @clobber A
+1040:          queue_init:
+1040: 48                       LD   e, a
+1041: C4 00                    LD   a, =0
+1043: CA 00                    ST   a, queue_len, p2
+1045: CA 02                    ST   a, queue_put, p2
+1047: CA 03                    ST   a, queue_get, p2
+1049: 01                       XCH  a, e            ; E=0, A=space size
+104A: FC 04                    SUB  a, =queue_buf
+104C: CA 01                    ST   a, queue_size, p2
+104E: 0A                       PUSH a               ; 0,SP=counter
+104F: C6 04                    LD   a, @queue_buf, p2
+1051:          queue_init_loop:
+1051: 40                       LD   a, e            ; E=0
+1052: CE 01                    ST   a, @1, p2
+1054: 99 00                    DLD  a, 0, sp
+1056: 7C F9                    BNZ  queue_init_loop
+1058: 38                       POP  a               ; discard counter
+1059: 5C                       RET
+105A:
+105A:          ;;; [add_p2_a] Add A to P2
+105A:          ;;; @param P2
+105A:          ;;; @param A
+105A:          ;;; @return P3=P2+A
+105A:          add_p2_a:
+105A: 08                       PUSH ea              ; save EA
+105B: 01                       XCH  a, e
+105C: C4 00                    LD   a, =0
+105E: 01                       XCH  a, e
+105F: 08                       PUSH ea              ; 0:E
+1060: 32                       LD   ea, p2
+1061: B1 00                    ADD  ea, 0, sp       ; EA=P2+E
+1063: 47                       LD   p3, ea
+1064: 3A                       POP  ea
+1065: 3A                       POP  ea              ; restore EA
+1066: 5C                       RET
+1067:
+1067:          ;;; [queue] Add an element to queue
+1067:          ;;; @param P2 queue work space pointer
+1067:          ;;; @param A an element
+1067:          ;;; @return E an element
+1067:          ;;; @return A 0 if queue is full
+1067:          queue_add:
+1067: 57                       PUSH p3
+1068: 48                       LD   e, a            ; save element in E
+1069: C2 00                    LD   a, queue_len, p2
+106B: FA 01                    SUB  a, queue_size, p2
+106D: 6C 14                    BZ   queue_add_return    ; A=0
+106F: C2 02                    LD   a, queue_put, p2    ; 8 bits offset
+1071: 20 59 10                 JSR  add_p2_a
+1074: 40                       LD   a, e
+1075: CB 04                    ST   a, queue_buf, p3    ; store an element
+1077: 92 00                    ILD  a, queue_len, p2
+1079: 92 02                    ILD  a, queue_put, p2
+107B: FA 01                    SUB  a, queue_size, p2
+107D: 7C 04                    BNZ  queue_add_return    ; A is not zero
+107F: CA 02                    ST   a, queue_put, p2
+1081: C4 01                    LD   a, =1           ; A is not zero
+1083:          queue_add_return:
+1083: 5F                       POP  p3
+1084: 5C                       RET
+1085:
+1085:          ;;; [queue] Remove an element from queue
+1085:          ;;; @param P2 queue work space pointer
+1085:          ;;; @return E an element
+1085:          ;;; @return A 0 if queue is empty
+1085:          queue_remove:
+1085: 57                       PUSH p3
+1086: C2 00                    LD   a, queue_len, p2
+1088: 6C 14                    BZ   queue_remove_return ; A is zero
+108A:          queue_remove_elem
+108A: C2 03                    LD   a, queue_get, p2    ; 8 bits offset
+108C: 20 59 10                 JSR  add_p2_a
+108F: C3 04                    LD   a, queue_buf, p3    ; read an element
+1091: 48                       LD   e, a
+1092: 9A 00                    DLD  a, queue_len, p2
+1094: 92 03                    ILD  a, queue_get, p2
+1096: FA 01                    SUB  a, queue_size, p2
+1098: 7C 04                    BNZ  queue_remove_return ; A is not zero
+109A: CA 03                    ST   a, queue_get, p2    ; A is zero
+109C: C4 01                    LD   a, =1           ; A is not zero
+109E:          queue_remove_return:
+109E: 5F                       POP  p3
+109F: 5C                       RET
+10A0:
+10A0:          ;;; Local Variables:
+10A0:          ;;; mode: asm
+10A0:          ;;; End:
+10A0:          ;;; vim: set ft=asm et ts=4 sw=4:
+10A0:
+10A0:          isr_irq:
+10A0: 08                       PUSH ea
+10A1: 22 00 DF                 PLI  p2, =ACIA
+10A4: C2 00                    LD   a, ACIA_S, p2
+10A6: 48                       LD   e, a
+10A7: D4 80                    AND  a, =IRQF_bm
+10A9: 6C 12                    BZ   isr_irq_return
+10AB: 40                       LD   a, e
+10AC: D4 70                    AND  a, =FERR_bm|OVRN_bm|PERR_bm
+10AE: 7C 12                    BNZ  isr_irq_recv_err
+10B0:          isr_irq_receive:
+10B0: 40                       LD   a, e
+10B1: D4 01                    AND  a, =RDRF_bm
+10B3: 6C 08                    BZ   isr_irq_recv_end
+10B5: C2 01                    LD   a, ACIA_D, p2
+10B7: 26 00 20                 LD   p2, =rx_queue
+10BA: 20 66 10                 JSR  queue_add
+10BD:          isr_irq_recv_end:
+10BD:          isr_irq_return:
+10BD: 5E                       POP  p2
+10BE: 3A                       POP  ea
+10BF: 3B 01                    OR   s, =S_IE
+10C1: 5C                       RET
+10C2:          isr_irq_recv_err:
+10C2: C2 01                    LD   a, ACIA_D, p2   ; clear errors
+10C4: 74 EA                    BRA  isr_irq_receive
+10C6:
+   4:                          ORG  ORG_INTA
+   4: 24 9F 10                 JMP  isr_irq
+   7:
+   1:                          ORG  ORG_RESTART
+   1: 24 FF 0F                 JMP  initialize
