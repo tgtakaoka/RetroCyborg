@@ -419,40 +419,37 @@ static constexpr uint8_t lo(const uint16_t v) {
 }
 
 void Regs::save(bool show) {
-    static const uint8_t ST_EA[] = { 0x8D, 0x00 }; // ST EA,0xFF00
-    static const uint8_t LD_EA_PC[] = { 0x30 };    // LD EA,PC
-    static const uint8_t LD_EA_SP[] = { 0x31 };    // LD EA,SP
-    static const uint8_t LD_EA_P2[] = { 0x32 };    // LD EA,P2
-    static const uint8_t LD_EA_P3[] = { 0x33 };    // LD EA,P3
-    static const uint8_t LD_EA_T[] = { 0x0B };     // LD EA,T
-    static const uint8_t LD_A_S[] = { 0x06 };      // LD A,S
-    static const uint8_t ST_A[] = { 0xCD, 0x00 };  // ST A,0xFF000
-    static uint8_t buffer[13];
+    static const uint8_t ST_EA[] = { 0x88, 0xFE };       // ST EA,$-1,PC
+    static const uint8_t LD_EA_SP[] = { 0x31 };          // LD EA,SP
+    static const uint8_t LD_SP[] = { 0x25, 0x00, 0x01 }; // LD SP,=0x0100
+    static const uint8_t PUSH_P2[] = { 0x56 };           // PUSH P2
+    static const uint8_t PUSH_P3[] = { 0x57 };           // PUSH P3
+    static const uint8_t LD_EA_T[] = { 0x0B };           // LD EA,T
+    static const uint8_t PUSH_EA[] = { 0x08 };           // PUSH EA
+    static const uint8_t LD_A_S[] = { 0x06 };            // LD A,S
+    static const uint8_t PUSH_A[] = { 0x0A };            // PUSH A
+    static uint8_t buffer[11];
     if (show)
         Signals::resetCycles();
-    Pins.captureWrites(ST_EA, sizeof(ST_EA), nullptr, buffer + 0, 2);
-    Pins.execInst(LD_EA_PC, sizeof(LD_EA_PC));
-    Pins.captureWrites(ST_EA, sizeof(ST_EA), nullptr, buffer + 2, 2);
+    Pins.captureWrites(ST_EA, sizeof(ST_EA), &pc, buffer + 0, 2);
     Pins.execInst(LD_EA_SP, sizeof(LD_EA_SP));
-    Pins.captureWrites(ST_EA, sizeof(ST_EA), nullptr, buffer + 4, 2);
-    Pins.execInst(LD_EA_P2, sizeof(LD_EA_P2));
-    Pins.captureWrites(ST_EA, sizeof(ST_EA), nullptr, buffer + 6, 2);
-    Pins.execInst(LD_EA_P3, sizeof(LD_EA_P3));
-    Pins.captureWrites(ST_EA, sizeof(ST_EA), nullptr, buffer + 8, 2);
+    Pins.captureWrites(ST_EA, sizeof(ST_EA), nullptr, buffer + 2, 2);
+    Pins.execInst(LD_SP, sizeof(LD_SP));
+    Pins.captureWrites(PUSH_P2, sizeof(PUSH_P2), nullptr, buffer + 4, 2);
+    Pins.captureWrites(PUSH_P3, sizeof(PUSH_P3), nullptr, buffer + 6, 2);
     Pins.execInst(LD_EA_T, sizeof(LD_EA_T));
-    Pins.captureWrites(ST_EA, sizeof(ST_EA), nullptr, buffer + 10, 2);
+    Pins.captureWrites(PUSH_EA, sizeof(PUSH_EA), nullptr, buffer + 8, 2);
     Pins.execInst(LD_A_S, sizeof(LD_A_S));
-    Pins.captureWrites(ST_A, sizeof(ST_A), nullptr, buffer + 12, 1);
+    Pins.captureWrites(PUSH_A, sizeof(PUSH_A), nullptr, buffer + 10, 1);
     if (show)
         Signals::printCycles();
     a = buffer[0];
     e = buffer[1];
-    pc = le16(buffer + 2) - sizeof(ST_EA) - sizeof(LD_EA_PC);
-    sp = le16(buffer + 4);
-    p2 = le16(buffer + 6);
-    p3 = le16(buffer + 8);
-    t = le16(buffer + 10);
-    s = buffer[12];
+    sp = le16(buffer + 2);
+    p2 = be16(buffer + 4);
+    p3 = be16(buffer + 6);
+    t = be16(buffer + 8);
+    s = buffer[10];
 }
 
 void Regs::restore(bool show) {
