@@ -209,10 +209,9 @@ void Pins::begin() {
     assert_reset();
     xin_lo();
     _freeRunning = false;
-
-    setIoDevice(SerialDevice::DEV_ACIA, ioBaseAddress());
-
     reset();
+
+    setDeviceBase(Device::ACIA);
 }
 
 Signals &Pins::prepareCycle() {
@@ -471,14 +470,55 @@ void Pins::negateIrq(uint8_t irq) {
         negate_sa();
 }
 
-Pins::SerialDevice Pins::getIoDevice(uint16_t &baseAddr) {
-    baseAddr = Acia.baseAddr();
-    return _ioDevice;
+static const char TEXT_ACIA[] PROGMEM = "ACIA";
+
+Pins::Device Pins::parseDevice(const char *name) const {
+    if (strcasecmp_P(name, TEXT_ACIA) == 0)
+        return Device::ACIA;
+    return Device::NONE;
 }
 
-void Pins::setIoDevice(SerialDevice device, uint16_t baseAddr) {
-    _ioDevice = device;
-    Acia.enable(true, baseAddr);
+void Pins::getDeviceName(Pins::Device dev, char *name) const {
+    *name = 0;
+    if (dev == Device::ACIA)
+        strcpy_P(name, TEXT_ACIA);
+}
+
+void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
+    switch (dev) {
+    case Device::ACIA:
+        setSerialDevice(Device::ACIA, hasValue ? base : ACIA_BASE_ADDR);
+        break;
+    default:
+        break;
+    }
+}
+
+void Pins::printDevices() const {
+    cli.println();
+    uint16_t baseAddr;
+    const auto serial = getSerialDevice(baseAddr);
+    cli.print(F("ACIA (MC6850) "));
+    if (serial == Device::ACIA) {
+        cli.print(F("at $"));
+        cli.printlnHex(baseAddr, 4);
+    } else {
+        cli.println(F("disabled"));
+    }
+}
+
+Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
+    if (_serialDevice == Device::ACIA) {
+        baseAddr = Acia.baseAddr();
+    }
+    return _serialDevice;
+}
+
+void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
+    _serialDevice = device;
+    if (device == Device::ACIA) {
+        Acia.enable(true, baseAddr);
+    }
 }
 
 // Local Variables:

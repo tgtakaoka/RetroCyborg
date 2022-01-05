@@ -27,29 +27,42 @@ public:
     void assertIrq(const uint8_t irq);
     void negateIrq(const uint8_t irq);
 
-    uint16_t ramBaseAddress() { return _ramBaseAddress; }
-    void setRamBaseAddress(uint16_t addr) { _ramBaseAddress = addr & 0xF000; }
-    uint16_t devBaseAddress() { return _devBaseAddress; }
-    void setDevBaseAddress(uint16_t addr) { _devBaseAddress = addr & 0xF000; }
-    enum SerialDevice : uint8_t {
-        DEV_SCI = 0,   // MC68HC11 SCI
-        DEV_ACIA = 1,  // MC6850 ACIA
+    enum Device : uint8_t {
+        NONE = 0,
+        ACIA = 1,  // MC6850 ACIA
+        SCI = 2,   // MC68HC11 SCI
+        RAM = 3,   // MC68HC11 internal RAM
+        DEV = 4,   // MC68HC11 internal devices
     };
-    SerialDevice getIoDevice(uint16_t &baseAddr);
-    void setIoDevice(SerialDevice device, uint16_t addr);
+    Device parseDevice(const char *name) const;
+    void getDeviceName(Device dev, char *name) const;
+    void setDeviceBase(Device dev, uint16_t base) {
+        setDeviceBase(dev, true, base);
+    }
+    void setDeviceBase(Device dev) { setDeviceBase(dev, false, 0); }
+    void printDevices() const;
 
 private:
     bool _freeRunning;
     uint8_t _irq;
-    uint16_t _ramBaseAddress;
-    uint16_t _devBaseAddress;
-    SerialDevice _ioDevice;
 
     Signals &cycle();
     Signals &raw_cycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
     void suspend(bool show = false);
+
+    Device _serialDevice;
+    uint16_t _ramBaseAddress;
+    uint16_t _devBaseAddress;
+
+    void setDeviceBase(Device dev, bool hasValue, uint16_t base);
+    Device getSerialDevice(uint16_t &baseAddr) const;
+    void setSerialDevice(Device dev, uint16_t addr);
+    uint16_t ramBaseAddress() const { return _ramBaseAddress; }
+    void setRamBaseAddress(uint16_t addr) { _ramBaseAddress = addr & 0xF000; }
+    uint16_t devBaseAddress() const { return _devBaseAddress; }
+    void setDevBaseAddress(uint16_t addr) { _devBaseAddress = addr & 0xF000; }
 };
 
 extern Pins Pins;

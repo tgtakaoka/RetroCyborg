@@ -207,7 +207,7 @@ void Pins::begin() {
     extal_lo();
     reset(true);
 
-    setIoDevice(SerialDevice::DEV_SCI, 0);
+    setDeviceBase(Device::SCI);
 }
 
 Signals &Pins::cycle() {
@@ -481,23 +481,97 @@ void Pins::negateIrq(uint8_t irq) {
         negate_irq();
 }
 
-Pins::SerialDevice Pins::getIoDevice(uint16_t &baseAddr) {
-    if (_ioDevice == SerialDevice::DEV_SCI) {
-        baseAddr = SciH.baseAddr();
-    } else {
-        baseAddr = Acia.baseAddr();
-    }
-    return _ioDevice;
+static const char TEXT_ACIA[] PROGMEM = "ACIA";
+static const char TEXT_SCI[] PROGMEM = "SCI";
+static const char TEXT_RAM[] PROGMEM = "RAM";
+static const char TEXT_DEV[] PROGMEM = "DEV";
+
+Pins::Device Pins::parseDevice(const char *name) const {
+    if (strcasecmp_P(name, TEXT_ACIA) == 0)
+        return Device::ACIA;
+    if (strcasecmp_P(name, TEXT_SCI) == 0)
+        return Device::SCI;
+    if (strcasecmp_P(name, TEXT_RAM) == 0)
+        return Device::RAM;
+    if (strcasecmp_P(name, TEXT_RAM) == 0)
+        return Device::DEV;
+    return Device::NONE;
 }
 
-void Pins::setIoDevice(SerialDevice device, uint16_t baseAddr) {
-    _ioDevice = device;
-    if (device == SerialDevice::DEV_SCI) {
-        Acia.enable(false, 0);
-        SciH.enable(true, _devBaseAddress);
+void Pins::getDeviceName(Pins::Device dev, char *name) const {
+    *name = 0;
+    if (dev == Device::ACIA)
+        strcpy_P(name, TEXT_ACIA);
+    if (dev == Device::SCI)
+        strcpy_P(name, TEXT_SCI);
+    if (dev == Device::RAM)
+        strcpy_P(name, TEXT_RAM);
+    if (dev == Device::DEV)
+        strcpy_P(name, TEXT_DEV);
+}
+
+void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
+    switch (dev) {
+    case Device::ACIA:
+        setSerialDevice(Device::ACIA, hasValue ? base : ACIA_BASE_ADDR);
+        break;
+    case Device::SCI:
+        setSerialDevice(Device::SCI, hasValue ? base : 0);
+        break;
+    case Device::RAM:
+        setRamBaseAddress(hasValue ? base : 0);
+        break;
+    case Device::DEV:
+        setDevBaseAddress(hasValue ? base : 0);
+        break;
+    default:
+        break;
+    }
+}
+
+void Pins::printDevices() const {
+    cli.println();
+    uint16_t baseAddr;
+    const auto serial = getSerialDevice(baseAddr);
+    cli.print(F("ACIA (MC6850) "));
+    if (serial == Device::ACIA) {
+        cli.print(F("at $"));
+        cli.printlnHex(baseAddr, 4);
     } else {
+        cli.println(F("disabled"));
+    }
+    cli.print(F("SCI ("));
+    cli.print(Regs.cpuName());
+    cli.print(F(") "));
+    if (serial == Device::SCI) {
+        cli.print(F("at $"));
+        cli.printlnHex(baseAddr, 4);
+    } else {
+        cli.println(F("disabled"));
+    }
+    cli.print(F("RAM Base at $"));
+    cli.printlnHex(ramBaseAddress(), 4);
+    cli.print(F("DEV Base at $"));
+    cli.printlnHex(devBaseAddress(), 4);
+}
+
+Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
+    if (_serialDevice == Device::ACIA) {
+        baseAddr = Acia.baseAddr();
+    } else {
+        baseAddr = SciH.baseAddr();
+    }
+    return _serialDevice;
+}
+
+void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
+    _serialDevice = device;
+    if (device == Device::ACIA) {
         SciH.enable(false, 0);
         Acia.enable(true, baseAddr);
+    } else {
+        Acia.enable(false, 0);
+        SciH.enable(true, _devBaseAddress);
     }
 }
 

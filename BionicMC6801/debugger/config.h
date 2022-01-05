@@ -6,10 +6,10 @@
 
 #define MPU_MODE 2  // Non-Multiplexed Mode (Internal RAM enabled)
 
-#define VERSION_TEXT F(" 0.1")
+#define VERSION_TEXT "0.1"
 #define Console Serial
 
-#define IO_BASE_ADDR 0xDF00
+#define ACIA_BASE_ADDR 0xDF00
 
 #if defined(ARDUINO_TEENSY35)
 #define PORT_AD D     /* GPIOD */

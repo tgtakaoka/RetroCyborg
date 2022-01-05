@@ -4,11 +4,9 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define MPU_NAME "MC68HC11"
-
 #define MPU_MODE 3 /* Normal expanded mode */
 
-#define VERSION_TEXT F("* Bionic " MPU_NAME " 0.1")
+#define VERSION_TEXT "0.1"
 #define Console Serial
 
 #define ACIA_BASE_ADDR 0xDF00

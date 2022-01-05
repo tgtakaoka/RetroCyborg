@@ -22,8 +22,8 @@
 #include "commands.h"
 
 #include <SD.h>
-#include <asm_mc6805.h>
-#include <dis_mc6805.h>
+#include <asm_base.h>
+#include <dis_base.h>
 #include <libcli.h>
 #include <string.h>
 
@@ -31,10 +31,11 @@
 #include "pins.h"
 #include "regs.h"
 
-using namespace libasm;
-
 typedef libcli::Cli::State State;
 extern libcli::Cli &cli;
+
+extern libasm::Assembler &assembler;
+extern libasm::Disassembler &disassembler;
 
 #define USAGE                                                              \
     F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep c/C:ont G:o " \
@@ -104,7 +105,7 @@ cancel:
     printPrompt();
 }
 
-static void print(const Insn &insn) {
+static void print(const libasm::Insn &insn) {
     cli.printHex(insn.address(), 4);
     cli.print(':');
     for (int i = 0; i < insn.length(); i++) {
@@ -117,14 +118,12 @@ static void print(const Insn &insn) {
 }
 
 static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
-    mc6805::DisMc6805 dis6805;
-    Disassembler &disassembler = dis6805;
     disassembler.setCpu(Regs.cpu());
     disassembler.setUppercase(true);
     uint16_t num = 0;
     while (num < numInsn) {
         char operands[20];
-        Insn insn(addr);
+        libasm::Insn insn(addr);
         Memory.setAddress(addr);
         disassembler.decode(Memory, insn, operands, sizeof(operands));
         addr += insn.length();
@@ -218,10 +217,8 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
         return;
     }
     cli.println();
-    mc6805::AsmMc6805 as6805;
-    Assembler &assembler(as6805);
     assembler.setCpu(Regs.cpu());
-    Insn insn(last_addr);
+    libasm::Insn insn(last_addr);
     if (assembler.encode(line, insn)) {
         cli.print(F("Error: "));
         cli.println(assembler.errorText(assembler.getError()));
@@ -375,45 +372,36 @@ static void handleRegisterValue(uint32_t value, uintptr_t reg, State state) {
 
 static void handleIo(char *line, uintptr_t extra, State state);
 
-static void printIoDevice(State state) {
-    cli.println();
-    uint16_t baseAddr;
-    if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
-        cli.print(F("ACIA (MC6850) at $"));
-        cli.printlnHex(baseAddr, 4);
+static void handleBaseAddr(uint32_t val, uintptr_t extra, State state) {
+    if (state != State::CLI_CANCEL) {
+        const auto dev = static_cast<Pins::Device>(extra);
+        if (state == State::CLI_DELETE) {
+            cli.backspace();
+            Pins.getDeviceName(dev, str_buffer);
+            cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer), true);
+            return;
+        }
+        Pins.setDeviceBase(dev, static_cast<uint16_t>(val));
+        Pins.printDevices();
     }
-}
-
-static void handleAciaAddr(uint32_t val, uintptr_t extra, State state) {
-    if (state == State::CLI_CANCEL)
-        goto cancel;
-    if (state == State::CLI_DELETE) {
-        cli.backspace();
-        strcpy_P(str_buffer, PSTR("ACIA"));
-        cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer), true);
-        return;
-    }
-    Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, val);
-    printIoDevice(state);
-cancel:
     printPrompt();
 }
 
 static void handleIo(char *line, uintptr_t extra, State state) {
-    if (state == State::CLI_CANCEL)
-        goto cancel;
     if (state == State::CLI_DELETE)
         return;
-    if (state == State::CLI_SPACE &&
-            strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
-        cli.readHex(handleAciaAddr, 0, UINT16_MAX);
-        return;
+    if (state != State::CLI_CANCEL) {
+        const auto dev = Pins.parseDevice(line);
+        if (state == State::CLI_SPACE) {
+            if (dev != Pins::Device::NONE) {
+                cli.readHex(handleBaseAddr, static_cast<uintptr_t>(dev),
+                        UINT16_MAX);
+                return;
+            }
+        }
+        Pins.setDeviceBase(dev);
+        Pins.printDevices();
     }
-    if (strcasecmp_P(str_buffer, PSTR("acia")) == 0) {
-        Pins.setIoDevice(Pins::SerialDevice::DEV_ACIA, Pins.ioBaseAddress());
-    }
-    printIoDevice(state);
-cancel:
     printPrompt();
 }
 
@@ -492,7 +480,9 @@ void Commands::exec(char c) {
         cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
-        cli.println(VERSION_TEXT);
+        cli.print(F("* Bionic"));
+        cli.print(Regs.cpuName());
+        cli.println(F(" * " VERSION_TEXT));
         cli.println(USAGE);
         break;
     case '\r':

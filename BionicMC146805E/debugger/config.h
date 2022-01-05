@@ -4,12 +4,10 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define MPU_NAME "MC146805E"
-
-#define VERSION_TEXT "* Bionic" MPU_NAME " 0.1"
+#define VERSION_TEXT "0.1"
 #define Console Serial
 
-#define IO_BASE_ADDR 0x17F8
+#define ACIA_BASE_ADDR 0x17F8
 
 #if defined(ARDUINO_TEENSY35)
 #define PORT_B D      /* GPIOD */

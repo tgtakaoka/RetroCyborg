@@ -23,28 +23,38 @@ public:
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
-    static constexpr uint16_t ioBaseAddress() { return IO_BASE_ADDR; }
-
     uint8_t allocateIrq();
     void assertIrq(const uint8_t irq);
     void negateIrq(const uint8_t irq);
 
-    enum SerialDevice : uint8_t {
-        DEV_ACIA = 0,  // MC6850 ACIA
+
+    enum Device : uint8_t {
+        NONE = 0,
+        ACIA = 1,  // MC6850 ACIA
     };
-    SerialDevice getIoDevice(uint16_t &baseAddr);
-    void setIoDevice(SerialDevice device, uint16_t addr);
+    Device parseDevice(const char *name) const;
+    void getDeviceName(Device dev, char *name) const;
+    void setDeviceBase(Device dev, uint16_t base) {
+        setDeviceBase(dev, true, base);
+    }
+    void setDeviceBase(Device dev) { setDeviceBase(dev, false, 0); }
+    void printDevices() const;
 
 private:
     bool _freeRunning;
     uint8_t _irq;
-    SerialDevice _ioDevice;
 
     Signals &cycle();
     Signals &raw_cycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
     void suspend(bool show = false);
+
+    Device _serialDevice;
+
+    void setDeviceBase(Device dev, bool hasValue, uint16_t base);
+    Device getSerialDevice(uint16_t &baseAddr) const;
+    void setSerialDevice(Device dev, uint16_t addr);
 };
 
 extern Pins Pins;

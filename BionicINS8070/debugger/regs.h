@@ -28,6 +28,7 @@ struct Regs {
     uint16_t effectiveAddr(uint8_t insn, uint16_t insnp) const;
 
     const char *cpu() const;
+    const char *cpuName() const;
 
     void printRegList() const;
     char validUint8Reg(const char *word) const;

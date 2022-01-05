@@ -4,12 +4,10 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define MPU_NAME "INS8070"
-
-#define VERSION_TEXT F("* Bionic " MPU_NAME " 0.1")
+#define VERSION_TEXT "0.1"
 #define Console Serial
 
-#define IO_BASE_ADDR 0xDF00
+#define ACIA_BASE_ADDR 0xDF00
 
 #if defined(ARDUINO_TEENSY35)
 #define PORT_D D      /* GPIOD */

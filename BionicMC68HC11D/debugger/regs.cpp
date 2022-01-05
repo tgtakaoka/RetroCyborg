@@ -1,11 +1,18 @@
 #include "regs.h"
 
 #include <libcli.h>
+#include <asm_mc6800.h>
+#include <dis_mc6800.h>
 #include "config.h"
 #include "pins.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
+
+libasm::mc6800::AsmMc6800 asm6800;
+libasm::mc6800::DisMc6800 dis6800;
+libasm::Assembler &assembler(asm6800);
+libasm::Disassembler &disassembler(dis6800);
 
 struct Regs Regs;
 struct Memory Memory;
@@ -37,6 +44,10 @@ struct Memory Memory;
 
 const char *Regs::cpu() const {
     return "MC68HC11";
+}
+
+const char *Regs::cpuName() const {
+    return "MC68HC11D";
 }
 
 static char bit1(uint8_t v, char name) {
@@ -153,25 +164,25 @@ void Regs::printRegList() const {
 }
 
 char Regs::validUint8Reg(const char *word) const {
-    if (strcasecmp(word, "A") == 0)
+    if (strcasecmp_P(word, PSTR("A")) == 0)
         return 'a';
-    if (strcasecmp(word, "B") == 0)
+    if (strcasecmp_P(word, PSTR("B")) == 0)
         return 'b';
-    if (strcasecmp(word, "CC") == 0)
+    if (strcasecmp_P(word, PSTR("CC")) == 0)
         return 'c';
     return 0;
 }
 
 char Regs::validUint16Reg(const char *word) const {
-    if (strcasecmp(word, "PC") == 0)
+    if (strcasecmp_P(word, PSTR("PC")) == 0)
         return 'p';
-    if (strcasecmp(word, "SP") == 0)
+    if (strcasecmp_P(word, PSTR("SP")) == 0)
         return 's';
-    if (strcasecmp(word, "X") == 0)
+    if (strcasecmp_P(word, PSTR("X")) == 0)
         return 'x';
-    if (strcasecmp(word, "Y") == 0)
+    if (strcasecmp_P(word, PSTR("Y")) == 0)
         return 'y';
-    if (strcasecmp(word, "D") == 0)
+    if (strcasecmp_P(word, PSTR("D")) == 0)
         return 'd';
     return 0;
 }

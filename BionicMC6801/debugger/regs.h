@@ -23,7 +23,9 @@ struct Regs {
     void save(bool show = false, bool undoPrefetch = false);
     void restore(bool show = false);
     void capture(const Signals *stack);
+
     const char *cpu() const;
+    const char *cpuName() const;
     bool isHd63() const;
 
     void printRegList() const;

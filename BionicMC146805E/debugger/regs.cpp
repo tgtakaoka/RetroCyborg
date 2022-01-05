@@ -1,10 +1,17 @@
 #include "regs.h"
 
 #include <libcli.h>
+#include <asm_mc6805.h>
+#include <dis_mc6805.h>
 #include "pins.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
+
+libasm::mc6805::AsmMc6805 asm6805;
+libasm::mc6805::DisMc6805 dis6805;
+libasm::Assembler &assembler(asm6805);
+libasm::Disassembler &disassembler(dis6805);
 
 struct Regs Regs;
 struct Memory Memory;
@@ -273,7 +280,11 @@ uint8_t Regs::cycles(uint8_t insn) const {
 }
 
 const char *Regs::cpu() const {
-    return "146805";
+    return "MC146805";
+}
+
+const char *Regs::cpuName() const {
+    return cpu();
 }
 
 static char bit1(uint8_t v, char name) {
@@ -365,17 +376,17 @@ void Regs::printRegList() const {
 }
 
 char Regs::validUint8Reg(const char *word) const {
-    if (strcasecmp(word, "A") == 0)
+    if (strcasecmp_P(word, PSTR("A")) == 0)
         return 'a';
-    if (strcasecmp(word, "X") == 0)
+    if (strcasecmp_P(word, PSTR("X")) == 0)
         return 'x';
-    if (strcasecmp(word, "CC") == 0)
+    if (strcasecmp_P(word, PSTR("CC")) == 0)
         return 'c';
     return 0;
 }
 
 char Regs::validUint16Reg(const char *word) const {
-    if (strcasecmp(word, "PC") == 0)
+    if (strcasecmp_P(word, PSTR("PC")) == 0)
         return 'p';
     return 0;
 }

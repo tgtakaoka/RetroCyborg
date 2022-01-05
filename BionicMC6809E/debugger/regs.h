@@ -41,11 +41,12 @@ struct Regs {
     void save(bool show = false);
     void restore(bool show = false);
     void capture(const Signals *stack, bool native6309);
-
     void reset();
+
+    const char *cpu() const;
+    const char *cpuName() const;
     bool is6309() const;
     bool native6309() const { return _native6309; }
-    const char *cpu() const;
 
     void printRegList() const;
     char validUint8Reg(const char *word) const;

@@ -1,12 +1,19 @@
 #include "regs.h"
 
 #include <libcli.h>
+#include <asm_ins8070.h>
+#include <dis_ins8070.h>
 #include "config.h"
 #include "digital_fast.h"
 #include "pins.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
+
+libasm::ins8070::AsmIns8070 asm8070;
+libasm::ins8070::DisIns8070 dis8070;
+libasm::Assembler &assembler(asm8070);
+libasm::Disassembler &disassembler(dis8070);
 
 struct Regs Regs;
 struct Memory Memory;
@@ -347,7 +354,11 @@ uint16_t Regs::effectiveAddr(uint8_t insn, uint16_t insnp) const {
 }
 
 const char *Regs::cpu() const {
-    return MPU_NAME;
+    return "INS8070";
+}
+
+const char *Regs::cpuName() const {
+    return cpu();
 }
 
 static char bit1(uint8_t v, char name) {
@@ -486,27 +497,27 @@ void Regs::printRegList() const {
 }
 
 char Regs::validUint8Reg(const char *word) const {
-    if (strcasecmp(word, "A") == 0)
+    if (strcasecmp_P(word, PSTR("A")) == 0)
         return 'a';
-    if (strcasecmp(word, "E") == 0)
+    if (strcasecmp_P(word, PSTR("E")) == 0)
         return 'e';
-    if (strcasecmp(word, "S") == 0)
+    if (strcasecmp_P(word, PSTR("S")) == 0)
         return 's';
     return 0;
 }
 
 char Regs::validUint16Reg(const char *word) const {
-    if (strcasecmp(word, "PC") == 0)
+    if (strcasecmp_P(word, PSTR("PC")) == 0)
         return 'p';
-    if (strcasecmp(word, "SP") == 0)
+    if (strcasecmp_P(word, PSTR("SP")) == 0)
         return 'S';
-    if (strcasecmp(word, "P2") == 0)
+    if (strcasecmp_P(word, PSTR("P2")) == 0)
         return '2';
-    if (strcasecmp(word, "P3") == 0)
+    if (strcasecmp_P(word, PSTR("P3")) == 0)
         return '3';
-    if (strcasecmp(word, "EA") == 0)
+    if (strcasecmp_P(word, PSTR("EA")) == 0)
         return 'E';
-    if (strcasecmp(word, "T") == 0)
+    if (strcasecmp_P(word, PSTR("T")) == 0)
         return 'T';
     return 0;
 }

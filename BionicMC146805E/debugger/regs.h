@@ -17,7 +17,9 @@ struct Regs {
     void save(bool show = false);
     void restore(bool show = false);
     uint8_t cycles(uint8_t insn) const;
+
     const char *cpu() const;
+    const char *cpuName() const;
 
     void printRegList() const;
     char validUint8Reg(const char *word) const;

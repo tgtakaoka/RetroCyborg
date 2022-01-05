@@ -1,12 +1,19 @@
 #include "regs.h"
 
 #include <libcli.h>
+#include <asm_mc6809.h>
+#include <dis_mc6809.h>
 #include "config.h"
 #include "digital_fast.h"
 #include "pins.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
+
+libasm::mc6809::AsmMc6809 asm6809;
+libasm::mc6809::DisMc6809 dis6809;
+libasm::Assembler &assembler(asm6809);
+libasm::Disassembler &disassembler(dis6809);
 
 struct Regs Regs;
 struct Memory Memory;
@@ -39,6 +46,10 @@ void Regs::setCpuType() {
 
 const char *Regs::cpu() const {
     return _cpuType ? _cpuType : MC6809;
+}
+
+const char *Regs::cpuName() const {
+    return cpu();
 }
 
 void Regs::reset() {
@@ -271,40 +282,40 @@ void Regs::printRegList() const {
 }
 
 char Regs::validUint8Reg(const char *word) const {
-    if (strcasecmp(word, "A") == 0)
+    if (strcasecmp_P(word, PSTR("A")) == 0)
         return 'a';
-    if (strcasecmp(word, "B") == 0)
+    if (strcasecmp_P(word, PSTR("B")) == 0)
         return 'b';
-    if (strcasecmp(word, "CC") == 0)
+    if (strcasecmp_P(word, PSTR("CC")) == 0)
         return 'c';
-    if (strcasecmp(word, "DP") == 0)
+    if (strcasecmp_P(word, PSTR("DP")) == 0)
         return 'D';
     if (is6309()) {
-        if (strcasecmp(word, "E") == 0)
+        if (strcasecmp_P(word, PSTR("E")) == 0)
             return 'e';
-        if (strcasecmp(word, "F") == 0)
+        if (strcasecmp_P(word, PSTR("F")) == 0)
             return 'f';
     }
     return 0;
 }
 
 char Regs::validUint16Reg(const char *word) const {
-    if (strcasecmp(word, "PC") == 0)
+    if (strcasecmp_P(word, PSTR("PC")) == 0)
         return 'p';
-    if (strcasecmp(word, "S") == 0)
+    if (strcasecmp_P(word, PSTR("S")) == 0)
         return 's';
-    if (strcasecmp(word, "U") == 0)
+    if (strcasecmp_P(word, PSTR("U")) == 0)
         return 'u';
-    if (strcasecmp(word, "Y") == 0)
+    if (strcasecmp_P(word, PSTR("Y")) == 0)
         return 'y';
-    if (strcasecmp(word, "X") == 0)
+    if (strcasecmp_P(word, PSTR("X")) == 0)
         return 'x';
-    if (strcasecmp(word, "D") == 0)
+    if (strcasecmp_P(word, PSTR("D")) == 0)
         return 'd';
     if (is6309()) {
-        if (strcasecmp(word, "W") == 0)
+        if (strcasecmp_P(word, PSTR("W")) == 0)
             return 'w';
-        if (strcasecmp(word, "V") == 0)
+        if (strcasecmp_P(word, PSTR("V")) == 0)
             return 'v';
     }
     return 0;
@@ -312,7 +323,7 @@ char Regs::validUint16Reg(const char *word) const {
 
 char Regs::validUint32Reg(const char *word) const {
     if (is6309()) {
-        if (strcasecmp(word, "Q") == 0)
+        if (strcasecmp_P(word, PSTR("Q")) == 0)
             return 'q';
     }
     return 0;

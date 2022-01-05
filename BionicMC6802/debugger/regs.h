@@ -18,7 +18,9 @@ struct Regs {
     void save(bool show = false);
     void restore(bool show = false);
     void capture(const Signals *stack);
+
     const char *cpu() const;
+    const char *cpuName() const;
 
     void printRegList() const;
     char validUint8Reg(const char *word) const;

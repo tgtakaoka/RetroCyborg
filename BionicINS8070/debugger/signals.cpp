@@ -82,7 +82,7 @@ void Signals::print() const {
     };
     // clang-format off
     buffer[0] = _debug;
-    buffer[2] = (rds == LOW) ? 'R' : (wds == LOW ? 'W' : '-');
+    buffer[2] = (rds == LOW) ? 'R' : 'W';
     outHex16(buffer + 6, addr);
     outHex8(buffer + 13, data);
     cli.println(buffer);
