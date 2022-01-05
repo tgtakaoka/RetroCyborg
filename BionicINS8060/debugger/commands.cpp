@@ -434,7 +434,7 @@ void Commands::exec(char c) {
         cli.println(F("Registers"));
     regs:
         Regs.print();
-        disassemble(Regs.pc + 1, 1);
+        disassemble(Regs.pc(), 1);
         break;
     case '=':
         cli.print(F("Set register? "));
@@ -503,7 +503,7 @@ void Commands::halt(bool show) {
     Pins.halt(show);
     if (!_showRegs)
         Regs.print();
-    disassemble(Regs.pc + 1, 1);
+    disassemble(Regs.pc(), 1);
     printPrompt();
 }
 

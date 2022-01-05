@@ -32,11 +32,12 @@ static constexpr bool debug_cycles = false;
  *       _____________________________                    __________
  *  #WDS                              |wwwwwwwwwwwwwwwwww|
  *
- * - XIN edges to XOUT edges are 8ns.
- * - XIN 1st raising edge to #BREQ falling edge is 72ns.
+ * - XIN rising edge to XOUT falling edge is 24ns.
+ * - XIN falling edge to XOUT rising edge is 40ns.
+ * - XIN 1st rising edge to #BREQ falling edge is 72ns.
  * - XIN 3rd falling edge to #RDS falling edge is 84ns.
- * - XIN 7th falling edge to #RDS raising edge is 88ns.
- * - XIN 8th falling edge to #BREQ raising edge is 176ns.
+ * - XIN 7th falling edge to #RDS rising edge is 88ns.
+ * - XIN 8th falling edge to #BREQ rising edge is 176ns.
  * - #BREQ falling edge to #RDS/#WDS falling edge is 2 cycles/
  * - #RST rising edge to 1st #BREQ takes ~14 XIN cycles.
  */
@@ -46,8 +47,8 @@ static constexpr auto xin_hi_ns = 125;
 static constexpr auto xin_lo_ns = 115;
 #endif
 #if defined(ARDUINO_TEENSY41)
-static constexpr auto xin_hi_ns = 110;
-static constexpr auto xin_lo_ns = 105;
+static constexpr auto xin_hi_ns = 125;
+static constexpr auto xin_lo_ns = 115;
 #endif
 
 static inline void xin_hi() __attribute__((always_inline));
@@ -73,6 +74,11 @@ static inline uint8_t signal_breq() {
     return digitalReadFast(PIN_BREQ);
 }
 
+static inline uint8_t signal_ads() __attribute__((always_inline));
+static inline uint8_t signal_ads() {
+    return digitalReadFast(PIN_ADS);
+}
+
 static inline uint8_t signal_wds() __attribute__((always_inline));
 static inline uint8_t signal_wds() {
     return digitalReadFast(PIN_WDS);
@@ -83,22 +89,22 @@ static inline uint8_t signal_rds() {
     return digitalReadFast(PIN_RDS);
 }
 
-static void assert_sa() __attribute__((unused));
-static void assert_sa() {
-    digitalWriteFast(PIN_SA, LOW);
+static void assert_sense_a() {
+    digitalWriteFast(PIN_SENSEA, HIGH);
 }
 
-static void negate_sa() {
-    digitalWriteFast(PIN_SA, HIGH);
+static void negate_sense_a() {
+    digitalWriteFast(PIN_SENSEA, LOW);
 }
 
-static void assert_sb() __attribute__((unused));
-static void assert_sb() {
-    digitalWriteFast(PIN_SB, LOW);
+static void assert_cont() __attribute__((unused));
+static void assert_cont() {
+    digitalWriteFast(PIN_CONT, HIGH);
 }
 
-static void negate_sb() {
-    digitalWriteFast(PIN_SB, HIGH);
+static void negate_cont() __attribute__((unused));
+static void negate_cont() {
+    digitalWriteFast(PIN_CONT, LOW);
 }
 
 static void assert_hold() __attribute__((unused));
@@ -122,8 +128,8 @@ static void negate_enin() {
 static void assert_reset() {
     // Drive RESET condition
     digitalWriteFast(PIN_RST, LOW);
-    negate_sa();
-    negate_sb();
+    negate_sense_a();
+    assert_cont();
     negate_hold();
     negate_enin();
 }
@@ -151,41 +157,37 @@ static uint8_t user_sw() {
 }
 
 static const uint8_t BUS_PINS[] = {
-        PIN_D0,
-        PIN_D1,
-        PIN_D2,
-        PIN_D3,
-        PIN_D4,
-        PIN_D5,
-        PIN_D6,
-        PIN_D7,
-        PIN_AL0,
-        PIN_AL1,
-        PIN_AL2,
-        PIN_AL3,
-        PIN_AL4,
-        PIN_AL5,
-        PIN_AL6,
-        PIN_AL7,
-#if defined(PIN_AL8)
-        PIN_AL8,
-        PIN_AL9,
-        PIN_AL10,
-        PIN_AL11,
+        PIN_DB0,
+        PIN_DB1,
+        PIN_DB2,
+        PIN_DB3,
+        PIN_DB4,
+        PIN_DB5,
+        PIN_DB6,
+        PIN_DB7,
+        PIN_ADL00,
+        PIN_ADL01,
+        PIN_ADL02,
+        PIN_ADL03,
+        PIN_ADL04,
+        PIN_ADL05,
+        PIN_ADL06,
+        PIN_ADL07,
+#if defined(PIN_ADL08)
+        PIN_ADL08,
+        PIN_ADL09,
+        PIN_ADL10,
+        PIN_ADL11,
 #endif
-#if defined(PIN_AM8)
-        PIN_AM8,
-        PIN_AM9,
-        PIN_AM10,
-        PIN_AM11,
+#if defined(PIN_ADM08)
+        PIN_ADM08,
+        PIN_ADM09,
+        PIN_ADM10,
+        PIN_ADM11,
 #endif
-        PIN_AH12,
-        PIN_AH13,
-        PIN_AH14,
-        PIN_AH15,
-        PIN_F1,
-        PIN_F2,
-        PIN_F3,
+        PIN_FLAG0,
+        PIN_FLAG1,
+        PIN_FLAG2,
 };
 
 void Pins::begin() {
@@ -196,12 +198,16 @@ void Pins::begin() {
     pinMode(PIN_BREQ, INPUT_PULLUP);
     pinMode(PIN_RDS, INPUT_PULLUP);
     pinMode(PIN_WDS, INPUT_PULLUP);
-    pinMode(PIN_SA, OUTPUT);
-    pinMode(PIN_SB, OUTPUT);
+    pinMode(PIN_SENSEA, OUTPUT);
+    pinMode(PIN_SENSEB, OUTPUT);
+    pinMode(PIN_ADS, INPUT_PULLUP);
+    pinMode(PIN_CONT, OUTPUT);
     pinMode(PIN_HOLD, OUTPUT);
     pinMode(PIN_RST, OUTPUT);
     pinMode(PIN_ENIN, OUTPUT);
     pinMode(PIN_ENOUT, INPUT);
+    pinMode(PIN_SOUT, INPUT);
+    pinMode(PIN_SIN, OUTPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
     turn_off_led();
@@ -209,7 +215,7 @@ void Pins::begin() {
     assert_reset();
     xin_lo();
     _freeRunning = false;
-    reset();
+    // reset();
 
     setDeviceBase(Device::ACIA);
 }
@@ -221,15 +227,17 @@ Signals &Pins::prepareCycle() {
     }
     assert_enin();
     // #BREQ=LOW
-    while (!signals.getDirection()) {
+    while (!signals.getAddr()) {
         clock_cycle();
     }
-    signals.getAddr();
     return signals;
 }
 
 Signals &Pins::completeCycle(Signals &signals) {
     if (signals.write()) {
+        while (signal_wds() != LOW) {
+            clock_cycle();
+        }
         signals.getData();
         if (Acia.isSelected(signals.addr)) {
             Acia.write(signals.debug('a').data, signals.addr);
@@ -249,14 +257,17 @@ Signals &Pins::completeCycle(Signals &signals) {
         } else {
             ;  // inject data from signals.data
         }
-        busWrite(D, signals.data);
-        busMode(D, OUTPUT);
+        while (signal_rds() != LOW) {
+            clock_cycle();
+        }
+        busWrite(DB, signals.data);
+        busMode(DB, OUTPUT);
         while (signal_rds() == LOW) {
             clock_cycle();
         }
     }
-    busMode(D, INPUT);
     Signals::nextCycle();
+    busMode(DB, INPUT);
     for (auto i = 0; signal_breq() == LOW && i < 2; i++) {
         clock_cycle();
     }
@@ -281,18 +292,21 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
-    for (auto i = 0; i < len; i++) {
-        Signals::inject(inst[i]);
-        cycle();
-    }
+    uint8_t inj = 0;
     uint8_t cap = 0;
-    if (buf) {
-        while (cap < max) {
+    while (inj < len || cap < max) {
+        Signals &signals = prepareCycle();
+        if (signals.read()) {
+            Signals::inject(inst[inj++]);
+        } else {
             Signals::capture();
-            const Signals &signals = cycle();
+        }
+        completeCycle(signals);
+        if (signals.write() && buf) {
             if (cap == 0 && addr)
                 *addr = signals.addr;
-            buf[cap++] = signals.data;
+            if (cap < max)
+                buf[cap++] = signals.data;
         }
     }
     return cap;
@@ -300,14 +314,14 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 void Pins::reset(bool show) {
     assert_reset();
-    // #RST must remain low is 8 Tc.
-    for (auto i = 0; i < 4 * 8 * 10; i++)
+    // #RST must remain low for a minimum of 4 Tc.
+    for (auto i = 0; i < 2 * 4; i++)
         clock_cycle();
-    negate_reset();
     negate_enin();
-    // The first instruction will be fetched within 13 Tc after #RST
-    // has gone high.
-    for (auto i = 0; i < 4 * 13; i++)
+    negate_reset();
+    // The EBREQ output goes low, indicating the start of execution;
+    // this occurs at a time whithin 13 Tc after #RST is set high.
+    for (auto i = 0; i < 2 * 13; i++)
         clock_cycle();
     Regs.save(show);
 }
@@ -320,7 +334,9 @@ void Pins::idle() {
 void Pins::loop() {
     if (_freeRunning) {
         Acia.loop();
-        cycle();
+        const Signals &signals = cycle();
+        if (signals.halt())
+            Commands.halt(true);
         if (user_sw() == LOW)
             Commands.halt(true);
     } else {
@@ -328,77 +344,20 @@ void Pins::loop() {
     }
 }
 
-bool Pins::isInsnFetch(const Signals *c0, const Signals *c1, const Signals *c2,
-        const Signals *c3, const Signals *c4) {
-    if (c4->addr == c2->addr + 1 && c2->addr == c1->addr + 1) {
-        if (c1->read() && c2->read()) {
-            // 8 bit operation
-            if (debug_cycles)
-                cli.println(F("8 bit operation"));
-            return true;
-        }
-    }
-    if (c4->addr == c1->addr + 1 && c1->addr == c0->addr + 1) {
-        if (c0->read() && c1->read()) {
-            if (c3->addr == c2->addr + 1 && c2->read() == c3->read()) {
-                // 16 bit operation
-                if (debug_cycles)
-                    cli.println(F("16 bit operation"));
-                return true;
-            }
-            if (c3->addr == c2->addr && c2->read() && c3->write()) {
-                // read-modify-write operation
-                if (debug_cycles)
-                    cli.println(F("read-modify-write operation"));
-                return true;
-            }
-        }
-    }
-    if (c2->read() && (c2->data & ~0x1B) == 0x64 && c3->addr == c2->addr + 1 &&
-            c3->read()) {
-        const auto target = c3->addr + static_cast<int8_t>(c3->data);
-        if (c4->addr == target + 1) {
-            // branch operation
-            if (debug_cycles)
-                cli.println(F("branch operation"));
-            return true;
-        }
-    }
-    if (c1->read() && c1->data == 0x24 && c2->addr == c1->addr + 1 &&
-            c3->addr == c1->addr + 2 && c2->read() && c3->read()) {
-        const auto target = (static_cast<uint16_t>(c3->data) << 8) | c2->data;
-        if (c4->addr == target + 1) {
-            // jump operation
-            if (debug_cycles)
-                cli.println(F("jump operation"));
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void Pins::suspend(bool show) {
-    Signals::resetCycles();
-    const Signals *c0 = &cycle();
-    const Signals *c1 = &cycle();
-    const Signals *c2 = &cycle();
-    const Signals *c3 = &cycle();
+    if (show)
+        Signals::resetCycles();
     while (true) {
         Signals &signals = prepareCycle();
-        if (signals.read() && !Acia.isSelected(signals.addr) &&
-                isInsnFetch(c0, c1, c2, c3, &signals)) {
-            Regs.save();
-            break;
+        if (signals.fetchInsn()) {
+            rawStep(signals);
+            if (show)
+                Signals::printCycles();
+            Regs.save(debug_cycles);
+            return;
         }
         completeCycle(signals);
-        c0 = c1;
-        c1 = c2;
-        c2 = c3;
-        c3 = &signals;
     }
-    if (show)
-        Signals::printCycles(c3 + 1);
 }
 
 void Pins::halt(bool show) {
@@ -415,37 +374,21 @@ void Pins::run() {
     turn_on_led();
 }
 
+void Pins::rawStep(Signals &signals) {
+    const uint8_t insn = Memory.read(signals.addr);
+    const uint8_t cycles = Regs::bus_cycles(insn);
+    completeCycle(signals).debug('1');
+    for (uint8_t c = 1; c < cycles; c++) {
+        cycle().debug(c + '1');
+    }
+}
+
 void Pins::step(bool show) {
-    const auto insn = Memory.raw_read(Regs.pc + 1);
-    auto bus_cycles = Regs::busCycles(insn);
-    if (bus_cycles == 0)
-        return;
-    auto ea = Regs.effectiveAddr(insn, Regs.pc + 1);
-    if (Memory::is_internal(ea))
-        bus_cycles = Regs::insnLen(insn);
     Regs.restore(debug_cycles);
     Signals::resetCycles();
-    if ((insn & ~1) == 0x2E) {
-        // SSM instruction
-        const Signals &ssm = cycle().debug('1');
-        if (show || debug_cycles)
-            ssm.print();
-        for (auto n = 0; n < 256; n++) {
-            Signals &signals = prepareCycle();
-            if (signals.addr != ea)
-                break;
-            completeCycle(signals).debug('s');
-            if (show || debug_cycles)
-                signals.print();
-            ea++;
-        }
-    } else {
-        for (auto c = 0; c < bus_cycles; c++) {
-            cycle().debug(c < 9 ? '1' + c : 'a' + c - 9);
-        }
-        if (show || debug_cycles)
-            Signals::printCycles();
-    }
+    rawStep(prepareCycle());
+    if (show)
+        Signals::printCycles();
     Regs.save(debug_cycles);
 }
 
@@ -456,18 +399,14 @@ uint8_t Pins::allocateIrq() {
 
 void Pins::assertIrq(uint8_t irq) {
     _irq |= (1 << irq);
-    if (_irq) {
-        // #INTA is negative-edge sensed.
-        assert_sa();
-        delayMicroseconds(1);
-        negate_sa();
-    }
+    if (_irq)
+        assert_sense_a();
 }
 
 void Pins::negateIrq(uint8_t irq) {
     _irq &= ~(1 << irq);
     if (_irq == 0)
-        negate_sa();
+        negate_sense_a();
 }
 
 static const char TEXT_ACIA[] PROGMEM = "ACIA";

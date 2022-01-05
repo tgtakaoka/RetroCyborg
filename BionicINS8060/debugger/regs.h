@@ -8,24 +8,17 @@
 struct Regs {
     uint8_t a;
     uint8_t e;
-    uint16_t getEa() const { return (static_cast<uint16_t>(e) << 8) | a; }
-    void setEa(uint16_t ea) {
-        a = ea;
-        e = ea >> 8;
-    }
     uint8_t s;
-    uint16_t t;
-    uint16_t pc;
-    uint16_t sp;
+    uint16_t p0;
+    uint16_t p1;
     uint16_t p2;
     uint16_t p3;
+    uint16_t pc() const { return _pc(p0, p0 + 1); }
 
     void print() const;
     void save(bool show = false);
     void restore(bool show = false);
-    static uint8_t busCycles(uint8_t insn);
-    static uint8_t insnLen(uint8_t insn);
-    uint16_t effectiveAddr(uint8_t insn, uint16_t insnp) const;
+    static uint8_t bus_cycles(uint8_t insn);
 
     const char *cpu() const;
     const char *cpuName() const;
@@ -36,7 +29,9 @@ struct Regs {
     void setRegValue(char reg, uint32_t value);
 
 private:
-    uint16_t selectBase(uint8_t insn) const;
+    static uint16_t _pc(uint16_t page, uint16_t offset) {
+        return (page & 0xF000) | (offset & 0x0FFF);
+    }
 };
 
 extern Regs Regs;
@@ -49,15 +44,12 @@ public:
 
     uint8_t read(uint16_t addr) const;
     void write(uint16_t addr, uint8_t data);
-    uint8_t internal_read(uint8_t addr) const;
-    void internal_write(uint8_t addr, uint8_t data) const;
     uint8_t raw_read(uint16_t addr) const;
     void raw_write(uint16_t addr, uint8_t data);
     uint16_t raw_read_uint16(uint16_t addr) const;
     void raw_write_uint16(uint16_t addr, uint16_t data);
 
     static constexpr auto memory_size = 0x10000;
-    static bool is_internal(uint16_t addr);
 
 protected:
     uint8_t nextByte() { return read(address()); }

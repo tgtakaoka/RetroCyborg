@@ -35,27 +35,26 @@ void Signals::resetCycles() {
 }
 
 void Signals::nextCycle() {
-    if (_cycles++ >= MAX_CYCLES)
-        _cycles = 0;
+    _cycles++;
+    _cycles %= MAX_CYCLES;
     _signals[_cycles].clear();
 }
 
-bool Signals::getDirection() {
-    rds = digitalReadFast(PIN_RDS);
-    wds = digitalReadFast(PIN_WDS);
-    return rds == LOW || wds == LOW;
-}
-
-void Signals::getAddr() {
-    addr = busRead(AL)
-#if defined(AM_vp)
-           | busRead(AM)
+bool Signals::getAddr() {
+    if (digitalReadFast(PIN_ADS) == LOW) {
+        flags = busRead(DB);
+        addr = (static_cast<uint16_t>(flags & 0xF) << 12)
+#if defined(ADM_vp)
+            | busRead(ADM)
 #endif
-           | busRead(AH);
+            | busRead(ADL);
+        return true;
+    }
+    return false;
 }
 
 void Signals::getData() {
-    data = busRead(D);
+    data = busRead(DB);
 }
 
 void Signals::inject(uint8_t val) {
@@ -75,16 +74,18 @@ void Signals::print() const {
     // clang-format off
     static char buffer[] = {
         ' ', ' ',                  // _debug=0
-        'R',                       // RD/WR=2
-        ' ', 'A', '=', 0, 0, 0, 0, // addr=6
-        ' ', 'D', '=', 0, 0,       // data=13
+        ' ',                       // I/D/H=2
+        'R',                       // R/W=3
+        ' ', 'A', '=', 0, 0, 0, 0, // addr=7
+        ' ', 'D', '=', 0, 0,       // data=14
         0,
     };
     // clang-format off
     buffer[0] = _debug;
-    buffer[2] = (rds == LOW) ? 'R' : 'W';
-    outHex16(buffer + 6, addr);
-    outHex8(buffer + 13, data);
+    buffer[2] = fetchInsn() ? 'I' : (delay() ? 'D' : (halt() ? 'H' : ' '));
+    buffer[3] = read() ? 'R' : 'W';
+    outHex16(buffer + 7, addr);
+    outHex8(buffer + 14, data);
     cli.println(buffer);
 }
 
