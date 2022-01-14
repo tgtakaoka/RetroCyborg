@@ -7,17 +7,17 @@
 #include "signals.h"
 
 struct Regs {
-    uint16_t sp;
     uint16_t pc;
-    uint16_t x;
+    uint8_t s;
+    uint8_t x;
+    uint8_t y;
     uint8_t a;
-    uint8_t b;
-    uint8_t cc;
+    uint8_t p;
 
     void print() const;
     void save(bool show = false);
     void restore(bool show = false);
-    void capture(const Signals *stack);
+    void reset();
 
     const char *cpu() const;
     const char *cpuName() const;
@@ -26,6 +26,11 @@ struct Regs {
     char validUint8Reg(const char *word) const;
     char validUint16Reg(const char *word) const;
     void setRegValue(char reg, uint32_t value);
+
+private:
+    const char *_cpuType;
+
+    void setCpuType();
 };
 
 extern Regs Regs;
@@ -44,7 +49,7 @@ public:
     void raw_write_uint16(uint16_t addr, uint16_t data);
 
     static constexpr auto memory_size = 0x10000;
-    static constexpr auto reset_vector = 0xFFFE;
+    static constexpr uint16_t reset_vector = 0xFFFC;
     static bool is_internal(uint16_t addr);
 
 protected:

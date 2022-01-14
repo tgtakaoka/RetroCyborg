@@ -9,6 +9,12 @@
 
 #define ACIA_BASE_ADDR 0xDF00
 
+// Pin alias for W65C816S
+#define W65C816S_VDA PIN_PHI2O
+#define W65C816S_VPA PIN_SYNC
+#define W65C816S_ABORT PIN_PHI1O
+#define W65C816S_MX PIN_SO
+
 #if defined(ARDUINO_TEENSY35)
 #define PORT_D D      /* GPIOD */
 #define D_gp 0        /* PTD00-PTD07 */
@@ -46,17 +52,20 @@
 #define PIN_AH13 4    /* PTA13 */
 #define PIN_AH14 26   /* PTA14 */
 #define PIN_AH15 27   /* PTA15 */
-#define PIN_HALT 16   /* PTB00 */
+#define PIN_E 16      /* PTB00 */
 #define PIN_RW 17     /* PTB01 */
 #define PIN_IRQ 19    /* PTB02 */
 #define PIN_NMI 18    /* PTB03 */
-#define PIN_PHI1 29   /* PTB18 */
-#define PIN_PHI2 30   /* PTB19 */
-#define PIN_VMA 33    /* PTE24 */
-#define PIN_DBE 24    /* PTE26 */
-#define PIN_RESET 25  /* PTA05 */
-#define PIN_TSC 28    /* PTA16 */
-#define PIN_BA 39     /* PTA17 */
+#define PIN_ML 0      /* PTB00 */
+#define PIN_SO 1      /* PTB01 */
+#define PIN_PHI0 29   /* PTB18 */
+#define PIN_PHI2O 30  /* PTB19 */
+#define PIN_PHI1O 33  /* PTE24 */
+#define PIN_SYNC 34   /* PTE25 */
+#define PIN_RDY 24    /* PTE26 */
+#define PIN_RES 25    /* PTA05 */
+#define PIN_BE 28     /* PTA16 */
+#define PIN_VP 39     /* PTA17 */
 #define PIN_USRSW 31  /* PTB10 */
 #define PIN_USRLED 32 /* PTB11 */
 #endif
@@ -102,17 +111,20 @@
 #define PIN_AH13 7    /* P7.17 */
 #define PIN_AH14 36   /* P7.18 */
 #define PIN_AH15 37   /* P7.19 */
-#define PIN_HALT 2    /* P9.04 */
+#define PIN_E 2       /* P9.04 */
 #define PIN_RW 3      /* P9.05 */
 #define PIN_IRQ 4     /* P9.06 */
 #define PIN_NMI 33    /* P9.07 */
-#define PIN_PHI1 5    /* P9.08 */
-#define PIN_PHI2 29   /* P9.31 */
-#define PIN_VMA 6     /* P7.10 */
-#define PIN_DBE 32    /* P7.12 */
-#define PIN_RESET 28  /* P8.18 */
-#define PIN_TSC 31    /* P8.22 */
-#define PIN_BA 30     /* P8.23 */
+#define PIN_ML 0      /* P6.03 */
+#define PIN_SO 1      /* P6.02 */
+#define PIN_PHI0 5    /* P9.08 */
+#define PIN_PHI2O 29  /* P9.31 */
+#define PIN_PHI1O 6   /* P7.10 */
+#define PIN_SYNC 9    /* P7.11 */
+#define PIN_RDY 32    /* P7.12 */
+#define PIN_RES 28    /* P8.18 */
+#define PIN_BE 31     /* P8.22 */
+#define PIN_VP 30     /* P8.23 */
 #define PIN_USRSW 35  /* P7.28 */
 #define PIN_USRLED 34 /* P7.29 */
 #endif

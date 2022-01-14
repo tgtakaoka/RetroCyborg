@@ -1,8 +1,9 @@
 #include "regs.h"
 
 #include <libcli.h>
-#include <asm_mc6800.h>
-#include <dis_mc6800.h>
+
+#include <asm_mos6502.h>
+#include <dis_mos6502.h>
 #include "config.h"
 #include "digital_fast.h"
 #include "pins.h"
@@ -10,41 +11,95 @@
 
 extern libcli::Cli &cli;
 
-libasm::mc6800::AsmMc6800 asm6800;
-libasm::mc6800::DisMc6800 dis6800;
-libasm::Assembler &assembler(asm6800);
-libasm::Disassembler &disassembler(dis6800);
+libasm::mos6502::AsmMos6502 asm6502;
+libasm::mos6502::DisMos6502 dis6502;
+libasm::Assembler &assembler(asm6502);
+libasm::Disassembler &disassembler(dis6502);
 
 struct Regs Regs;
 struct Memory Memory;
 
-/**
- * How to determine MC6800 variants.
- *
- * MC6800/MC6801/HD6301
- *   LDX  #$55AA
- *   LDAB #100
- *   LDAA #5
- *   ADDA #5
- *   FCB  $18
- *        ; DAA  ($19) on MC6800
- *        ; ABA  ($1B) on MC6801/MC6803
- *        ; XGDX ($18) on HD6301/MC6803
- *   A=$10: MC6800
- *   A=110: MC6801/MC6803
- *   A=$55: HD6301/MC6803
- *
- * MC6800/MB8861(MB8870)
- *   LDX  #$FFFF
- *   FCB  $EC, $01
- *        ; CPX 1,X ($AC $01) on MC6800
- *        ; ADX 1   ($EC $01) on MB8861
- * X=$FFFF: MC6800
- * X=$0000: MB8861
- */
+static const char MOS6502[] = "MOS6502";
+static const char G65SC02[] = "G65SC02";
+static const char R65C02[] = "R65C02";
+static const char W65C02S[] = "W65C02S";
+static const char W65C816S[] = "W65C816S";
+
+static const char *hardwareType() {
+    switch (Signals::mpuType()) {
+    case Signals::MpuType::W65C02S:
+        return W65C02S;
+    case Signals::MpuType::W65C816S:
+        return W65C816S;
+    default:
+        return MOS6502;
+    }
+}
+
+static const char *softwareType(uint8_t a) {
+    switch (a) {
+    case 'N':
+        return MOS6502;
+    case 'S':
+        return G65SC02;
+    case '8':
+        return W65C816S;
+    default:
+        return Signals::mpuType() == Signals::MpuType::W65C02S ? W65C02S
+                                                               : R65C02;
+    }
+}
+
+void Regs::reset() {
+    _cpuType = nullptr;
+}
+
+static uint8_t write(uint16_t addr, uint8_t val) {
+    const auto old = Memory.raw_read(addr);
+    Memory.raw_write(addr, val);
+    return old;
+}
+
+void Regs::setCpuType() {
+    // A new way to distinguish 6502 variants in software
+    // http://forum.6502.org/viewtopic.php?f=2&t=5931
+    static const uint8_t RUN_DETECT[] = {
+            0xA9, 0x4E,        // LDA #$4E
+            0x4C, 0x00, 0x10,  // JMP $1000
+    };
+    static const uint8_t STA[] = {
+            0x85, 0x1D  // STA $1D
+    };
+
+    // See samples/detect.asm
+    const auto m1d = write(0x1D, 'S' ^ '8');
+    const auto m83 = write(0x83, 'N' ^ 'S');  // 0x1D
+    const auto m84 = write(0x84, 0x00);
+    const auto m85 = write(0x85, 0x00);
+    // 6502:   LSR $83; EOR $83
+    // 65SC02: NOP; NOP
+    // 65C02:  RMB4 $83
+    // 65C816: EOR [$83]
+    const auto m1000 = write(0x1000, 0x47);
+    const auto m1001 = write(0x1001, 0x83);
+
+    Pins.execInst(RUN_DETECT, sizeof(RUN_DETECT));
+    Pins.rawStep();  // execute $47, $83
+    uint8_t a;
+    Pins.captureWrites(STA, sizeof(STA), nullptr, &a, sizeof(a));
+    a ^= Memory.raw_read(0x83);
+    _cpuType = softwareType(a);
+
+    Memory.raw_write(0x1D, m1d);
+    Memory.raw_write(0x83, m83);
+    Memory.raw_write(0x84, m84);
+    Memory.raw_write(0x85, m85);
+    Memory.raw_write(0x1000, m1000);
+    Memory.raw_write(0x1001, m1001);
+}
 
 const char *Regs::cpu() const {
-    return "MC6800";
+    return _cpuType ? _cpuType : hardwareType();
 }
 
 const char *Regs::cpuName() const {
@@ -58,29 +113,29 @@ static char bit1(uint8_t v, char name) {
 void Regs::print() const {
     // clang-format off
     static char buffer[] = {
-        'P', 'C', '=', 0, 0, 0, 0, ' ',  // PC=3
-        'S', 'P', '=', 0, 0, 0, 0, ' ',  // SP=11
-        'X', '=', 0, 0, 0, 0, ' ',       // X=18
-        'A', '=', 0, 0, ' ',             // A=25
-        'B', '=', 0, 0, ' ',             // B=30
-        'C', 'C', '=', 0, 0, 0, 0, 0, 0, // CC=36
-        0,                               // EOS
+            'P', 'C', '=', 0, 0, 0, 0, ' ',  // PC=3
+            'S', '=', 0, 0, 0, 0, ' ',       // S=10
+            'X', '=', 0, 0, ' ',             // X=17
+            'Y', '=', 0, 0, ' ',             // Y=22
+            'A', '=', 0, 0, ' ',             // A=27
+            'P', '=',
+            0, 0, '_', 0, 0, 0, 0, 0,        // P=32
+            0,                               // EOS
     };
     // clang-format on
     outHex16(buffer + 3, pc);
-    outHex16(buffer + 11, sp);
-    outHex16(buffer + 18, x);
-    outHex8(buffer + 25, a);
-    outHex8(buffer + 30, b);
-    char *p = buffer + 36;
-    *p++ = bit1(cc & 0x20, 'H');
-    *p++ = bit1(cc & 0x10, 'I');
-    *p++ = bit1(cc & 0x08, 'N');
-    *p++ = bit1(cc & 0x04, 'Z');
-    *p++ = bit1(cc & 0x02, 'V');
-    *p++ = bit1(cc & 0x01, 'C');
+    outHex16(buffer + 10, s + 0x0100);
+    outHex8(buffer + 17, x);
+    outHex8(buffer + 22, y);
+    outHex8(buffer + 27, a);
+    buffer[32] = bit1(p & 0x80, 'N');
+    buffer[33] = bit1(p & 0x40, 'V');
+    buffer[35] = bit1(p & 0x10, 'B');
+    buffer[36] = bit1(p & 0x08, 'D');
+    buffer[37] = bit1(p & 0x04, 'I');
+    buffer[38] = bit1(p & 0x02, 'Z');
+    buffer[39] = bit1(p & 0x01, 'C');
     cli.println(buffer);
-    Pins.idle();
 }
 
 static constexpr uint16_t uint16(const uint8_t hi, const uint8_t lo) {
@@ -98,82 +153,94 @@ static constexpr uint8_t hi(const uint16_t v) {
 static constexpr uint8_t lo(const uint16_t v) {
     return static_cast<uint8_t>(v);
 }
+static void setle16(uint8_t *p, const uint16_t v) {
+    p[0] = lo(v);
+    p[1] = hi(v);
+}
+
+static constexpr uint8_t noop = 0xFF;
 
 void Regs::save(bool show) {
-    static const uint8_t SWI[2] = {0x3F, 0xFF};  // SWI
-    static uint8_t bytes[10];
+    static const uint8_t PUSH_ALL[] = {
+            // 6502:  JSR PCL --- PCH
+            // 65816: JSR PCL PCH ---
+            0x20, 0x00, 0x02, 0x02,  // JSR $0200
+            0x08, noop,              // PHP
+            0x48, noop,              // PHA
+            0x8A, noop,              // TXA
+            0x48, noop,              // PHA
+            0x98, noop,              // TYA
+            0x48, noop,              // PHA
+    };
+    uint8_t buffer[6];
 
     if (show)
         Signals::resetCycles();
-    Pins.captureWrites(SWI, sizeof(SWI), &sp, bytes, 7);
-    // Capturing writes to stack in little endian order.
-    pc = le16(bytes) - 1;  //  offset SWI instruction.
-    // Injecting PC as SWI vector (with irrelevant read ahead).
-    bytes[7] = 0;
-    bytes[8] = hi(pc);
-    bytes[9] = lo(pc);
-    Pins.execInst(bytes + 7, 3);
+    uint16_t sp;
+    Pins.captureWrites(PUSH_ALL, sizeof(PUSH_ALL), &sp, buffer, sizeof(buffer));
+    if (_cpuType == nullptr)
+        setCpuType();
     if (show)
         Signals::printCycles();
 
-    x = le16(bytes + 2);
-    a = bytes[4];
-    b = bytes[5];
-    cc = bytes[6];
+    pc = be16(buffer) - 2;  // pc on stack points the last byte of JSR.
+    s = sp;
+    p = buffer[2];
+    a = buffer[3];
+    x = buffer[4];
+    y = buffer[5];
 }
 
 void Regs::restore(bool show) {
-    static uint8_t LDS[3] = {0x8E};               // LDS #sp
-    static uint8_t RTI[10] = {0x3B, 0xFF, 0xFF};  // RTI
-    const uint16_t s = sp - 7;
-    LDS[1] = hi(s);
-    LDS[2] = lo(s);
-    RTI[3] = cc;
-    RTI[4] = b;
-    RTI[5] = a;
-    RTI[6] = hi(x);
-    RTI[7] = lo(x);
-    RTI[8] = hi(pc);
-    RTI[9] = lo(pc);
+    static uint8_t PULL_ALL[] = {
+            0xA2, 0,     // s:1 LDX #s
+            0x9A, noop,  // TXS
+            0xA0, 0,     // y:5 LDY #y
+            0xA2, 0,     // x:7 LDX #x
+            0xA9, 0,     // a:9 LDA #a
+            0x40,        // RTI
+            noop,        // fetch next op code
+            noop,        // discarded stack fetch
+            0,           // p:13
+            0,           // lo(pc):14
+            0,           // hi(pc):15
+    };
+
+    PULL_ALL[1] = s - 3;  // offset for RTI
+    PULL_ALL[5] = y;
+    PULL_ALL[7] = x;
+    PULL_ALL[9] = a;
+    PULL_ALL[13] = p;
+    setle16(PULL_ALL + 14, pc);
 
     if (show)
         Signals::resetCycles();
-    Pins.execInst(LDS, sizeof(LDS));
-    Pins.execInst(RTI, sizeof(RTI));
+    Pins.execInst(PULL_ALL, sizeof(PULL_ALL));
     if (show)
         Signals::printCycles();
 }
 
-void Regs::capture(const Signals *stack) {
-    sp = stack[0].addr;
-    pc = uint16(stack[1].data, stack[0].data);
-    x = uint16(stack[3].data, stack[2].data);
-    a = stack[4].data;
-    b = stack[5].data;
-    cc = stack[6].data;
-}
-
 void Regs::printRegList() const {
-    cli.println(F("?Reg: PC SP X A B CC"));
+    cli.println(F("?Reg: PC S X Y A P"));
 }
 
 char Regs::validUint8Reg(const char *word) const {
     if (strcasecmp_P(word, PSTR("A")) == 0)
         return 'a';
-    if (strcasecmp_P(word, PSTR("B")) == 0)
-        return 'b';
-    if (strcasecmp_P(word, PSTR("CC")) == 0)
-        return 'c';
+    if (strcasecmp_P(word, PSTR("X")) == 0)
+        return 'x';
+    if (strcasecmp_P(word, PSTR("Y")) == 0)
+        return 'y';
+    if (strcasecmp_P(word, PSTR("P")) == 0)
+        return 'P';
     return 0;
 }
 
 char Regs::validUint16Reg(const char *word) const {
     if (strcasecmp_P(word, PSTR("PC")) == 0)
         return 'p';
-    if (strcasecmp_P(word, PSTR("SP")) == 0)
+    if (strcasecmp_P(word, PSTR("S")) == 0)
         return 's';
-    if (strcasecmp_P(word, PSTR("X")) == 0)
-        return 'x';
     return 0;
 }
 
@@ -183,19 +250,19 @@ void Regs::setRegValue(char reg, uint32_t value) {
         pc = value;
         break;
     case 's':
-        sp = value;
+        s = (value & 0xff) | 0x0100;
         break;
     case 'x':
         x = value;
         break;
+    case 'y':
+        y = value;
+        break;
     case 'a':
         a = value;
         break;
-    case 'b':
-        b = value;
-        break;
-    case 'c':
-        cc = value;
+    case 'P':
+        p = value;
         break;
     }
 }

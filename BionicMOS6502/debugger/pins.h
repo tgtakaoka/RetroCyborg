@@ -15,6 +15,7 @@ public:
     void print();
     void reset(bool show = false);
     void step(bool show = false);
+    void rawStep();
     void halt(bool show = false);
     void run();
     void idle();
@@ -43,10 +44,16 @@ private:
     bool _freeRunning;
     uint8_t _irq;
 
+    friend class Regs;
+    Signals &prepareCycle();
+    Signals &rawPrepareCycle();
+    Signals &completeCycle(Signals &signals);
     Signals &cycle();
+    Signals &rawCycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
-    void suspend(bool show = false);
+    Signals &unhalt();
+    void suspend();
 
     Device _serialDevice;
 
