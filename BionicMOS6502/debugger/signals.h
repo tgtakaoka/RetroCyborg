@@ -16,7 +16,7 @@ struct Signals {
     void print() const;
     Signals &debug(char c);
 
-    uint16_t addr;
+    uint32_t addr;
     uint8_t data;
     uint8_t rw;
 
@@ -33,6 +33,7 @@ struct Signals {
         W65C02S = 1,
         W65C816S = 2,
     };
+    static bool native65816();
     static void checkHardwareType();
     static MpuType mpuType() { return _type; }
     static bool stopInsn(uint8_t insn) {

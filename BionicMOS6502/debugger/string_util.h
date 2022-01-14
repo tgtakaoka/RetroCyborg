@@ -5,6 +5,7 @@
 
 void outHex8(char *p, uint8_t value);
 void outHex16(char *p, uint16_t value);
+void outHex24(char *p, uint32_t value);
 
 #endif
 

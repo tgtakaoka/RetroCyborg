@@ -9,6 +9,8 @@
 #include "pins.h"
 #include "string_util.h"
 
+static constexpr bool debug_cycles = false;
+
 extern libcli::Cli &cli;
 
 libasm::mos6502::AsmMos6502 asm6502;
@@ -18,6 +20,7 @@ libasm::Disassembler &disassembler(dis6502);
 
 struct Regs Regs;
 struct Memory Memory;
+EXTMEM uint8_t memory[Memory::memory_size];
 
 static const char MOS6502[] = "MOS6502";
 static const char G65SC02[] = "G65SC02";
@@ -106,35 +109,79 @@ const char *Regs::cpuName() const {
     return cpu();
 }
 
+bool Regs::is65816() const {
+    return _cpuType == W65C816S;
+}
+
 static char bit1(uint8_t v, char name) {
     return v ? name : '_';
 }
 
 void Regs::print() const {
-    // clang-format off
-    static char buffer[] = {
-            'P', 'C', '=', 0, 0, 0, 0, ' ',  // PC=3
-            'S', '=', 0, 0, 0, 0, ' ',       // S=10
-            'X', '=', 0, 0, ' ',             // X=17
-            'Y', '=', 0, 0, ' ',             // Y=22
-            'A', '=', 0, 0, ' ',             // A=27
-            'P', '=',
-            0, 0, '_', 0, 0, 0, 0, 0,        // P=32
-            0,                               // EOS
-    };
-    // clang-format on
-    outHex16(buffer + 3, pc);
-    outHex16(buffer + 10, s + 0x0100);
-    outHex8(buffer + 17, x);
-    outHex8(buffer + 22, y);
-    outHex8(buffer + 27, a);
-    buffer[32] = bit1(p & 0x80, 'N');
-    buffer[33] = bit1(p & 0x40, 'V');
-    buffer[35] = bit1(p & 0x10, 'B');
-    buffer[36] = bit1(p & 0x08, 'D');
-    buffer[37] = bit1(p & 0x04, 'I');
-    buffer[38] = bit1(p & 0x02, 'Z');
-    buffer[39] = bit1(p & 0x01, 'C');
+    char *buffer;
+    char *pbuf;
+    if (Signals::native65816()) {
+        // clang-format off
+        static char b65816[] = {
+                'K', '=', 0, 0, ' ',              // PBR=2
+                'P', 'C', '=', 0, 0, 0, 0, ' ',   // PC=8
+                'S', '=', 0, 0, 0, 0, ' ',        // S=15
+                'D', '=', 0, 0, 0, 0, ' ',        // D=22
+                'B', '=', 0, 0, ' ',              // DBR=29
+                'X', '=', 0, 0, 0, 0, ' ',        // X=34
+                'Y', '=', 0, 0, 0, 0, ' ',        // Y=41
+                'C', '=', 0, 0, 0, 0, ' ',        // C=48
+                'P', '=', 0, 0, 0, 0, 0, 0, 0, 0, // P=55
+                'E',                              // E
+                0,                                // EOS
+        };
+        // clang-format on
+        buffer = b65816;
+        outHex8(buffer + 2, pbr);
+        outHex16(buffer + 8, pc);
+        outHex16(buffer + 15, s);
+        outHex16(buffer + 22, d);
+        outHex8(buffer + 29, dbr);
+        outHex16(buffer + 34, x);
+        outHex16(buffer + 41, y);
+        outHex16(buffer + 48, getC());
+        pbuf = &buffer[55];
+        if (e) {
+            pbuf[2] = '_';
+            pbuf[3] = bit1(p & 0x10, 'B');
+            pbuf[8] = 'E';
+        } else {
+            pbuf[2] = bit1(p & 0x20, 'M');
+            pbuf[3] = bit1(p & 0x10, 'X');
+            pbuf[8] = '_';
+        }
+    } else {
+        // clang-format off
+        static char b6502[] = {
+                'P', 'C', '=', 0, 0, 0, 0, ' ',      // PC=3
+                'S', '=', 0, 0, 0, 0, ' ',           // S=10
+                'X', '=', 0, 0, ' ',                 // X=17
+                'Y', '=', 0, 0, ' ',                 // Y=22
+                'A', '=', 0, 0, ' ',                 // A=27
+                'P', '=', 0, 0, '_', 0, 0, 0, 0, 0,  // P=32
+                0,                                   // EOS
+        };
+        // clang-format on
+        buffer = b6502;
+        outHex16(buffer + 3, pc);
+        outHex16(buffer + 10, s);
+        outHex8(buffer + 17, x);
+        outHex8(buffer + 22, y);
+        outHex8(buffer + 27, a);
+        pbuf = &buffer[32];
+        pbuf[3] = bit1(p & 0x10, 'B');
+    }
+    pbuf[0] = bit1(p & 0x80, 'N');
+    pbuf[1] = bit1(p & 0x40, 'V');
+    pbuf[4] = bit1(p & 0x08, 'D');
+    pbuf[5] = bit1(p & 0x04, 'I');
+    pbuf[6] = bit1(p & 0x02, 'Z');
+    pbuf[7] = bit1(p & 0x01, 'C');
     cli.println(buffer);
 }
 
@@ -161,6 +208,11 @@ static void setle16(uint8_t *p, const uint16_t v) {
 static constexpr uint8_t noop = 0xFF;
 
 void Regs::save(bool show) {
+    if (Signals::native65816()) {
+        save65816(show);
+        return;
+    }
+
     static const uint8_t PUSH_ALL[] = {
             // 6502:  JSR PCL --- PCH
             // 65816: JSR PCL PCH ---
@@ -174,6 +226,8 @@ void Regs::save(bool show) {
     };
     uint8_t buffer[6];
 
+    if (debug_cycles)
+        cli.println(F("save"));
     if (show)
         Signals::resetCycles();
     uint16_t sp;
@@ -184,14 +238,55 @@ void Regs::save(bool show) {
         Signals::printCycles();
 
     pc = be16(buffer) - 2;  // pc on stack points the last byte of JSR.
-    s = sp;
+    s = lo(sp) | 0x0100;
     p = buffer[2];
     a = buffer[3];
     x = buffer[4];
     y = buffer[5];
+    e = 1;
+}
+
+void Regs::save65816(bool show) {
+    static const uint8_t PUSH_ALL[] = {
+            0x22, 0x00, 0x02, noop, 0x00,  // JSL $000200; PBR=0, PC=1
+            0x08, noop,                    // PHP; P=3
+            0xC2, 0x30, noop,              // REP #$30; M=0, X=0
+            0x48, noop,                    // PHA; C=4
+            0x8B, noop,                    // PHB; DBR=6
+            0xDA, noop,                    // PHX; X=7
+            0x5A, noop,                    // PHY; Y=9
+            0x0B, noop,                    // PHD; D=11
+    };
+    uint8_t buffer[13];
+
+    if (debug_cycles)
+        cli.println(F("save65816"));
+    if (show)
+        Signals::resetCycles();
+    Pins.captureWrites(PUSH_ALL, sizeof(PUSH_ALL), &s, buffer, sizeof(buffer));
+    if (_cpuType == nullptr)
+        setCpuType();
+    if (show)
+        Signals::printCycles();
+
+    pbr = buffer[0];
+    pc = be16(buffer + 1) - 3;  // pc on stack points the last byte of JSL.
+    p = buffer[3];
+    b = buffer[4];
+    a = buffer[5];
+    dbr = buffer[6];
+    x = be16(buffer + 7);
+    y = be16(buffer + 9);
+    d = be16(buffer + 11);
+    e = 0;
 }
 
 void Regs::restore(bool show) {
+    if (Signals::native65816()) {
+        restore65816(show);
+        return;
+    }
+
     static uint8_t PULL_ALL[] = {
             0xA2, 0,     // s:1 LDX #s
             0x9A, noop,  // TXS
@@ -213,6 +308,46 @@ void Regs::restore(bool show) {
     PULL_ALL[13] = p;
     setle16(PULL_ALL + 14, pc);
 
+    if (debug_cycles)
+        cli.println(F("restore"));
+    if (show)
+        Signals::resetCycles();
+    Pins.execInst(PULL_ALL, sizeof(PULL_ALL));
+    if (show)
+        Signals::printCycles();
+}
+
+void Regs::restore65816(bool show) {
+    static uint8_t PULL_ALL[] = {
+            0xC2, 0x30, noop,     //        REP #$30; M=0, X=0
+            0xA9, 0, 0,           // d:4    LDA #d
+            0x5B, noop,           //        TCD
+            0xA0, 0, 0,           // y:9    LDY #y
+            0xA2, 0, 0,           // x:12   LDX #x
+            0xA9, 0, 0,           // s:15   LDA #s-4
+            0x1B, noop,           //        TCS
+            0xA9, 0, 0,           // c:20   LDA #c
+            0xAB, noop, noop, 0,  // dbr:25 PLB (dbr)
+            0x40,                 //        RTI
+            noop, noop,           //        fetch next op and increment stack
+            0,                    // p:29
+            0, 0,                 // pc:30
+            0,                    // pbr:32
+    };
+
+    setle16(PULL_ALL + 4, d);
+    setle16(PULL_ALL + 9, y);
+    setle16(PULL_ALL + 12, x);
+    setle16(PULL_ALL + 15, s - 5);  // offset PLB(dbr) and RTI(p,pc,pbr)
+    PULL_ALL[20] = a;
+    PULL_ALL[21] = b;
+    PULL_ALL[25] = dbr;
+    PULL_ALL[29] = p;
+    setle16(PULL_ALL + 30, pc);
+    PULL_ALL[32] = pbr;
+
+    if (debug_cycles)
+        cli.println(F("restore65816"));
     if (show)
         Signals::resetCycles();
     Pins.execInst(PULL_ALL, sizeof(PULL_ALL));
@@ -221,22 +356,45 @@ void Regs::restore(bool show) {
 }
 
 void Regs::printRegList() const {
-    cli.println(F("?Reg: PC S X Y A P"));
+    if (is65816()) {
+        cli.println(F("?Reg: PC S X Y A P D K/PBR B/DBR"));
+    } else {
+        cli.println(F("?Reg: PC S X Y A P"));
+    }
 }
 
 char Regs::validUint8Reg(const char *word) const {
+    if (is65816()) {
+        if (strcasecmp_P(word, PSTR("B")) == 0 ||
+                strcasecmp_P(word, PSTR("DBR")) == 0)
+            return 'B';
+        if (strcasecmp_P(word, PSTR("K")) == 0 ||
+                strcasecmp_P(word, PSTR("PBR")) == 0)
+            return 'K';
+    } else {
+        if (strcasecmp_P(word, PSTR("X")) == 0)
+            return 'x';
+        if (strcasecmp_P(word, PSTR("Y")) == 0)
+            return 'y';
+    }
     if (strcasecmp_P(word, PSTR("A")) == 0)
         return 'a';
-    if (strcasecmp_P(word, PSTR("X")) == 0)
-        return 'x';
-    if (strcasecmp_P(word, PSTR("Y")) == 0)
-        return 'y';
     if (strcasecmp_P(word, PSTR("P")) == 0)
         return 'P';
     return 0;
 }
 
 char Regs::validUint16Reg(const char *word) const {
+    if (is65816()) {
+        if (strcasecmp_P(word, PSTR("C")) == 0)
+            return 'c';
+        if (strcasecmp_P(word, PSTR("X")) == 0)
+            return 'x';
+        if (strcasecmp_P(word, PSTR("Y")) == 0)
+            return 'y';
+        if (strcasecmp_P(word, PSTR("D")) == 0)
+            return 'd';
+    }
     if (strcasecmp_P(word, PSTR("PC")) == 0)
         return 'p';
     if (strcasecmp_P(word, PSTR("S")) == 0)
@@ -250,7 +408,11 @@ void Regs::setRegValue(char reg, uint32_t value) {
         pc = value;
         break;
     case 's':
-        s = (value & 0xff) | 0x0100;
+        if (is65816()) {
+            s = value;
+        } else {
+            s = (value & 0xff) | 0x0100;
+        }
         break;
     case 'x':
         x = value;
@@ -258,40 +420,55 @@ void Regs::setRegValue(char reg, uint32_t value) {
     case 'y':
         y = value;
         break;
+    case 'd':
+        d = value;
+        break;
     case 'a':
         a = value;
         break;
+    case 'c':
+        setC(value);
+        break;
     case 'P':
         p = value;
+        dis6502.longAccumlator(longa());
+        dis6502.longIndex(longx());
+        break;
+    case 'B':
+        dbr = value;
+        break;
+    case 'K':
+        pbr = value;
         break;
     }
 }
 
-bool Memory::is_internal(uint16_t addr) {
+bool Memory::is_internal(uint32_t addr) {
     return false;
 }
 
-uint8_t Memory::read(uint16_t addr) const {
+uint8_t Memory::read(uint32_t addr) const {
     return raw_read(addr);
 }
 
-void Memory::write(uint16_t addr, uint8_t data) {
+void Memory::write(uint32_t addr, uint8_t data) {
     raw_write(addr, data);
 }
 
-uint8_t Memory::raw_read(uint16_t addr) const {
-    return memory[addr];
+uint8_t Memory::raw_read(uint32_t addr) const {
+    return addr < memory_size ? memory[addr] : 0xFF;
 }
 
-void Memory::raw_write(uint16_t addr, uint8_t data) {
-    memory[addr] = data;
+void Memory::raw_write(uint32_t addr, uint8_t data) {
+    if (addr < memory_size)
+        memory[addr] = data;
 }
 
-uint16_t Memory::raw_read_uint16(uint16_t addr) const {
+uint16_t Memory::raw_read_uint16(uint32_t addr) const {
     return (static_cast<uint16_t>(raw_read(addr)) << 8) | raw_read(addr + 1);
 }
 
-void Memory::raw_write_uint16(uint16_t addr, uint16_t data) {
+void Memory::raw_write_uint16(uint32_t addr, uint16_t data) {
     raw_write(addr, data >> 8);
     raw_write(addr + 1, data);
 }

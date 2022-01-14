@@ -1,5 +1,5 @@
         cpu     6502
-        include "mos6502.inc"
+        include "w65c816s.inc"
 
 ;;; MC6850 Asynchronous Communication Interface Adapter
 ACIA:   equ     $DF00

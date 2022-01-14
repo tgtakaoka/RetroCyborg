@@ -1,5 +1,5 @@
         cpu     6502
-        include "mos6502.inc"
+        include "w65c816s.inc"
 
 ;;; MC6850 Asynchronous Communication Interface Adapter
 ACIA:   equ     $DF00
@@ -79,6 +79,9 @@ isr_irq_return:
         tax
         pla                     ; restore Y
         rti
+
+        org     NVEC_IRQ
+        fdb     isr_irq
 
         org     VEC_IRQ
         fdb     isr_irq

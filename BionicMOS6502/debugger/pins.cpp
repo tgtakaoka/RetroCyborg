@@ -367,11 +367,7 @@ void Pins::idle() {
 void Pins::loop() {
     if (_freeRunning) {
         Acia.loop();
-        const Signals &signals = cycle();
-        if (signals.waiting()) {
-            Regs.pc = signals.addr - 1;
-            Commands.halt(true);
-        }
+        cycle();
         if (user_sw() == LOW)
             Commands.halt(true);
     } else {
@@ -438,6 +434,8 @@ void Pins::step(bool show) {
     const auto insn = Memory.raw_read(Regs.pc);
     if (Signals::stopInsn(insn))
         return;
+    if (debug_cycles)
+        cli.println(F("step"));
     Signals::resetCycles();
     rawStep();
     if (show)

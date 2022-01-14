@@ -1,4 +1,7 @@
    0:                             CPU  6502
+   0:                             INCLUDE              "w65c816s.inc"
+   0:             ;;; -*- mode: asm; mode: flyspell-prog; -*-
+   0:
    0:                             INCLUDE              "mos6502.inc"
    0:             ;;; -*- mode: asm; mode: flyspell-prog; -*-
    0:
@@ -16,6 +19,22 @@
    0: =$FFFA      VEC_NMI:        EQU  $FFFA           ; $FFFA: Non Maskable Interrupt
    0: =$FFFC      VEC_RESET:      EQU  $FFFC           ; $FFFE: Reset
    0: =$FFFE      VEC_IRQ:        EQU  $FFFE           ; $FFFE: Interrupt Request and BRK command
+   0:
+   0:             ;;; W65C816S
+   0:             ;;; Processor Status Register P
+   0: =$10        P_X:            EQU  %00010000       ; if 0, X and Y are 16 bit.
+   0: =$20        P_M:            EQU  %00100000       ; if 0, A is 16 bit.
+   0:
+   0:             ;;; Emulation Mode Vector Locations
+   0: =$FFF8      VEC_ABORT:      EQU  $FFF8           ; $FFF8: Abort
+   0: =$FFF4      VEC_COP:        EQU  $FFF4           ; $FFF4: COP command
+   0:
+   0:             ;;; Native Mode Vector Locations
+   0: =$FFEE      NVEC_IRQ:       EQU  $FFEE           ; $FFEE: Interrupt Request
+   0: =$FFEA      NVEC_NMI:       EQU  $FFEA           ; $FFEA: Non Maskable Interrupt
+   0: =$FFE8      NVEC_ABORT:     EQU  $FFE8           ; $FFE8: Abort
+   0: =$FFE6      NVEC_BRK:       EQU  $FFE6           ; $FFE6: BRK command
+   0: =$FFE4      NVEC_COP:       EQU  $FFE4           ; $FFE4: COP command
    0:
    0:             ;;; MC6850 Asynchronous Communication Interface Adapter
    0: =$DF00      ACIA:           EQU  $DF00
@@ -237,6 +256,9 @@
 10B0: 68                          PLA                  ; restore Y
 10B1: 40                          RTI
 10B2:
+FFEE:                             ORG  NVEC_IRQ
+FFEE: 91 10                       FDB  isr_irq
+FFF0:
 FFFE:                             ORG  VEC_IRQ
 FFFE: 91 10                       FDB  isr_irq
    0:

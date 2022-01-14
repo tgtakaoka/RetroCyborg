@@ -15,6 +15,11 @@ void outHex16(char *p, uint16_t val) {
     outHex8(p + 2, static_cast<uint8_t>(val));
 }
 
+void outHex24(char *p, uint32_t val) {
+    outHex8(p + 0, static_cast<uint8_t>(val >> 16));
+    outHex16(p + 2, static_cast<uint16_t>(val));
+}
+
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4

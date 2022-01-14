@@ -53,7 +53,7 @@ static void printPrompt() {
     cli.readLetter(commandHandler, 0);
 }
 
-static uint16_t last_addr;
+static uint32_t last_addr;
 #define DUMP_ADDR 0
 #define DUMP_LENGTH 1
 #define DIS_ADDR 0
@@ -65,7 +65,7 @@ static uint8_t mem_buffer[16];
 
 static char str_buffer[40];
 
-static void memoryDump(uint16_t addr, uint16_t len) {
+static void memoryDump(uint32_t addr, uint16_t len) {
     for (uint16_t i = 0; i < len; i++, addr++) {
         const uint8_t data = Memory.read(addr);
         if (i % 16 == 0) {
@@ -86,7 +86,7 @@ static void handleDump(uint32_t value, uintptr_t extra, State state) {
     if (state == State::CLI_DELETE) {
         if (extra == DUMP_LENGTH) {
             cli.backspace();
-            cli.readHex(handleDump, DUMP_ADDR, UINT16_MAX, last_addr);
+            cli.readHex(handleDump, DUMP_ADDR, Regs.maxAddr(), last_addr);
         }
         return;
     }
@@ -117,7 +117,7 @@ static void print(const libasm::Insn &insn) {
     }
 }
 
-static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
+static uint16_t disassemble(uint32_t addr, uint16_t numInsn) {
     disassembler.setCpu(Regs.cpu());
     disassembler.setUppercase(true);
     uint16_t num = 0;
@@ -146,7 +146,7 @@ static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
     if (state == State::CLI_DELETE) {
         if (extra == DIS_LENGTH) {
             cli.backspace();
-            cli.readHex(handleDisassemble, DIS_ADDR, UINT16_MAX, last_addr);
+            cli.readHex(handleDisassemble, DIS_ADDR, Regs.maxAddr(), last_addr);
         }
         return;
     }
@@ -166,7 +166,7 @@ cancel:
 }
 
 static void memoryWrite(
-        uint16_t addr, const uint8_t values[], const uint8_t len) {
+        uint32_t addr, const uint8_t values[], const uint8_t len) {
     for (uint8_t i = 0; i < len; i++, addr++) {
         Memory.write(addr, values[i]);
     }
@@ -179,7 +179,7 @@ static void handleMemory(uint32_t value, uintptr_t extra, State state) {
         cli.backspace();
         uint16_t index = extra;
         if (index == 0) {
-            cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX, last_addr);
+            cli.readHex(handleMemory, MEMORY_ADDR, Regs.maxAddr(), last_addr);
         } else {
             index--;
             cli.readHex(handleMemory, MEMORY_DATA(index), UINT8_MAX,
@@ -285,15 +285,39 @@ static uint16_t toInt16Hex(const char *text) {
     return ((uint16_t)toInt8Hex(text) << 8) | toInt8Hex(text + 2);
 }
 
+static uint32_t toInt24Hex(const char *text) {
+    return ((uint32_t)toInt16Hex(text) << 8) | toInt8Hex(text + 4);
+}
+
+static uint32_t toInt32Hex(const char *text) {
+    return ((uint32_t)toInt24Hex(text) << 8) | toInt8Hex(text + 6);
+}
+
 static int loadS19Record(const char *line) {
     int len = strlen(line);
-    if (len == 0 || line[0] != 'S' || line[1] != '1')
+    if (len == 0 || line[0] != 'S')
         return 0;
     const int num = toInt8Hex(line + 2) - 3;
-    const uint16_t addr = toInt16Hex(line + 4);
+    uint32_t addr;
+    switch (line[1]) {
+    case '1':
+        addr = toInt16Hex(line + 4);
+        line += 8;
+        break;
+    case '2':
+        addr = toInt24Hex(line + 4);
+        line += 10;
+        break;
+    case '3':
+        addr = toInt32Hex(line + 4);
+        line += 12;
+        break;
+    default:
+        return 0;
+    }
     uint8_t buffer[num];
     for (int i = 0; i < num; i++) {
-        buffer[i] = toInt8Hex(line + i * 2 + 8);
+        buffer[i] = toInt8Hex(line + i * 2);
     }
     memoryWrite(addr, buffer, num);
     cli.printHex(addr, 4);
@@ -413,19 +437,19 @@ void Commands::exec(char c) {
         goto regs;
     case 'd':
         cli.print(F("Dump? "));
-        cli.readHex(handleDump, DUMP_ADDR, UINT16_MAX);
+        cli.readHex(handleDump, DUMP_ADDR, Regs.maxAddr());
         return;
     case 'D':
         cli.print(F("Disassemble? "));
-        cli.readHex(handleDisassemble, DIS_ADDR, UINT16_MAX);
+        cli.readHex(handleDisassemble, DIS_ADDR, Regs.maxAddr());
         return;
     case 'A':
         cli.print(F("Assemble? "));
-        cli.readHex(handleAssembler, 0, UINT16_MAX);
+        cli.readHex(handleAssembler, 0, Regs.maxAddr());
         return;
     case 'm':
         cli.print(F("Memory? "));
-        cli.readHex(handleMemory, MEMORY_ADDR, UINT16_MAX);
+        cli.readHex(handleMemory, MEMORY_ADDR, Regs.maxAddr());
         return;
     case 'r':
         cli.println(F("Registers"));

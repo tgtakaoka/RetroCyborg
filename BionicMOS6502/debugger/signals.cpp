@@ -59,6 +59,7 @@ void Signals::getAddr() {
         _waiting = digitalReadFast(PIN_RDY) == LOW;
     }
     if (_type == MpuType::W65C816S) {
+        addr |= static_cast<uint32_t>(busRead(D)) << 16;
         const auto vpa = digitalReadFast(W65C816S_VPA);
         const auto vda = digitalReadFast(W65C816S_VDA);
         _insn = vpa != LOW && vda != LOW;
@@ -85,30 +86,53 @@ void Signals::capture() {
 }
 
 void Signals::print() const {
-    // clang-format off
-    static char buffer[] = {
-        ' ',                       // _debug=0
-        'R',                       // rdy=1
-        'V',                       // vp/sync/ml=2
-        'W',                       // rw=3
-        ' ', 'A', '=', 0, 0, 0, 0, // addr=7
-        ' ', 'D', '=', 0, 0,       // data=14
-        0,
-    };
-    // clang-format on
+    char *buffer;
+    if (native65816()) {
+        // clang-format off
+        static char b65816[] = {
+            ' ',                             // _debug=0
+            'R',                             // rdy=1
+            'V',                             // vp/sync/ml=2
+            'W',                             // rw=3
+            ' ', 'A', '=', 0, 0, 0, 0, 0, 0, // addr=7
+            ' ', 'D', '=', 0, 0,             // data=16
+            0,
+        };
+        // clang-format on
+        buffer = b65816;
+        outHex24(buffer + 7, addr);
+        outHex8(buffer + 16, data);
+    } else {
+        // clang-format off
+        static char b6502[] = {
+            ' ',                       // _debug=0
+            'R',                       // rdy=1
+            'V',                       // vp/sync/ml=2
+            'W',                       // rw=3
+            ' ', 'A', '=', 0, 0, 0, 0, // addr=7
+            ' ', 'D', '=', 0, 0,       // data=14
+            0,
+        };
+        // clang-format on
+        buffer = b6502;
+        outHex16(buffer + 7, addr);
+        outHex8(buffer + 14, data);
+    }
     buffer[0] = _debug;
     buffer[1] = waiting() ? 'R' : ' ';
     buffer[2] =
             fetchInsn() ? 'S' : (fetchVector() ? 'V' : (busLock() ? 'L' : ' '));
     buffer[3] = (rw == LOW) ? 'W' : 'R';
-    outHex16(buffer + 7, addr);
-    outHex8(buffer + 14, data);
     cli.println(buffer);
 }
 
 Signals &Signals::debug(char c) {
     _debug = c;
     return *this;
+}
+
+bool Signals::native65816() {
+    return _type == MpuType::W65C816S && digitalReadFast(PIN_E) == LOW;
 }
 
 void Signals::checkHardwareType() {
