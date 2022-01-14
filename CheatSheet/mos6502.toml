@@ -1,18 +1,17 @@
-# R65C02 DIP definition
+# MOS6502 DIP definition
 # https://github.com/tgtakaoka/dip
-name = "R65C02"
-title = "R65C02/G65SC02"
+name = "MOS6502"
 dip = 40
 width = 600
-1 = "VSS"
-2 = "RDY"
-3 = "PHI1O"
-4 = "#IRQ"
-5 = "NC"
-6 = "#NMI"
-7 = "SYNC"
-8 = "VCC"
-9 = "A0"
+ 1 = "VSS"
+ 2 = "RDY"
+ 3 = "PHI1O"
+ 4 = "#IRQ"
+ 5 = "NC"
+ 6 = "#NMI"
+ 7 = "SYNC"
+ 8 = "VCC"
+ 9 = "A0"
 10 = "A1"
 11 = "A2"
 12 = "A3"
@@ -40,7 +39,7 @@ width = 600
 34 = "R/W"
 35 = "NC"
 36 = "NC"
-37 = "PHI0I"
+37 = "PHI0IN"
 38 = "#SO"
 39 = "PHI2O"
 40 = "#RES"
