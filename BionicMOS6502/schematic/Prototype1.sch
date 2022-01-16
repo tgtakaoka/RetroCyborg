@@ -600,17 +600,6 @@ Wire Wire Line
 	2900 2600 3250 2600
 Wire Wire Line
 	2900 2700 3250 2700
-$Comp
-L power:VCC #PWR0103
-U 1 1 61B1B727
-P 2500 2700
-F 0 "#PWR0103" H 2500 2550 50  0001 C CNN
-F 1 "VCC" H 2517 2873 50  0000 C CNN
-F 2 "" H 2500 2700 50  0001 C CNN
-F 3 "" H 2500 2700 50  0001 C CNN
-	1    2500 2700
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	4700 4000 5250 4000
 Wire Wire Line
@@ -774,9 +763,6 @@ F 3 "http://www.vishay.com/docs/31509/csc.pdf" H 2200 3100 50  0001 C CNN
 	0    -1   1    0   
 $EndComp
 Wire Wire Line
-	2500 2700 2000 2700
-Connection ~ 2500 2700
-Wire Wire Line
 	2400 2900 3150 2900
 Wire Wire Line
 	3150 3000 2400 3000
@@ -815,8 +801,6 @@ Wire Wire Line
 	2900 3200 2400 3200
 Text Label 3550 3400 0    50   ~ 0
 P52
-Wire Wire Line
-	2000 2700 2000 2900
 Wire Wire Line
 	5150 3800 5150 3550
 Wire Wire Line
@@ -872,6 +856,95 @@ Wire Wire Line
 	7400 2800 7850 2800
 Wire Wire Line
 	7850 3200 7400 3200
+Wire Wire Line
+	1900 3150 1900 3100
+Wire Wire Line
+	1900 2900 1900 2850
+$Comp
+L Device:C_Small C2
+U 1 1 61E7E82D
+P 1900 3000
+F 0 "C2" H 2000 3050 50  0000 L CNN
+F 1 "0.1u" H 2000 2950 50  0000 L CNN
+F 2 "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm" H 1900 3000 50  0001 C CNN
+F 3 "~" H 1900 3000 50  0001 C CNN
+	1    1900 3000
+	-1   0    0    -1  
+$EndComp
+$Comp
+L power:VCC #PWR08
+U 1 1 61E7E837
+P 1900 2850
+F 0 "#PWR08" H 1900 2700 50  0001 C CNN
+F 1 "VCC" H 2000 2950 50  0000 C CNN
+F 2 "" H 1900 2850 50  0001 C CNN
+F 3 "" H 1900 2850 50  0001 C CNN
+	1    1900 2850
+	-1   0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR09
+U 1 1 61E7E841
+P 1900 3150
+F 0 "#PWR09" H 1900 2900 50  0001 C CNN
+F 1 "GND" H 2000 3050 50  0000 C CNN
+F 2 "" H 1900 3150 50  0001 C CNN
+F 3 "" H 1900 3150 50  0001 C CNN
+	1    1900 3150
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	2400 2300 2500 2300
+Wire Wire Line
+	2400 2550 2400 2500
+Wire Wire Line
+	2400 2300 2400 2250
+Connection ~ 2400 2300
+$Comp
+L Device:C_Small C3
+U 1 1 61EA5F94
+P 2400 2400
+F 0 "C3" H 2500 2450 50  0000 L CNN
+F 1 "0.1u" H 2500 2350 50  0000 L CNN
+F 2 "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm" H 2400 2400 50  0001 C CNN
+F 3 "~" H 2400 2400 50  0001 C CNN
+	1    2400 2400
+	-1   0    0    -1  
+$EndComp
+$Comp
+L power:VCC #PWR010
+U 1 1 61EA5F9E
+P 2400 2250
+F 0 "#PWR010" H 2400 2100 50  0001 C CNN
+F 1 "VCC" H 2500 2350 50  0000 C CNN
+F 2 "" H 2400 2250 50  0001 C CNN
+F 3 "" H 2400 2250 50  0001 C CNN
+	1    2400 2250
+	-1   0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR011
+U 1 1 61EA5FA8
+P 2400 2550
+F 0 "#PWR011" H 2400 2300 50  0001 C CNN
+F 1 "GND" H 2500 2450 50  0000 C CNN
+F 2 "" H 2400 2550 50  0001 C CNN
+F 3 "" H 2400 2550 50  0001 C CNN
+	1    2400 2550
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	2500 2300 2500 2700
+Entry Wire Line
+	7950 2700 7850 2800
+Entry Wire Line
+	7950 3100 7850 3200
+Text Label 7500 2800 0    50   ~ 0
+P40
+Text Label 7500 3200 0    50   ~ 0
+P44
+Wire Wire Line
+	1900 2900 2000 2900
 Wire Bus Line
 	3000 3200 3000 4600
 Wire Bus Line
@@ -900,12 +973,5 @@ Wire Bus Line
 	3350 1600 3350 2600
 Wire Bus Line
 	3250 1400 3250 2900
-Entry Wire Line
-	7950 2700 7850 2800
-Entry Wire Line
-	7950 3100 7850 3200
-Text Label 7500 2800 0    50   ~ 0
-P40
-Text Label 7500 3200 0    50   ~ 0
-P44
+Connection ~ 1900 2900
 $EndSCHEMATC
