@@ -2,7 +2,7 @@ ASM=asm -u
 
 .PHONY: clean
 
-all: echo.hex echoir.hex echoitr.hex
+all: echo.hex echoir.hex echoitr.hex rompatch.hex
 
 %.hex:	%.asm
 	$(ASM) -l $*.lst -o $@ $^
