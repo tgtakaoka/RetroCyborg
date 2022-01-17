@@ -493,7 +493,7 @@ Pins::Device Pins::parseDevice(const char *name) const {
         return Device::SCI;
     if (strcasecmp_P(name, TEXT_RAM) == 0)
         return Device::RAM;
-    if (strcasecmp_P(name, TEXT_RAM) == 0)
+    if (strcasecmp_P(name, TEXT_DEV) == 0)
         return Device::DEV;
     return Device::NONE;
 }
