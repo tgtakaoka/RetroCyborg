@@ -1,20 +1,9 @@
 EESchema-DOCLIB  Version 2.0
 #
-$CMP 628128
-D RAM 128 Ko
-K RAM 128KO
-$ENDCMP
-#
 $CMP 74HCT126
 D 8-bit Buffer/Line Driver 3-state outputs
 K TTL BUFFER 3State BUS
 F https://www.ti.com/lit/ds/symlink/cd74hct126.pdf
-$ENDCMP
-#
-$CMP 74HCT541
-D 8-bit Buffer/Line Driver 3-state outputs
-K TTL BUFFER 3State BUS
-F http://www.ti.com/lit/gpn/sn74HCT541
 $ENDCMP
 #
 $CMP 74LS126
@@ -23,181 +12,16 @@ K TTL BUFFER 3State BUS
 F https://www.ti.com/lit/ds/symlink/cd74hct126.pdf
 $ENDCMP
 #
-$CMP 74LS541
-D 8-bit Buffer/Line Driver 3-state outputs
-K TTL BUFFER 3State BUS
-F http://www.ti.com/lit/gpn/sn74LS541
-$ENDCMP
-#
-$CMP ATmega4809-P
-D 20MHz, 48kB Flash, 4kB SRAM, 256B EEPROM, DIP-40
-K AVR 8bit Microcontroller MegaAVR
-F http://ww1.microchip.com/downloads/en/DeviceDoc/40002016A.pdf
-$ENDCMP
-#
 $CMP BionicConnector
 D Generic connector, double row, 02x24, counter clockwise pin numbering scheme (similar to DIP packge numbering), script generated (kicad-library-utils/schlib/autogen/connector/)
 K connector
 F https://www.arieselec.com/wp-content/uploads/2020/02/10001-universal-dip-zif-test-socket.pdf
 $ENDCMP
 #
-$CMP Conn_AVR_UPDI
-D Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)
-K connector
-F ~
-$ENDCMP
-#
-$CMP Conn_I2C_Master
-D I2C Master Connector
-K connector
-F ~
-$ENDCMP
-#
-$CMP Conn_Micro_SD
-D Micro SD Breakout
-K connector
-F ~
-$ENDCMP
-#
-$CMP Conn_USB_Serial
-D USB Serial Breakout
-K connector
-F ~
-$ENDCMP
-#
-$CMP HD6301V1P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6801/6803 MPU
-$ENDCMP
-#
-$CMP HD63B09EP
-D 8-Bit Microprocessing unit 2.0MHz, DIP-40
-K MCU
-F https://html.datasheetq.com/pdf-html/886901/Hitachi/1page/HD63C09E.html
-$ENDCMP
-#
-$CMP HD63B09P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6801/6803 MPU
-F https://pdf1.alldatasheet.jp/datasheet-pdf/view/4143/MOTOROLA/MC6809.html
-$ENDCMP
-#
-$CMP HD63C09EP
-D 8-Bit Microprocessing unit 3.0MHz, DIP-40
-K MCU
-F https://html.datasheetq.com/pdf-html/886901/Hitachi/1page/HD63C09E.html
-$ENDCMP
-#
-$CMP HD63C09P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6801/6803 MPU
-F https://pdf1.alldatasheet.jp/datasheet-pdf/view/4143/MOTOROLA/MC6809.html
-$ENDCMP
-#
-$CMP MC146805E2P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6805 MPU
-F https://www.datasheetarchive.com/pdf/download.php?id=8308749ebec04603691dcc4aa7c9e5d85c5a25&type=M&term=MC146805E2P
-$ENDCMP
-#
 $CMP MC6800P
 D 8-bit General Purpose Microprocessor, DIP-40
 K MC6800 MPU
 F https://datasheetspdf.com/pdf-file/496901/Motorola/MC6800/1
-$ENDCMP
-#
-$CMP MC6802P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6802 MPU
-F https://datasheetspdf.com/pdf-file/544765/Motorola/MC6802/1
-$ENDCMP
-#
-$CMP MC6803P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6801/6803 MPU
-$ENDCMP
-#
-$CMP MC6809EP
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6809E/HD6309E
-F https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%208%20Bit%20Microprocessor%20(Motorola).pdf
-$ENDCMP
-#
-$CMP MC6809P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6809/HD6309 MPU
-F https://pdf1.alldatasheet.jp/datasheet-pdf/view/4143/MOTOROLA/MC6809.html
-$ENDCMP
-#
-$CMP MC68A09EP
-F https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%208%20Bit%20Microprocessor%20(Motorola).pdf
-$ENDCMP
-#
-$CMP MC68A09P
-D 8-bit General Purpose Microprocessor, DIP-40
-F https://pdf1.alldatasheet.jp/datasheet-pdf/view/4143/MOTOROLA/MC6809.html
-$ENDCMP
-#
-$CMP MC68B09EP
-F https://colorcomputerarchive.com/repo/Documents/Datasheets/MC6809E%20HMOS%208%20Bit%20Microprocessor%20(Motorola).pdf
-$ENDCMP
-#
-$CMP MC68B09P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6801/6803 MPU
-F https://pdf1.alldatasheet.jp/datasheet-pdf/view/4143/MOTOROLA/MC6809.html
-$ENDCMP
-#
-$CMP MC68HC11A0P
-F https://www.nxp.com/docs/en/data-sheet/MC68HC11A8.pdf
-$ENDCMP
-#
-$CMP MC68HC11A1P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC6801/6803 MPU
-F https://www.nxp.com/docs/en/data-sheet/MC68HC11A8.pdf
-$ENDCMP
-#
-$CMP MC68HC11A8P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC68HC11 MPU
-F https://www.nxp.com/docs/en/data-sheet/MC68HC11A8.pdf
-$ENDCMP
-#
-$CMP MC68HC11D3P
-D 8-bit General Purpose Microprocessor, DIP-40
-K MC68HC11 MPU
-F https://www.nxp.com/docs/en/data-sheet/MC68HC711D3.pdf
-$ENDCMP
-#
-$CMP Micro_SD
-D Micro SD Breakout
-K connector
-F ~
-$ENDCMP
-#
-$CMP SW_Push_LED
-D Push button switch with LED, generic
-K switch normally-open pushbutton push-button LED
-F ~
-$ENDCMP
-#
-$CMP Teensy3.5
-D 20MHz, 48kB Flash, 4kB SRAM, 256B EEPROM, DIP-40
-K AVR 8bit Microcontroller MegaAVR
-F https://www.pjrc.com/store/teensy35.html
-$ENDCMP
-#
-$CMP USB_Serial
-D USB Serial Breakout
-K connector
-F ~
-$ENDCMP
-#
-$CMP Z84C00
-D 8-bit General Purpose Microprocessor, DIP-40
-K Z80 CPU uP
-F www.zilog.com/manage_directlink.php?filepath=docs/z80/um0080
 $ENDCMP
 #
 #End Doc Library

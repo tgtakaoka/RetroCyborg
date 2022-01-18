@@ -1,7 +1,7 @@
 /**
- *  BionicMC6800 controller
+ *  BionicMOS6502 controller
  *
- * This sketch is designed to controll and debug MC6800 MPU.
+ * This sketch is designed to controll and debug MOS6502 MPU and variants.
  */
 
 #include <libcli.h>

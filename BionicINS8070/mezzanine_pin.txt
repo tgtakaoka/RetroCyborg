@@ -1,4 +1,4 @@
-                      INS8070 (backside)
+                      BionicINS8070 (backside)
               _________                       _____
        VCC 40|        *|1  P55 #ENOUT GND  48|    *|1   GND
     SB P43 39|         |2  P54 #ENIN  P20  47|     |2   P10
