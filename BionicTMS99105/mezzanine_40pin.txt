@@ -1,0 +1,28 @@
+                       BionicMezzanine (Front side)
+      _____
+  GND|*    |GND
+  P10|     |P20
+  P11|     |P21
+  P12|     |P22                                     _________
+  P13|  B  |P23                         #MEM P54 40|        *|1  P51 #WE     
+  P14|  i  |P24                         BST1 P32 39|         |2  P50 #RD     
+  P15|  o  |P25                         BST2 P31 38|         |3  P53 #RESET  
+  P16|  n  |P26                         BST3 P30 37|         |4  P36 #APP    
+  P17|  i  |P27                        CLKIN P46 36|         |5  P37 #HOLD   
+   E0|  c  |E1                         XTAL2     35|    T    |6  VSS         
+  P30|     |P40                       CLKOUT P47 34|    M    |7  P52 READY   
+  P31|  C  |P41                              VSS 33|    S    |8  P42 #INTRE  
+  P32|  o  |P42                       ALATCH P44 32|    9    |9  P43 #NMI    
+  P33|  n  |P43          _____       D15/OUT P10 31|    9    |10 P37 IC0     
+  P34|  n  |P44  #OE1  1|*    |20 Vcc   AD14 P11 30|    1    |11 P36 IC1     
+  P35|  e  |P45    A0  2|     |19 #OE   AD13 P12 29|    0    |12 P35 IC2     
+  P36|  c  |P46    A1  3|  7  |18 Y0    AD12 P13 28|    5    |13 P34 IC3     
+  P37|  t  |P47    A2  4|  4  |17 Y1    AD11 P14 27|    A    |14 P45 R/#W    
+   E2|  o  |E3     A3  5|  5  |16 Y2    AD10 P15 26|         |15 VCC         
+  P50|  r  |P54    A4  6|  4  |15 Y3     AD9 P16 25|         |16 P27 AD0/IN  
+  P51|     |P55    A5  7|  1  |14 Y4     AD8 P17 24|         |17 P26 AD1     
+  P52|     |P56    A6  8|     |13 Y5     AD7 P20 23|         |18 P25 AD2     
+  P53|     |P57    A7  9|     |12 Y6     AD6 P21 22|         |19 P24 AD3     
+  VCC|_____|VCC   GND 10|_____|11 Y7     AD5 P22 21|_________|20 P23 AD4     
+Bionic Connector      CD74HCT541E                   TMS99105A                 
+

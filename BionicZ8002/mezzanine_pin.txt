@@ -1,0 +1,32 @@
+                       BionicZ8002 (backside)
+               _________                       _____
+    AD0 P10 40|        *|1  P21 AD9    GND  48|    *|1   GND
+    AD8 P20 39|         |2  P22 AD10   P20  47|     |2   P10
+    AD7 P17 38|         |3  P23 AD11   P21  46|     |3   P11
+    AD6 P16 37|         |4  P24 AD12   P22  45|     |4   P12
+    AD4 P15 36|         |5  P25 AD13   P23  44|  B  |5   P13
+    AD5 P14 35|         |6  P51 #STOP  P24  43|  i  |6   P14
+    AD3 P13 34|         |7  P55 #MI    P25  42|  o  |7   P15
+    AD2 P12 33|    Z    |8  P27 AD15   P26  41|  n  |8   P16
+    AD1 P11 32|    1    |9  P26 AD14   P27  40|  i  |9   P17
+        GND 31|    6    |10 VCC         E1  39|  c  |10  E0
+  CLOCK P46 30|    C    |11 P44 #VI    P40  38|     |11  P30
+    #AS P40 29|    0    |12 P43 #NVI   P41  37|  C  |12  P31
+     NC     28|    2    |13 P42 #NMI   P42  36|  o  |13  P32
+   B/#W P35 27|         |14 P53 #RESET P43  35|  n  |14  P33
+   N/#S P34 26|         |15 P54 #MO    P44  34|  n  |15  P34
+   R/#W P41 25|         |16 P47 #MREQ  P45  33|  e  |16  P35
+#BUSACK P36 24|         |17 P45 #DS    P46  32|  c  |17  P36
+  #WAIT P52 23|         |18 P33 ST3    P47  31|  t  |18  P37
+#BUSREQ P37 22|         |19 P32 ST2     E3  30|  o  |19  E2
+    ST0 P30 21|_________|20 P31 ST1    P54  29|  r  |20  P50
+                 3     4 V             P55  28|     |21  P51
+             3 3 O 4 4 O c             P56  27|     |22  P52
+             Y A E Y A E c             P57  26|     |23  P53
+            +-------------+            VCC  25|_____|24  VCC
+            |             |               Bionic Connector
+            |   74126    *|
+            +-------------+
+             G 2 2 2 1 1 1
+             N Y A O Y A O
+             D     E     E

@@ -1,0 +1,27 @@
+                       BionicMezzanine (Front side)
+      _____
+  GND|*    |GND
+  P10|     |P20
+  P11|     |P21
+  P12|     |P22                                     _________
+  P13|  B  |P23                          AD9 P21  1|*        |40 P10 AD0
+  P14|  i  |P24                         AD10 P22  2|         |39 P20 AD8
+  P15|  o  |P25                         AD11 P23  3|         |38 P17 AD7
+  P16|  n  |P26                         AD12 P24  4|         |37 P16 AD6
+  P17|  i  |P27                         AD13 P25  5|         |36 P15 AD4
+   E0|  c  |E1                         #STOP P51  6|         |35 P14 AD5
+  P30|     |P40                          #MI P55  7|         |34 P13 AD3
+  P31|  C  |P41                         AD15 P27  8|    Z    |33 P12 AD2
+  P32|  o  |P42                         AD14 P26  9|    1    |32 P11 AD1
+  P33|  n  |P43          _____               VCC 10|    6    |31 GND
+  P34|  n  |P44  #OE1  1|*    |20 Vcc    #VI P44 11|    C    |30 P46 CLOCK
+  P35|  e  |P45    A0  2|     |19 #OE2  #NVI P43 12|    0    |29 P40 #AS
+  P36|  c  |P46    A1  3|  7  |18 Y0    #NMI P42 13|    2    |28     NC
+  P37|  t  |P47    A2  4|  4  |17 Y1  #RESET P53 14|         |27 P35 B/#W
+   E2|  o  |E3     A3  5|  5  |16 Y2     #MO P54 15|         |26 P34 N/#S
+  P50|  r  |P54    A4  6|  4  |15 Y3   #MREQ P47 16|         |25 P41 R/#W
+  P51|     |P55    A5  7|  1  |14 Y4     #DS P45 17|         |24 P36 #BUSACK
+  P52|     |P56    A6  8|     |13 Y5     ST3 P33 18|         |23 P52 #WAIT
+  P53|     |P57    A7  9|     |12 Y6     ST2 P32 19|         |22 P37 #BUSREQ
+  VCC|_____|VCC   GND 10|_____|11 Y7     ST1 P31 20|_________|21 P30 ST0
+Bionic Connector      CD74HCT541E             Z08002/Z16C02 (Z8002)

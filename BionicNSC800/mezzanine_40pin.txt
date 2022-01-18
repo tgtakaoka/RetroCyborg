@@ -1,0 +1,27 @@
+                       BionicMezzanine (Front side)
+      _____
+  GND|*    |GND
+  P10|     |P20
+  P11|     |P21
+  P12|     |P22                                     _________
+  P13|  B  |P23                           A8 P20  1|*        |40 VCC
+  P14|  i  |P24                           A9 P21  2|         |39 P44 #PS
+  P15|  o  |P25                          A10 P22  3|         |38 P52 #WAIT
+  P16|  n  |P26                          A11 P23  4|         |37  RESET_OUT
+  P17|  i  |P27                          A12 P24  5|         |36 P37 #BREQ
+   E0|  c  |E1                           A13 P25  6|         |35 P36 #BACK
+  P30|     |P40                          A14 P26  7|    N    |34 P55 IO/#M
+  P31|  C  |P41                          A15 P27  8|    S    |33 P53 #RESET
+  P32|  o  |P42                          CLK P47  9|    C    |32 P50 #RD
+  P33|  n  |P43          _____          XOUT     10|    8    |31 P51 #WR
+  P34|  n  |P44  #OE1  1|*    |20 Vcc    XIN P46 11|    0    |30 P40 ALE
+  P35|  e  |P45    A0  2|     |19 #OE2   AD0 P10 12|    0    |29 P34 S0
+  P36|  c  |P46    A1  3|  7  |18 Y0     AD1 P11 13|    N    |28 P45 #RFSH
+  P37|  t  |P47    A2  4|  4  |17 Y1     AD2 P12 14|         |27 P35 S1
+   E2|  o  |E3     A3  5|  5  |16 Y2     AD3 P13 15|         |26 P54 #INTA
+  P50|  r  |P54    A4  6|  4  |15 Y3     AD4 P14 16|         |25 P42 #INTR
+  P51|     |P55    A5  7|  1  |14 Y4     AD5 P15 17|         |24 P32 #RSTC
+  P52|     |P56    A6  8|     |13 Y5     AD6 P16 18|         |23 P31 #RSTB
+  P53|     |P57    A7  9|     |12 Y6     AD7 P17 19|         |22 P30 #RSTA
+  VCC|_____|VCC   GND 10|_____|11 Y7         GND 20|_________|21 P43 #NMI
+Bionic Connector      CD74HCT541E                    NSC800N

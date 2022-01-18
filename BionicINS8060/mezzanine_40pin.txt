@@ -1,0 +1,27 @@
+                       BionicMezzanine (Front side)
+      _____
+  GND|*    |GND
+  P10|     |P20
+  P11|     |P21
+  P12|     |P22                                     _________
+  P13|  B  |P23                         #WDS P41  1|*        |40 VCC
+  P14|  i  |P24                         #RDS P50  2|         |39 P51 #ADS
+  P15|  o  |P25                        #ENIN P54  3|         |38     XOUT
+  P16|  n  |P26                       #ENOUT P55  4|         |37 P46 XIN
+  P17|  i  |P27                        #BREQ P47  5|         |36 P33 AD1
+   E0|  c  |E1                         #HOLD P52  6|         |35 P32 AD0
+  P30|     |P40                         #RST P53  7|    I    |34 P31 AD0
+  P31|  C  |P41                         CONT P40  8|    N    |33 P30 AD0
+  P32|  o  |P42                          DB7 P10  9|    S    |32 P27 AD0
+  P33|  n  |P43          _____           DB6 P11 10|    8    |31 P26 AD0
+  P34|  n  |P44  #OE1  1|*    |20 Vcc    DB5 P12 11|    0    |30 P25 AD0
+  P35|  e  |P45    A0  2|     |19 #OE2   DB4 P13 12|    6    |29 P24 AD0
+  P36|  c  |P46    A1  3|  7  |18 Y0     DB3 P14 13|    0    |28 P23 AD0
+  P37|  t  |P47    A2  4|  4  |17 Y1     DB2 P15 14|         |27 P22 AD0
+   E2|  o  |E3     A3  5|  5  |16 Y2     DB1 P16 15|         |26 P21 AD0
+  P50|  r  |P54    A4  6|  4  |15 Y3     DB0 P17 16|         |25 P20 AD0
+  P51|     |P55    A5  7|  1  |14 Y4  SENSEA P42 17|         |24 P45 SIN
+  P52|     |P56    A6  8|     |13 Y5  SENSEB P43 18|         |23 P44 SOUT
+  P53|     |P57    A7  9|     |12 Y6   FLAG0 P34 19|         |22 P36 FLAG2
+  VCC|_____|VCC   GND 10|_____|11 Y7         GND 20|_________|21 P35 FLAG1
+Bionic Connector      CD74HCT541E                INS8060 (SC/MP II)

@@ -1,0 +1,31 @@
+                      BionicMC68008 (backside)
+               _________                    _____             _____
+    AD6 P16 48|        *|1  P10 AD0     Vcc|    *|#OE1    GND|    *|GND
+    SN6 SN6 47|         |2  P21 AD9    #OE2|     |A0      P20|     |P10
+    SN5 SN5 46|         |3  P22 AD10     Y0|  7  |A1      P21|     |P11
+    AD7 P17 45|         |4  P23 AD11     Y1|  4  |A2      P22|     |P12
+    AD6 P16 44|         |5  P24 AD12     Y2|  5  |A3      P23|  B  |P13
+    AD4 P14 43|         |6  P25 AD13     Y3|  4  |A4      P24|  i  |P14
+    SN4 SN4 42|         |7  P51 #STOP    Y4|  1  |A5      P25|  o  |P15
+    AD5 P15 41|         |8      #MI      Y5|     |A6      P26|  n  |P16
+    AD3 P13 40|         |9  P27 AD15     Y6|     |A7      P27|  i  |P17
+    AD2 P12 39|    Z    |10 P26 AD14     Y7|_____|GND      E1|  c  |E0
+    AD1 P11 38|    1    |11 VCC             _____         P40|     |P30
+    SN2 SN2 37|    6    |12 P44 #VI     Vcc|    *|#OE1    P41|  C  |P31
+        GND 36|    C    |13 P42 #NVI   #OE2|     |A0      P42|  o  |P32
+  CLOCK P46 35|    0    |14 P50 #SEGT    Y0|  7  |A1      P43|  n  |P33
+    #AS P40 34|    1    |15 P43 #NMI     Y1|  4  |A2      P44|  n  |P34
+     NC     33|         |16 P53 #RESET   Y2|  5  |A3      P45|  e  |P35
+   B/#W ST5 32|         |17     #MO      Y3|  4  |A4      P46|  c  |P36
+   N/#S ST4 31|         |18 P47 #MREQ    Y4|  1  |A5      P47|  t  |P37
+   R/#W P41 30|         |19 P45 #DS      Y5|     |A6       E3|  o  |E2
+#BUSACK P36 29|         |20 ST3 ST3      Y6|     |A7      P54|  r  |P50
+  #WAIT P52 28|         |21 ST2 ST2      Y7|_____|GND     P55|     |P51
+#BUSREQ P37 27|         |22 ST1 ST1      3 3 3 4 4 4 V    P56|     |P52
+    SN0 SN0 26|         |23 ST0 ST0     +-------------+   P57|     |P53
+    SN1 SN1 25|_________|24 SN3 SN3     |Y A E Y A E c|   VCC|_____|VCC
+                                        |   74126    *|
+                                        +-------------+
+                                         G 2 2 2 1 1 1
+                                         N Y A O Y A O
+                                         D     E     E

@@ -1,0 +1,31 @@
+                       BionicMezzanine (Front side)
+      _____           _____                  _________
+  GND|*    |GND  #OE1|*    |Vcc   A22 AH6  1|*        |48 VCC VCC
+  P10|     |P20    A0|     |#OE2  A21 AH5  2|         |47 AH7 A23
+  P11|     |P21    A1|  7  |Y0    A20 AH4  3|         |46 P42 #INT
+  P12|     |P22    A2|  4  |Y1    A19 AH3  4|         |45 P43 #NMI
+  P13|  B  |P23    A3|  5  |Y2    A18 AH2  5|         |44 ST5 #ILO
+  P14|  i  |P24    A4|  4  |Y3    A17 AH1  6|         |43 ST0 ST0
+  P15|  o  |P25    A5|  1  |Y4    A16 AH0  7|         |42 ST1 ST1
+  P16|  n  |P26    A6|     |Y5   AD15 P27  8|         |41 ST2 ST2
+  P17|  i  |P27    A7|     |Y6   AD14 P26  9|    N    |40 ST3 ST3
+   E0|  c  |E1    GND|_____|Y7   AD13 P25 10|    S    |39 P51 #PFS
+  P30|     |P40       _____      AD12 P24 11|    3    |38 ST6 #DDIN
+  P31|  C  |P41  #OE1|*    |Vcc  AD11 P23 12|    2    |37 P40 #ADS
+  P32|  o  |P42    A0|     |#OE2 AD10 P22 13|    0    |36 ST4 U/#S
+  P33|  n  |P43    A1|  7  |Y0    AD9 P21 14|    1    |35 P44 #AT
+  P34|  n  |P44    A2|  4  |Y1    AD8 P20 15|    6    |34 P53 #RST
+  P35|  e  |P45    A3|  5  |Y2    AD7 P17 16|    N    |33 P50 #DS
+  P36|  c  |P46    A4|  4  |Y3    AD6 P16 17|         |32 ST7 #HBE
+  P37|  t  |P47    A5|  1  |Y4    AD5 P15 18|         |31 P45 #HLDA
+   E2|  o  |E3     A6|     |Y5    AD4 P14 19|         |30 P41 #HOLD
+  P50|  r  |P54    A7|     |Y6    AD3 P13 20|         |29 Cap BBG
+  P51|     |P55   GND|_____|Y7    AD2 P12 21|         |28 P52 RDY
+  P52|     |P56  c E A Y E A Y    AD1 P11 22|         |27 P47 PHI2
+  P53|     |P57 +-------------+   AD0 P10 23|         |26 P46 PHI1
+  VCC|_____|VCC |             |  GNDL GND 24|_________|25 GND GNDB
+Bionic Connector|*  74126     |              NS32016N
+                +-------------+
+                 1 1 1 2 2 2 G
+                 O A Y O A Y N
+                 E     E     D
