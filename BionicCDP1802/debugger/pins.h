@@ -41,12 +41,18 @@ public:
 
 private:
     bool _freeRunning;
-    uint8_t _irq;
+    uint8_t _intr;
 
+    friend class Regs;
+    Signals &prepareCycle();
+    Signals &rawPrepareCycle();
+    Signals &directCycle(Signals &signals);
+    Signals &completeCycle(Signals &signals);
     Signals &cycle();
-    Signals &raw_cycle();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
+    void suspend();
+    bool skip(uint8_t insn);
 
     Device _serialDevice;
 

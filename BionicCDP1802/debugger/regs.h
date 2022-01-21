@@ -7,22 +7,27 @@
 #include "signals.h"
 
 struct Regs {
-    uint16_t sp;
-    uint16_t pc;
+    uint8_t d;
     uint8_t x;
-    uint8_t a;
-    uint8_t cc;
+    uint8_t p;
+    uint8_t t;
+    uint8_t q;
+    uint8_t df;
+    uint8_t ie;
+    uint16_t r[16];
+    bool dirty[16];
 
     void print() const;
     void save(bool show = false);
     void restore(bool show = false);
-    uint8_t cycles(uint8_t insn) const;
+    void reset();
 
     const char *cpu() const;
     const char *cpuName() const;
+    bool is1804() const;
 
-    uint16_t nextIp() const { return pc; }
-    uint32_t maxAddr() const { return 0x1FFF; }
+    uint16_t nextIp() const { return r[p]; }
+    uint32_t maxAddr() const { return UINT16_MAX; }
     void printRegList() const;
     char validUint8Reg(const char *word) const;
     char validUint16Reg(const char *word) const;
@@ -30,6 +35,11 @@ struct Regs {
     void setRegValue(char reg, uint32_t value);
     uint16_t disassemble(uint16_t addr, uint16_t numInsn) const;
     uint16_t assemble(uint16_t addr, const char *line) const;
+
+private:
+    const char *_cpuType;
+
+    void setCpuType();
 };
 
 extern Regs Regs;
@@ -50,8 +60,7 @@ public:
     uint16_t raw_read_uint16(uint16_t addr) const;
     void raw_write_uint16(uint16_t addr, uint16_t data);
 
-    static constexpr auto memory_size = 0x2000;
-    static constexpr auto reset_vector = 0x1FFE;
+    static constexpr auto memory_size = 0x10000;
     static bool is_internal(uint16_t addr);
 
 protected:

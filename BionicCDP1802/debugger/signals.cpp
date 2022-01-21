@@ -32,62 +32,73 @@ void Signals::resetCycles() {
 }
 
 void Signals::nextCycle() {
-    if (_cycles < MAX_CYCLES)
-        _cycles++;
+    _cycles++;
+    _cycles %= MAX_CYCLES;
     _signals[_cycles].clear();
 }
 
-extern uint8_t RAM[0x10000];
+void Signals::getStatus() {
+    uint8_t status = digitalReadFast(PIN_SC1) != LOW ? 2 : 0;
+    if (digitalReadFast(PIN_SC0) != LOW)
+        status += 1;
+    sc = (Status) status;
+}
 
 void Signals::getAddr1() {
-    addr = busRead(AH);
+    addr = static_cast<uint16_t>(busRead(MA)) << 8;
+    n = busRead(N);
 }
 
 void Signals::getAddr2() {
-    addr |= busRead(B);
+    addr |= busRead(MA);
+    mrd = digitalReadFast(PIN_MRD);
 }
 
 void Signals::getDirection() {
-    rw = digitalReadFast(PIN_RW);
-}
-
-void Signals::getLoadInstruction() {
-    li = digitalReadFast(PIN_LI);
+    mwr = digitalReadFast(PIN_MWR);
 }
 
 void Signals::getData() {
-    data = busRead(B);
+    data = busRead(DBUS);
 }
 
-void Signals::inject(uint8_t val) {
+Signals &Signals::inject(uint8_t val) {
     Signals &curr = currCycle();
     curr._inject = true;
     curr.data = val;
-    curr.debug('i');
+    return curr;
 }
 
 void Signals::capture() {
     Signals &curr = currCycle();
     curr._capture = true;
-    curr.debug('c');
 }
 
 void Signals::print() const {
+    static const char sc_state[] = {'F', ' ', 'D', 'R', '?'};
     // clang-format off
     static char buffer[] = {
         ' ',                       // _debug=0
-        ' ', 'L',                  // li=2
-        'W',                       // rw=3
+        ' ',
+        'L',                       // sc=2
+        'W',                       // rds/wds=3
         ' ', 'A', '=', 0, 0, 0, 0, // addr=7
         ' ', 'D', '=', 0, 0,       // data=14
+        ' ', 'N', '=', 0,          // n=19
         0,
     };
     // clang-format on
-    buffer[0] = _debug;
-    buffer[2] = (li == LOW) ? ' ' : 'L';
-    buffer[3] = (rw == LOW) ? 'W' : 'R';
+    buffer[0] = _debug ? _debug : ' ';
+    buffer[2] = sc_state[(uint8_t)sc];
+    buffer[3] = (mrd == LOW) ? 'R' : (mwr == LOW ? 'W' : '-');
     outHex16(buffer + 7, addr);
     outHex8(buffer + 14, data);
+    if (n) {
+        buffer[16] = ' ';
+        outHex4(buffer + 19, n);
+    } else {
+        buffer[16] = 0;
+    }
     cli.println(buffer);
 }
 
