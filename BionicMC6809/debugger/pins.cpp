@@ -30,10 +30,10 @@ static constexpr bool debug_cycles = false;
  *  Data -------------------<rrrr>-------------<wwwwwwwww>------
  *
  * - EXTAL falling-edge to E and Q edges takes 40ns.
- * - R/W, Address, BA and BS are valid before 40ns of raising edge of Q.
+ * - R/W, Address, BA and BS are valid before 40ns of rising edge of Q.
  * - Read data setup to falling E egde is 80ns.
  * - Read data hold to falling E edge is 10ns.
- * - Write data gets valid after 200ns of raising Q edge.
+ * - Write data gets valid after 200ns of rising Q edge.
  */
 
 #if defined(ARDUINO_TEENSY35)

@@ -32,16 +32,16 @@ static constexpr bool debug_cycles = false;
  *  Data -------------------<rrrr>-------------<wwwwwwwww>------
  *
  * - EXTAL falling-edge to E edges takes 40ns.
- * - EXTAL raising-edge of c1 to AS edges takes 40ns.
+ * - EXTAL rising-edge of c1 to AS edges takes 40ns.
  * - EXTAL falling-edge of c4 to R/W edges takes 100ns.
  * - EXTAL falling-edge to #LIR edges takes 40ns.
  * - R/W and non-muxed address are valid after 281.5ns of falling edge of E.
- * - R/W and non-muxed address are valid before raising edge of c1.
+ * - R/W and non-muxed address are valid before rising edge of c1.
  * - Muxed address is valid before 151ns of falling edge of AS.
  * - Muxed address is valid until 95.4ns of falling edge of AS.
  * - Read data setup to falling E egde is 30ns.
  * - Read data hold to falling E egde is 145.5ns.
- * - Write data gets valid after 190.5ns of raising E edge.
+ * - Write data gets valid after 190.5ns of rising E edge.
  */
 
 #if defined(ARDUINO_TEENSY35)

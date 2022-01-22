@@ -33,10 +33,10 @@ static constexpr bool debug_cycles = false;
  * - Minimum delay time between Q and E edges are 200ns.
  * - R/W, Address, BA and BS are valid after 200ns of falling edge of E.
  * - R/W, Address, BA and BS get invalid after 20ns of falling edge of E.
- * - AVMA, BUSY and LIC get valid after 300ns of raising edge of Q.
+ * - AVMA, BUSY and LIC get valid after 300ns of rising edge of Q.
  * - Read data setup to falling E egde is 80ns.
  * - Read data hold to falling E edge is 10ns.
- * - Write data gets valid after 200ns of raising Q edge.
+ * - Write data gets valid after 200ns of rising Q edge.
  */
 
 #if defined(ARDUINO_TEENSY35)

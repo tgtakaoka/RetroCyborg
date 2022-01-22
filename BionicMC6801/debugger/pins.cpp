@@ -32,11 +32,11 @@ static constexpr bool debug_cycles = false;
  *  Data -------------------<rrrr>-------------<wwwwwwwww>------
  *
  * - EXTAL falling-edge to E edges takes 50ns.
- * - EXTAL raising-edge of c1 to AS edges takes 40ns.
+ * - EXTAL rising-edge of c1 to AS edges takes 40ns.
  * - EXTAL falling-edge of c4 to R/W edges takes 100ns.
- * - R/W is valid before raising edge of c1.
+ * - R/W is valid before rising edge of c1.
  * - Read data setup to falling E egde is 80ns.
- * - Write data gets valid after 225ns of raising E edge.
+ * - Write data gets valid after 225ns of rising E edge.
  */
 
 #if defined(ARDUINO_TEENSY35)

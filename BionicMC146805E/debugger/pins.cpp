@@ -31,9 +31,9 @@ static constexpr bool debug_cycles = true;
  *
  * - OSC1 falling-edge to AS edges takes 70ns.
  * - OSC1 falling-edge to DS edges takes 70ns.
- * - OSC1 falling-edge to LI raising-edge takes 130ns.
- * - AS falling-edge to LI raising-edge takes 60ns.
- * - R/W is valid before raising edge of c1.
+ * - OSC1 falling-edge to LI rising-edge takes 130ns.
+ * - AS falling-edge to LI rising-edge takes 60ns.
+ * - R/W is valid before rising edge of c1.
  */
 
 #if defined(ARDUINO_TEENSY35)

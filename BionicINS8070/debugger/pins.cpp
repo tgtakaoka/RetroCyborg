@@ -35,10 +35,10 @@ static constexpr bool debug_cycles = false;
  *  #WDS                              |wwwwwwwwwwwwwwwwww|
  *
  * - XIN edges to XOUT edges are 8ns.
- * - XIN 1st raising edge to #BREQ falling edge is 72ns.
+ * - XIN 1st rising edge to #BREQ falling edge is 72ns.
  * - XIN 3rd falling edge to #RDS falling edge is 84ns.
- * - XIN 7th falling edge to #RDS raising edge is 88ns.
- * - XIN 8th falling edge to #BREQ raising edge is 176ns.
+ * - XIN 7th falling edge to #RDS rising edge is 88ns.
+ * - XIN 8th falling edge to #BREQ rising edge is 176ns.
  * - #BREQ falling edge to #RDS/#WDS falling edge is 2 cycles/
  * - #RST rising edge to 1st #BREQ takes ~14 XIN cycles.
  */

@@ -35,10 +35,10 @@ static constexpr bool debug_cycles = false;
  * - Minimum PHI1/PHI2 high period is 400ns.
  * - Minimum overrapping of PHI1 and PHI2 is 0ns.
  * - Maximum separation of PHI1 and PHI2 is 9100ns.
- * - PHI1 raising-edge to valid VMA, R/W and address is 270ns.
+ * - PHI1 rising-edge to valid VMA, R/W and address is 270ns.
  * - Read data setup to falling PHI2 egde is 100ns.
  * - Read data hold to falling PHI2 edge is 10ns.
- * - Write data gets valid after 225ns of raising DBE edge.
+ * - Write data gets valid after 225ns of rising DBE edge.
  */
 
 #if defined(ARDUINO_TEENSY35)
