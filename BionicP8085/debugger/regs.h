@@ -6,19 +6,32 @@
 #include <dis_memory.h>
 
 struct Regs {
-    uint8_t a;
+    uint8_t b;
+    uint8_t c;
+    uint8_t d;
     uint8_t e;
-    uint16_t getEa() const { return (static_cast<uint16_t>(e) << 8) | a; }
-    void setEa(uint16_t ea) {
-        a = ea;
-        e = ea >> 8;
-    }
-    uint8_t s;
-    uint16_t t;
+    uint8_t h;
+    uint8_t l;
+    uint8_t a;
+    uint8_t psw;
     uint16_t pc;
     uint16_t sp;
-    uint16_t p2;
-    uint16_t p3;
+    uint8_t ie;
+
+    void setBc(uint16_t bc) {
+        c = bc;
+        b = bc >> 8;
+    }
+
+    void setDe(uint16_t de) {
+        e = de;
+        d = de >> 8;
+    }
+
+    void setHl(uint16_t hl) {
+        l = hl;
+        h = hl >> 8;
+    }
 
     void print() const;
     void save(bool show = false);
@@ -30,7 +43,7 @@ struct Regs {
     const char *cpu() const;
     const char *cpuName() const;
 
-    uint16_t nextIp() const { return pc + 1; }
+    uint16_t nextIp() const { return pc; }
     uint32_t maxAddr() const { return UINT16_MAX; }
     void printRegList() const;
     char validUint8Reg(const char *word) const;
@@ -55,15 +68,12 @@ public:
     uint8_t read(uint16_t addr) const;
     void write(uint16_t addr, uint8_t data);
     void write(uint16_t addr, const uint8_t *data, uint8_t len);
-    uint8_t internal_read(uint8_t addr) const;
-    void internal_write(uint8_t addr, uint8_t data) const;
     uint8_t raw_read(uint16_t addr) const;
     void raw_write(uint16_t addr, uint8_t data);
     uint16_t raw_read_uint16(uint16_t addr) const;
     void raw_write_uint16(uint16_t addr, uint16_t data);
 
     static constexpr auto memory_size = 0x10000;
-    static bool is_internal(uint16_t addr);
 
 protected:
     uint8_t nextByte() { return read(address()); }

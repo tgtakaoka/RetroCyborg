@@ -4,46 +4,53 @@
 #include <stdint.h>
 
 struct Signals {
-    bool getDirection();
-    bool read() const { return rds == 0; }
-    bool write() const { return wds == 0; }
-    /**
-     * Return true if this bus cycle fulfills instruction fetch condition.
-     * May return false even if this bus cycle is instruction fetch.
-     */
-    bool fetchInsn() const;
-    void getAddr();
+    bool fetchInsn() const { return iom == 0 && s == S_FETCH; }
+    void getAddress();
+    void getDirection();
     void getData();
     void clear();
     static void inject(uint8_t data);
     static void capture();
     void print() const;
     Signals &debug(char c);
+    Signals &setAddress(uint16_t addr);
 
     uint16_t addr;
     uint8_t data;
-    uint8_t rds;
-    uint8_t wds;
+    uint8_t iom;
+    uint8_t wr;
+    uint8_t rd;
+    uint8_t inta;
 
     bool readRam() const { return _inject == false; }
     bool writeRam() const { return _capture == false; }
 
+    static void disassembleCycles();
     static void printCycles();
     static Signals &currCycle();
     static void resetCycles();
     static void nextCycle();
 
 private:
+    enum Status : uint8_t {
+        S_HALT = 0,   // HALT
+        S_WRITE = 1,  // MW or IOW
+        S_READ = 2,   // MR or IOR
+        S_FETCH = 3,  // OF or INA
+    };
+
+    Status s;
     bool _inject;
     bool _capture;
     char _debug;
 
-    static constexpr uint8_t MAX_CYCLES = 60;
+    static constexpr uint8_t MAX_CYCLES = 64;
     static uint8_t _put;
     static uint8_t _get;
     static uint8_t _cycles;
     static Signals _signals[MAX_CYCLES];
 };
+
 #endif /* __SIGNALS_H__ */
 
 // Local Variables:

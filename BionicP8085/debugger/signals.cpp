@@ -26,65 +26,27 @@ void Signals::printCycles() {
         _signals[(i + _get) % MAX_CYCLES].print();
         Pins.idle();
     }
+    _cycles = 0;
 }
 
-bool Signals::fetchInsn() const {
-    if (write())
-        return false;
-    const uint8_t pos = this - _signals;
-    const uint8_t cycles = (pos + MAX_CYCLES - _get) % MAX_CYCLES;
-    if (_cycles != MAX_CYCLES && cycles < 4)
-        return false;
-    const Signals &c0 = _signals[(pos + MAX_CYCLES - 4) % MAX_CYCLES];
-    const Signals &c1 = _signals[(pos + MAX_CYCLES - 3) % MAX_CYCLES];
-    const Signals &c2 = _signals[(pos + MAX_CYCLES - 2) % MAX_CYCLES];
-    const Signals &c3 = _signals[(pos + MAX_CYCLES - 1) % MAX_CYCLES];
-    if (addr == c2.addr + 1 && c2.addr == c1.addr + 1) {
-        if (c1.read() && c2.read()) {
-            // 8 bit operation
-            if (debug_cycles)
-                cli.println(F("8 bit operation"));
-            return true;
+void Signals::disassembleCycles() {
+    for (auto i = 0; i < _cycles; i++) {
+        const auto x = (i + _get) % MAX_CYCLES;
+        const Signals &signals = _signals[x];
+        if (signals.fetchInsn()) {
+            Regs.disassemble(signals.addr, 1);
+        } else {
+            cli.printHex(signals.addr, 4);
+            const char iom = (signals.iom == LOW) ? ' ' : 'I';
+            const char rdwr = (signals.rd == LOW) ? 'R' : (signals.wr == LOW ? 'W' : ' ');
+            cli.print(':');
+            cli.print(iom);
+            cli.print(rdwr);
+            cli.print(' ');
+            cli.printlnHex(signals.data, 2);
         }
+        Pins.idle();
     }
-    if (addr == c1.addr + 1 && c1.addr == c0.addr + 1) {
-        if (c0.read() && c1.read()) {
-            if (c3.addr == c2.addr + 1 && c2.read() == c3.read()) {
-                // 16 bit operation
-                if (debug_cycles)
-                    cli.println(F("16 bit operation"));
-                return true;
-            }
-            if (c3.addr == c2.addr && c2.read() && c3.write()) {
-                // read-modify-write operation
-                if (debug_cycles)
-                    cli.println(F("read-modify-write operation"));
-                return true;
-            }
-        }
-    }
-    if (c2.read() && (c2.data & ~0x1B) == 0x64 && c3.addr == c2.addr + 1 &&
-            c3.read()) {
-        const auto target = c3.addr + static_cast<int8_t>(c3.data);
-        if (addr == target + 1) {
-            // branch operation
-            if (debug_cycles)
-                cli.println(F("branch operation"));
-            return true;
-        }
-    }
-    if (c1.read() && c1.data == 0x24 && c2.addr == c1.addr + 1 &&
-            c3.addr == c1.addr + 2 && c2.read() && c3.read()) {
-        const auto target = (static_cast<uint16_t>(c3.data) << 8) | c2.data;
-        if (addr == target + 1) {
-            // jump operation
-            if (debug_cycles)
-                cli.println(F("jump operation"));
-            return true;
-        }
-    }
-
-    return false;
 }
 
 Signals &Signals::currCycle() {
@@ -93,7 +55,7 @@ Signals &Signals::currCycle() {
 
 void Signals::resetCycles() {
     _cycles = 0;
-    _signals[_get = _put].clear();
+    _get = _put;
 }
 
 void Signals::nextCycle() {
@@ -108,22 +70,22 @@ void Signals::nextCycle() {
     _signals[_put].clear();
 }
 
-bool Signals::getDirection() {
-    rds = digitalReadFast(PIN_RDS);
-    wds = digitalReadFast(PIN_WDS);
-    return rds == LOW || wds == LOW;
+void Signals::getAddress() {
+    s = (Status)busRead(S);
+    iom = digitalReadFast(PIN_IOM);
+    addr = busRead(AD) | busRead(AH);
 }
 
-void Signals::getAddr() {
-    addr = busRead(AL)
-#if defined(AM_vp)
-           | busRead(AM)
-#endif
-           | busRead(AH);
+void Signals::getDirection() {
+    s = (Status)busRead(S);
+    iom = digitalReadFast(PIN_IOM);
+    rd = digitalReadFast(PIN_RD);
+    wr = digitalReadFast(PIN_WR);
+    inta = digitalReadFast(PIN_INTA);
 }
 
 void Signals::getData() {
-    data = busRead(D);
+    data = busRead(AD);
 }
 
 void Signals::inject(uint8_t val) {
@@ -143,21 +105,35 @@ void Signals::print() const {
     // clang-format off
     static char buffer[] = {
         ' ', ' ',                  // _debug=0
-        'R',                       // RD/WR=2
-        ' ', 'A', '=', 0, 0, 0, 0, // addr=6
-        ' ', 'D', '=', 0, 0,       // data=13
+        ' ',                       // IO/#M or HALT=2
+        'R',                       // #RD/#WR/#INTA=3
+        ' ', 'A', '=', 0, 0, 0, 0, // addr=7
+        ' ', 'D', '=', 0, 0,       // data=14
         0,
     };
     // clang-format off
     buffer[0] = _debug;
-    buffer[2] = (rds == LOW) ? 'R' : 'W';
-    outHex16(buffer + 6, addr);
-    outHex8(buffer + 13, data);
+    if (iom) {
+        buffer[2] = 'I';
+        buffer[3] = (rd == LOW ? 'R' : (wr == LOW ? 'W' : (inta == LOW ? 'A' : ' ')));
+    } else {
+        buffer[2] = 'M';
+        buffer[3] = (rd == LOW
+                  ? (s == S_FETCH ? 'F' : 'R')
+                  : (wr == LOW ? 'W' : ' '));
+    }
+    outHex16(buffer + 7, addr);
+    outHex8(buffer + 14, data);
     cli.println(buffer);
 }
 
 Signals &Signals::debug(char c) {
     _debug = c;
+    return *this;
+}
+
+Signals &Signals::setAddress(uint16_t address) {
+    addr = address;
     return *this;
 }
 

@@ -1,7 +1,7 @@
 /**
- *  BionicINS8070 controller
+ *  BionicP8085 controller
  *
- * This sketch is designed to controll and debug INS8070 MPU.
+ * This sketch is designed to controll and debug P8085 MPU.
  */
 
 #include <libcli.h>

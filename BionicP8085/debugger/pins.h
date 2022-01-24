@@ -23,14 +23,14 @@ public:
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
-    uint8_t allocateIrq();
-    void assertIrq(const uint8_t irq);
-    void negateIrq(const uint8_t irq);
+    uint8_t allocateIntr();
+    void assertIntr(const uint8_t intr);
+    void negateIntr(const uint8_t intr);
 
     enum Device : uint8_t {
         NONE = 0,
-        ACIA = 1,     // MC6850 ACIA
-        BITBANG = 2,  // INS8070 F1 & SA bnit bang software UART
+        UART = 1,  // P8251 UART
+        SCI = 2,   // P8085 SOD/SID software UART
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
@@ -42,12 +42,14 @@ public:
 
 private:
     bool _freeRunning;
-    uint8_t _irq;
+    uint8_t _intr;
 
-    void clock_cycle() const;
-    Signals &prepareCycle();
-    Signals &completeCycle(Signals &signals);
-    Signals &cycle();
+    friend class Regs;
+    Signals &cycleT1();
+    Signals &cycleT2();
+    Signals &cycleT2Ready();
+    Signals &cycleT2Wait(uint16_t pc);
+    Signals &cycleT3(Signals &signals);
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
