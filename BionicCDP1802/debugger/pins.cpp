@@ -2,6 +2,7 @@
 
 #include <libcli.h>
 
+#include "cdp1802_sci_handler.h"
 #include "commands.h"
 #include "config.h"
 #include "digital_fast.h"
@@ -13,6 +14,7 @@ extern libcli::Cli &cli;
 class Pins Pins;
 
 Mc6850 Acia(Console);
+Cdp1802SciHandler<PIN_EF3, PIN_Q> SciH(Console);
 
 static constexpr bool debug_cycles = false;
 
@@ -105,11 +107,6 @@ static void negate_intr() {
 static inline uint8_t signal_mrd() __attribute__((always_inline));
 static inline uint8_t signal_mrd() {
     return digitalReadFast(PIN_MRD);
-}
-
-static void toggle_ef4() __attribute__((unused));
-static void toggle_ef4() {
-    digitalToggleFast(PIN_EF4);
 }
 
 static void assert_wait() __attribute__((unused));
@@ -390,6 +387,7 @@ void Pins::idle() {
 void Pins::loop() {
     if (_freeRunning) {
         Acia.loop();
+        SciH.loop();
         Signals &signals = directCycle(prepareCycle());
         if (signals.fetchInsn() && Memory.raw_read(signals.addr) == 0x00) {
             // Detect IDL, inject LBR $ instead and halt.
@@ -518,10 +516,13 @@ void Pins::negateIrq(uint8_t irq) {
 }
 
 static const char TEXT_ACIA[] PROGMEM = "ACIA";
+static const char TEXT_BITBANG[] PROGMEM = "BITBANG";
 
 Pins::Device Pins::parseDevice(const char *name) const {
     if (strcasecmp_P(name, TEXT_ACIA) == 0)
         return Device::ACIA;
+    if (strcasecmp_P(name, TEXT_BITBANG) == 0)
+        return Device::BITBANG;
     return Device::NONE;
 }
 
@@ -529,12 +530,17 @@ void Pins::getDeviceName(Pins::Device dev, char *name) const {
     *name = 0;
     if (dev == Device::ACIA)
         strcpy_P(name, TEXT_ACIA);
+    if (dev == Device::BITBANG)
+        strcpy_P(name, TEXT_BITBANG);
 }
 
 void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
     switch (dev) {
     case Device::ACIA:
         setSerialDevice(Device::ACIA, hasValue ? base : ACIA_BASE_ADDR);
+        break;
+    case Device::BITBANG:
+        setSerialDevice(Device::BITBANG, hasValue ? base : 0);
         break;
     default:
         break;
@@ -552,11 +558,21 @@ void Pins::printDevices() const {
     } else {
         cli.println(F("disabled"));
     }
+    cli.print(F("Bitbang (CDP1802) "));
+    if (serial == Device::BITBANG) {
+        cli.printDec(baseAddr);
+        cli.println(F(" bps at Q and #EF3"));
+    } else {
+        cli.println(F("disabled"));
+    }
 }
 
 Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
     if (_serialDevice == Device::ACIA) {
         baseAddr = Acia.baseAddr();
+    }
+    if (_serialDevice == Device::BITBANG) {
+        baseAddr = SciH.baudrate();
     }
     return _serialDevice;
 }
@@ -565,6 +581,11 @@ void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
     _serialDevice = device;
     if (device == Device::ACIA) {
         Acia.enable(true, baseAddr);
+        SciH.enable(false, 0);
+    }
+    if (device == Device::BITBANG) {
+        Acia.enable(false, 0);
+        SciH.enable(true, baseAddr);
     }
 }
 

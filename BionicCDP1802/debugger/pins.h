@@ -29,7 +29,8 @@ public:
 
     enum Device : uint8_t {
         NONE = 0,
-        ACIA = 1,  // MC6850 ACIA
+        ACIA = 1,     // MC6850 ACIA
+        BITBANG = 2,  // CDP1802 Q & #EFn bit bang software UART
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
