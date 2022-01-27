@@ -1,0 +1,603 @@
+   0:
+   0:                       INCLUDE              "ins8060.inc"
+   0:       ;;; -*- mode: asm; mode: flyspell-prog; -*-
+   0:
+   0:       ;;; INS8060
+   0:       ;;; Status Register
+   0: =$80  S_CY:           EQU  0x80            ; Carry bit
+   0: =$80  S_L:            EQU  0x80            ; Link bit
+   0: =$40  S_OV:           EQU  0x40            ; Overflow bit
+   0: =$20  S_SB:           EQU  0x20            ; Sense B bit
+   0: =$10  S_SA:           EQU  0x10            ; Sense A bit
+   0: =$8   S_IE:           EQU  0x08            ; Interrupt Enable bit
+   0: =$4   S_F2:           EQU  0x04            ; Flag 2 bit
+   0: =$2   S_F1:           EQU  0x02            ; Flag 1 bit
+   0: =$1   S_F0:           EQU  0x01            ; Flag 0 bit
+   0:
+   0:       ;;; Dynamic Offset by E register
+   0: =$80  OFFSET_E:       EQU  0x80            ; offset by E register
+   0:
+   0:       ;;; Transfer locations
+   0: =$1   ORG_RESTART:    EQU  0x0001          ; Restart transfer location
+   0:
+   0:       ;;; MC6850 Asynchronous Communication Interface Adapter
+   0: =$DF00    ACIA:       EQU  0xDF00
+   0:                       INCLUDE              "mc6850.inc"
+   0:       ;;; -*- mode: asm; mode: flyspell-prog; -*-
+   0:
+   0:       ;;; MC6850
+   0:       ;;; Asynchronous Communication Interface Adapter
+   0:
+   0:       ;;; Control register
+   0: =$DF00    ACIA_control:       EQU  ACIA+0
+   0:       ;; Counter Divider Select Bits
+   0: =$3   CDS_gm:         EQU  0b11            ; Group mask
+   0: =$0   CDS_DIV1_gc:    EQU  0b00000000      ; /1
+   0: =$1   CDS_DIV16_gc:   EQU  0b00000001      ; /16
+   0: =$2   CDS_DIV64_gc:   EQU  0b00000010      ; /64
+   0: =$3   CDS_RESET_gc:   EQU  0b00000011      ; Master Reset
+   0:       ;; Word Select Bits
+   0: =$1C  WSB_gm:         EQU  0b00011100      ; Group mask
+   0: =$0   WSB_7E2_gc:     EQU  0b00000000      ; 7 Bits + Even Parity + 2 Stop Bits
+   0: =$4   WSB_7O2_gc:     EQU  0b00000100      ; 7 bits + Odd Parity  + 2 Stop Bits
+   0: =$8   WSB_7E1_gc:     EQU  0b00001000      ; 7 bits + Even Parity + 1 Stop Bits
+   0: =$C   WSB_7O1_gc:     EQU  0b00001100      ; 7 bits + Odd Parity  + 1 Stop Bits
+   0: =$10  WSB_8N2_gc:     EQU  0b00010000      ; 8 bits + No Parity   + 2 Stop Bits
+   0: =$14  WSB_8N1_gc:     EQU  0b00010100      ; 8 bits + No Parity   + 1 Stop Bits
+   0: =$18  WSB_8E1_gc:     EQU  0b00011000      ; 8 bits + Even Parity + 1 Stop Bits
+   0: =$1C  WSB_8O1_gc:     EQU  0b00011100      ; 8 bits + Odd Parity  + 1 Stop Bits
+   0:       ;; Transmit Control Bits
+   0: =$60  TCB_gm:         EQU  0b01100000      ; Group mask
+   0: =$0   TCB_DI_gc:      EQU  0b00000000      ; RTS=Low,  Tx Interrupt Disabled
+   0: =$20  TCB_EI_gc:      EQU  0b00100000      ; RTS=Low,  Tx Interrupt Enabled
+   0: =$40  TCB_RTS_gc:     EQU  0b01000000      ; RTS=High, Tx Interrupt Disabled
+   0: =$60  TCB_BREAK_gc:   EQU  0b01100000      ; RTS=Low,  Tx Interrupt Disabled
+   0:       ; Transmit Break Level
+   0: =$80  RIEB_bm:        EQU  0b10000000      ; Receive Interrupt Enable Bit mask
+   0:
+   0:       ;;; Status register
+   0: =$DF00    ACIA_status:        EQU  ACIA+0
+   0: =$1   RDRF_bm:        EQU  0b00000001      ; Receive Data Register Full
+   0: =$2   TDRE_bm:        EQU  0b00000010      ; Transmit Data Register Empty
+   0: =$4   DCDF_bm:        EQU  0b00000100      ; Data Carrier Detect Flag
+   0: =$8   CTSF_bm:        EQU  0b00001000      ; Clear To Send Flag
+   0: =$10  FERR_bm:        EQU  0b00010000      ; Frame Error Flag
+   0: =$20  OVRN_bm:        EQU  0b00100000      ; Receiver Overrun Flag
+   0: =$40  PERR_bm:        EQU  0b01000000      ; Parity Error Flag
+   0: =$80  IRQF_bm:        EQU  0b10000000      ; Interrupt Request Flag
+   0:
+   0:       ;;; Data register
+   0: =$DF01    ACIA_data:  EQU  ACIA+1          ; Data register
+   0: =$0   ACIA_C:         EQU  0               ; ACIA control offset
+   0: =$0   ACIA_S:         EQU  0               ; ACIA status offset
+   0: =$1   ACIA_D:         EQU  1               ; ACIA data register offset
+   0:
+   0: =$10  rx_queue_size:  EQU  16
+   0: =$30  tx_queue_size:  EQU  48
+   0: =$94  RX_INT_TX_NO:   EQU  WSB_8N1_gc|RIEB_bm
+   0: =$B4  RX_INT_TX_INT:  EQU  WSB_8N1_gc|RIEB_bm|TCB_EI_gc
+   0:
+2000:                       ORG  0x2000
+2000:       rx_queue:
+2000:                       DS   rx_queue_size
+2010:       tx_queue:
+2010:                       DS   tx_queue_size
+2040:       tx_int_control:
+2040:                       DS   1
+2041:
+1000:                       ORG  0x1000
+1000: =$FFF stack:          EQU  $-1
+1000:       initialize:
+1000: C4 57                 LDI  (queue_init-1) & 0xFF
+1002: 31                    XPAL P1
+1003: C4 11                 LDI  (queue_init-1) >> 8
+1005: 35                    XPAH P1
+1006: C4 10                 LDI  rx_queue_size
+1008: 3D                    XPPC P1              ; call queue_init
+1009: 00 20                 DW   rx_queue
+100B: C4 30                 LDI  tx_queue_size
+100D: 3D                    XPPC P1              ; call queue init
+100E: 10 20                 DW   tx_queue
+1010:
+1010:       ;; initialize ACIA
+1010: C4 00                 LDI  ACIA & 0xFF
+1012: 31                    XPAL P1
+1013: C4 DF                 LDI  ACIA >> 8
+1015: 35                    XPAH P1
+1016: C4 03                 LDI  CDS_RESET_gc    ; Master reset
+1018: C9 00                 ST   ACIA_C(P1)
+101A: C4 94                 LDI  RX_INT_TX_NO    ; 8 bits + No Parity + 1 Stop Bits
+101C:       ; Transmit, Receive interrupts disabled
+101C: C9 00                 ST   ACIA_C(P1)
+101E:
+101E: C4 40                 LDI  tx_int_control & 0xFF
+1020: 31                    XPAL P1
+1021: C4 20                 LDI  tx_int_control >> 8
+1023: 35                    XPAH P1
+1024: C4 00                 LDI  0
+1026: C9 00                 ST   0(P1)           ; disable Tx interrupt
+1028: 05                    IEN                  ; enable interrupt
+1029:
+1029:       loop:
+1029: C4 FA                 LDI  (getchar-1) & 0xff
+102B: 31                    XPAL P1
+102C: C4 10                 LDI  (getchar-1) >> 8
+102E: 35                    XPAH P1
+102F:       wait_char:
+102F: 3D                    XPPC P1              ; call getchar
+1030: 98 FD                 JZ   wait_char
+1032: C4 1B                 LDI  (putchar-1) & 0xff
+1034: 31                    XPAL P1
+1035: C4 11                 LDI  (putchar-1) >> 8
+1037: 35                    XPAH P1
+1038: 40                    LDE
+1039: 3D                    XPPC P1              ; call putchar
+103A: C4 20                 LDI  ' '             ; space
+103C: 3D                    XPPC P1              ; call putchar
+103D: C4 68                 LDI  (put_hex8-1) & 0xff
+103F: 31                    XPAL P1
+1040: C4 10                 LDI  (put_hex8-1) >> 8
+1042: 35                    XPAH P1
+1043: 3D                    XPPC P1              ; call put_hex8
+1044: C4 1B                 LDI  (putchar-1) & 0xff
+1046: 31                    XPAL P1
+1047: C4 11                 LDI  (putchar-1) >> 8
+1049: 35                    XPAH P1
+104A: C4 20                 LDI  ' '             ; space
+104C: 3D                    XPPC P1              ; call putchar
+104D: C4 C5                 LDI  (put_bin8-1) & 0xff
+104F: 31                    XPAL P1
+1050: C4 10                 LDI  (put_bin8-1) >> 8
+1052: 35                    XPAH P1
+1053: 3D                    XPPC P1              ; call put_bin8
+1054: C4 1B                 LDI  (putchar-1) & 0xff
+1056: 31                    XPAL P1
+1057: C4 11                 LDI  (putchar-1) >> 8
+1059: 35                    XPAH P1
+105A: C4 0D                 LDI  '\r'
+105C: 3D                    XPPC P1              ; call putchar
+105D: C4 0A                 LDI  '\n'
+105F: 3D                    XPPC P1              ; call putchar
+1060: 90 C7                 JMP  loop
+1062:
+1062:       ;;; Print uint8_t in hex
+1062:       ;;; @param E uint8_t value to be printed in hex.
+1062:       put_hex8_exit:
+1062: C6 01                 LD   @1(P2)          ; pop P1
+1064: 31                    XPAL P1
+1065: C6 01                 LD   @1(P2)
+1067: 35                    XPAH P1
+1068: 3D                    XPPC P1
+1069:       put_hex8:
+1069: C4 11                 LDI  (putchar-1) >> 8
+106B: 35                    XPAH P1
+106C: CE FF                 ST   @-1(P2)         ; push P1
+106E: C4 1B                 LDI  (putchar-1) & 0xff
+1070: 31                    XPAL P1
+1071: CE FF                 ST   @-1(P2)
+1073: C4 30                 LDI  '0'
+1075: 3D                    XPPC P1              ; call putchar
+1076: C4 78                 LDI  'x'
+1078: 3D                    XPPC P1              ; call putchar
+1079: C4 97                 LDI  (put_hex4-1) & 0xff
+107B: 31                    XPAL P1
+107C: C4 10                 LDI  (put_hex4-1) >> 8
+107E: 35                    XPAH P1
+107F: 40                    LDE
+1080: CE FF                 ST   @-1(P2)         ; push E
+1082: 1C                    SR
+1083: 1C                    SR
+1084: 1C                    SR
+1085: 1C                    SR
+1086: 01                    XAE
+1087: 3D                    XPPC P1              ; call put_hex4
+1088: C6 01                 LD   @1(P2)          ; pop E
+108A: 01                    XAE
+108B: 3D                    XPPC P1              ; call put_hex4
+108C: 90 D4                 JMP  put_hex8_exit
+108E:
+108E:       put_hex4_exit:
+108E: C6 01                 LD   @1(P2)          ; pop P1
+1090: 31                    XPAL P1
+1091: C6 01                 LD   @1(P2)
+1093: 35                    XPAH P1
+1094: C6 01                 LD   @1(P2)          ; pop E
+1096: 01                    XAE
+1097: 3D                    XPPC P1
+1098:       put_hex4:
+1098: 40                    LDE
+1099: CE FF                 ST   @-1(P2)         ; push E
+109B: D4 0F                 ANI  0xf
+109D: 01                    XAE                  ; E=4 bit data
+109E: C4 11                 LDI  (putchar-1) >> 8
+10A0: 35                    XPAH P1
+10A1: CE FF                 ST   @-1(P2)         ; push P1
+10A3: C4 1B                 LDI  (putchar-1) & 0xff
+10A5: 31                    XPAL P1
+10A6: CE FF                 ST   @-1(P2)
+10A8: 40                    LDE
+10A9: 03                    SCL
+10AA: FC 0A                 CAI  10
+10AC: 06                    CSA
+10AD: 02                    CCL
+10AE: 94 06                 JP   put_hex4_dec    ; branch if A<10
+10B0: 40                    LDE
+10B1: F4 37                 ADI  'A'-10
+10B3: 3D                    XPPC P1              ; call putchar
+10B4: 90 D8                 JMP  put_hex4_exit
+10B6:       put_hex4_dec:
+10B6: 40                    LDE
+10B7: F4 30                 ADI  '0'
+10B9: 3D                    XPPC P1              ; call putchar
+10BA: 90 D2                 JMP  put_hex4_exit
+10BC:
+10BC:       ;;; Print uint8_t in binary
+10BC:       ;;; @param E uint8_t value to be printed in binary.
+10BC:       put_bin8_exit:
+10BC: C6 01                 LD   @1(P2)          ; pop P1
+10BE: 31                    XPAL P1
+10BF: C6 01                 LD   @1(P2)
+10C1: 35                    XPAH P1
+10C2: C6 01                 LD   @1(P2)          ; pop E
+10C4: 01                    XAE
+10C5: 3D                    XPPC P1
+10C6:       put_bin8:
+10C6: 40                    LDE
+10C7: CE FF                 ST   @-1(P2)         ; push E
+10C9: C4 11                 LDI  (putchar-1) >> 8
+10CB: 35                    XPAH P1
+10CC: CE FF                 ST   @-1(P2)         ; push P1
+10CE: C4 1B                 LDI  (putchar-1) & 0xff
+10D0: 31                    XPAL P1
+10D1: CE FF                 ST   @-1(P2)
+10D3: C4 30                 LDI  '0'
+10D5: 3D                    XPPC P1              ; call putchar
+10D6: C4 62                 LDI  'b'
+10D8: 3D                    XPPC P1              ; call putchar
+10D9: C4 08                 LDI  8
+10DB: CE FF                 ST   @-1(P2)         ; bit count
+10DD:       put_bin8_loop:
+10DD: 40                    LDE
+10DE: 94 04                 JP   put_bin8_zero
+10E0: C4 31                 LDI  '1'
+10E2: 90 02                 JMP  put_bin8_char
+10E4:       put_bin8_zero:
+10E4: C4 30                 LDI  '0'
+10E6:       put_bin8_char:
+10E6: 3D                    XPPC P1              ; call putchar
+10E7: 40                    LDE
+10E8: 70                    ADE
+10E9: 01                    XAE                  ; E<<=1
+10EA: BA 00                 DLD  0(P2)           ; decrement bit count
+10EC: 9C EF                 JNZ  put_bin8_loop
+10EE: C6 01                 LD   @1(P2)          ; discard bit count
+10F0: 90 CA                 JMP  put_bin8_exit
+10F2:
+10F2:       ;;; Get character
+10F2:       ;;; @return E char
+10F2:       ;;; @return A 0 if no char received
+10F2:       getchar_exit:
+10F2: C6 01                 LD   @1(P2)          ; pop P1
+10F4: 31                    XPAL P1
+10F5: C6 01                 LD   @1(P2)
+10F7: 35                    XPAH P1
+10F8: C6 01                 LD   @1(P2)          ; pop return value
+10FA: 3D                    XPPC P1
+10FB:       getchar:
+10FB: CE FF                 ST   @-1(P2)         ; for return value
+10FD: C4 11                 LDI  (queue_remove-1) >> 8
+10FF: 35                    XPAH P1
+1100: CE FF                 ST   @-1(P2)         ; push P1
+1102: C4 E3                 LDI  (queue_remove-1) & 0xff
+1104: 31                    XPAL P1
+1105: CE FF                 ST   @-1(P2)
+1107: 04                    DINT                 ; disable IRQ
+1108: 3D                    XPPC P1              ; call queue_remove
+1109: 00 20                 DW   rx_queue
+110B: 05                    IEN                  ; enable IRQ
+110C: CA 02                 ST   2(P2)           ; save return value
+110E: 90 E2                 JMP  getchar_exit
+1110:
+1110:       ;;; Put character
+1110:       ;;; @param A char
+1110:       putchar_exit:
+1110: C6 01                 LD   @1(P2)          ; pop P1
+1112: 31                    XPAL P1
+1113: C6 01                 LD   @1(P2)
+1115: 35                    XPAH P1
+1116: C6 01                 LD   @1(P2)          ; pop E
+1118: 01                    XAE
+1119: C6 01                 LD   @1(P2)          ; pop A
+111B: 3D                    XPPC P1
+111C:       putchar:
+111C: CE FF                 ST   @-1(P2)         ; push A
+111E: 40                    LDE
+111F: CE FF                 ST   @-1(P2)         ; push E
+1121: C4 11                 LDI  (queue_add-1) >> 8
+1123: 35                    XPAH P1
+1124: CE FF                 ST   @-1(P2)         ; push P1
+1126: C4 96                 LDI  (queue_add-1) & 0xff
+1128: 31                    XPAL P1
+1129: CE FF                 ST   @-1(P2)
+112B: C2 03                 LD   3(P2)           ; restore char
+112D: 01                    XAE
+112E:       putchar_retry:
+112E: 04                    DINT                 ; disable interrupt
+112F: 3D                    XPPC P1              ; call queue_add
+1130: 10 20                 DW   tx_queue
+1132: 05                    IEN                  ; enable interrupt
+1133: 98 F9                 JZ   putchar_retry   ; queue is full
+1135: 04                    DINT                 ; disable interrupt
+1136: C4 40                 LDI  tx_int_control & 0xff
+1138: 31                    XPAL p1
+1139: C4 20                 LDI  tx_int_control >> 8
+113B: 35                    XPAH p1
+113C: C1 00                 LD   0(P1)           ; check tx interrupt state
+113E: 9C 0C                 JNZ  putchar_return
+1140: A9 00                 ILD  0(P1)           ; Tx interrupt is enabled
+1142: C4 00                 LDI  ACIA & 0xff
+1144: 31                    XPAL P1
+1145: C4 DF                 LDI  ACIA >> 8
+1147: 35                    XPAH P1
+1148: C4 B4                 LDI  RX_INT_TX_INT   ; enable Tx interrupt
+114A: C9 00                 ST   ACIA_C(P1)
+114C:       putchar_return:
+114C: 05                    IEN                  ; enable interrupt
+114D: 90 C1                 JMP  putchar_exit
+114F:
+114F:                       INCLUDE              "queue.inc"
+114F:       ;;; [queue] queue structure
+114F: =$0   queue_len:      EQU  0               ; queue length
+114F: =$1   queue_size:     EQU  1               ; buffer size
+114F: =$2   queue_put:      EQU  2               ; queue put index
+114F: =$3   queue_get:      EQU  3               ; queue get index
+114F: =$4   queue_buf:      EQU  4               ; buffer start offset
+114F:
+114F:       ;;; [queue] Initialize queue
+114F:       ;;; @param A queue space size
+114F:       ;;; @param P1 return address pointer
+114F:       ;;; @param P1[1:2] queue space pointer
+114F:       ;;; @clobber A
+114F:       queue_init_exit:
+114F: C6 01                 LD   @1(P2)          ; pop P1
+1151: 31                    XPAL P1
+1152: C6 01                 LD   @1(P2)
+1154: 35                    XPAH P1
+1155: C6 01                 LD   @1(P2)          ; discard work area
+1157: 3D                    XPPC P1
+1158:       queue_init:
+1158: CE FF                 ST   @-1(P2)         ; save queue space size
+115A: C5 01                 LD   @1(P1)          ; advance to queue space pointer
+115C: C5 01                 LD   @1(P1)          ; load queue work space pointer (le16)
+115E: CE FE                 ST   @-2(P2)         ; save lo(queue space)
+1160: C1 00                 LD   0(P1)
+1162: 35                    XPAH P1
+1163: CA 01                 ST   1(P2)           ; P[1:0] push P1
+1165: C2 00                 LD   0(P2)
+1167: 31                    XPAL P1              ; P1=queue space pointer
+1168: CA 00                 ST   0(P2)
+116A: C4 00                 LDI  0
+116C: C9 00                 ST   queue_len(P1)   ; clear queue_len
+116E: C9 02                 ST   queue_put(P1)
+1170: C9 03                 ST   queue_get(P1)
+1172: C2 02                 LD   2(P2)           ; queue space size
+1174: 03                    SCL
+1175: FC 04                 CAI  queue_buf
+1177: C9 01                 ST   queue_size(P1)
+1179: CA 02                 ST   2(P2)           ; counter
+117B: C5 04                 LD   @queue_buf(P1)  ; advanced pointer
+117D:       queue_init_loop:
+117D: C4 00                 LDI  0
+117F: CD 01                 ST   @1(P1)
+1181: BA 02                 DLD  2(P2)
+1183: 9C F8                 JNZ  queue_init_loop
+1185: 90 C8                 JMP  queue_init_exit
+1187:
+1187:       ;;; [queue] Add an element to queue
+1187:       ;;; @param E an element
+1187:       ;;; @param P1 return address pointer
+1187:       ;;; @param P1[1:2] queue space pointer
+1187:       ;;; @return E an element
+1187:       ;;; @return A 0 if queue is full
+1187:       ;;; @clobber P1
+1187:       queue_add_exit:
+1187: CA 05                 ST   5(P2)           ; P2[5] return flag
+1189: C6 02                 LD   @2(P2)          ; discard queue space pointer
+118B: C6 01                 LD   @1(P2)          ; pop P1
+118D: 31                    XPAL P1
+118E: C6 01                 LD   @1(P2)
+1190: 35                    XPAH P1
+1191: C6 01                 LD   @1(P2)          ; restore E
+1193: 01                    XAE
+1194: C6 01                 LD   @1(P2)          ; return flag
+1196: 3D                    XPPC P1
+1197:       queue_add:
+1197: C5 01                 LD   @1(P1)          ; advanced to queue space pointer
+1199: C5 01                 LD   @1(P1)          ; load queue space pointer (le16)
+119B: CE FA                 ST   @-6(P2)         ; param, P1, elem, return flag
+119D: C1 00                 LD   0(P1)
+119F: CA 01                 ST   1(P2)           ; P2[1:0] queue space pointer
+11A1: 35                    XPAH P1
+11A2: CA 03                 ST   3(P2)           ; P2[3:2] saved P1
+11A4: C2 00                 LD   0(P2)
+11A6: 31                    XPAL P1
+11A7: CA 02                 ST   2(P2)
+11A9: 40                    LDE
+11AA: CA 04                 ST   4(P2)           ; P2[4] save an element
+11AC: C1 00                 LD   queue_len(P1)
+11AE: E1 01                 XOR  queue_size(P1)
+11B0: 98 D5                 JZ   queue_add_exit  ; queue is full, A=0
+11B2:       queue_not_full:
+11B2: A9 00                 ILD  queue_len(P1)   ; update queue_len
+11B4: C2 00                 LD   0(P2)
+11B6: 02                    CCL
+11B7: F1 02                 ADD  queue_put(P1)
+11B9: 01                    XAE
+11BA: C2 01                 LD   1(P2)
+11BC: F4 00                 ADI  0
+11BE: 35                    XPAH P1
+11BF: 01                    XAE
+11C0: 31                    XPAL P1
+11C1: C2 04                 LD   4(P2)           ; an element
+11C3: C9 04                 ST   queue_buf(P1)   ; store element
+11C5: C2 00                 LD   0(P2)
+11C7: 31                    XPAL P1
+11C8: C2 01                 LD   1(P2)
+11CA: 35                    XPAH P1
+11CB: A9 02                 ILD  queue_put(P1)   ; advanced queue_put
+11CD: E1 01                 XOR  queue_size(P1)
+11CF: 9C 02                 JNZ  queue_add_end   ; branch if queue_put != queue_size
+11D1: C9 02                 ST   queue_put(P1)   ; reset queue_put
+11D3:       queue_add_end:
+11D3: C4 01                 LDI  1
+11D5: 90 B0                 JMP  queue_add_exit  ; an element added, A=1
+11D7:
+11D7:       ;;; [queue] Remove an element from queue
+11D7:       ;;; @param P1 return address pointer
+11D7:       ;;; @param P1[1:2] queue space pointer
+11D7:       ;;; @return E an element
+11D7:       ;;; @return A 0 if queue is empty
+11D7:       ;;; @clobber P1
+11D7:       queue_remove_exit:
+11D7: CA 04                 ST   4(P2)           ; return flag
+11D9: C6 02                 LD   @2(P2)          ; discard work area
+11DB: C6 01                 LD   @1(P2)          ; pop P1
+11DD: 31                    XPAL P1
+11DE: C6 01                 LD   @1(P2)
+11E0: 35                    XPAH P1
+11E1: C6 01                 LD   @1(P2)          ; return flag
+11E3: 3D                    XPPC P1              ; return
+11E4:       queue_remove:
+11E4: C5 01                 LD   @1(P1)          ; advanced to queue space pointer
+11E6: C5 01                 LD   @1(P1)          ; load queue space pointer (le16)
+11E8: CE FB                 ST   @-5(P2)         ; param, P1, return flag
+11EA: C1 00                 LD   0(P1)
+11EC: CA 01                 ST   1(P2)           ; P2[1:0] queue space pointer
+11EE: 35                    XPAH P1
+11EF: CA 03                 ST   3(P2)           ; P2[3:2] saved P1
+11F1: C2 00                 LD   0(P2)
+11F3: 31                    XPAL P1
+11F4: CA 02                 ST   2(P2)
+11F6: C1 00                 LD   queue_len(P1)
+11F8: 98 DD                 JZ   queue_remove_exit   ; queue is empty, A=0
+11FA:       queue_not_empty:
+11FA: B9 00                 DLD  queue_len(P1)   ; update queue_len
+11FC: C2 00                 LD   0(P2)
+11FE: 02                    CCL
+11FF: F1 03                 ADD  queue_get(P1)
+1201: 01                    XAE
+1202: C2 01                 LD   1(P2)
+1204: F4 00                 ADI  0
+1206: 35                    XPAH P1
+1207: 40                    LDE
+1208: 31                    XPAL P1
+1209: C1 04                 LD   queue_buf(P1)   ; load element
+120B: 01                    XAE                  ; E=element
+120C: C2 00                 LD   0(P2)
+120E: 31                    XPAL P1
+120F: C2 01                 LD   1(P2)
+1211: 35                    XPAH P1
+1212: A9 03                 ILD  queue_get(P1)   ; advanced queue_get
+1214: E1 01                 XOR  queue_size(P1)
+1216: 9C 02                 JNZ  queue_remove_end    ; branch if queue_put != queue_size
+1218: C9 03                 ST   queue_get(P1)   ; reset queue_get
+121A:       queue_remove_end:
+121A: C4 01                 LDI  1
+121C: 90 B9                 JMP  queue_remove_exit
+121E:
+121E:       ;;; Local Variables:
+121E:       ;;; mode: asm
+121E:       ;;; End:
+121E:       ;;; vim: set ft=asm et ts=4 sw=4:
+121E:
+121E:       isr_sensea_exit:
+121E: C6 01                 LD   @1(P2)          ; pop P1
+1220: 31                    XPAL P1
+1221: C6 01                 LD   @1(P2)
+1223: 35                    XPAH P1
+1224: C6 01                 LD   @1(P2)          ; pop E
+1226: 01                    XAE
+1227: C6 01                 LD   @1(P2)          ; pop D
+1229: 05                    IEN                  ; enable interrupt
+122A: 3F                    XPPC P3              ; return from interrupt
+122B:       isr_sensea:
+122B: CE FF                 ST   @-1(P2)         ; save A
+122D: 40                    LDE
+122E: CE FF                 ST   @-1(P2)         ; save E
+1230: C4 DF                 LDI  ACIA >> 8
+1232: 35                    XPAH P1
+1233: CE FF                 ST   @-1(P2)
+1235: C4 00                 LDI  ACIA & 0xFF     ; save P1 and load P1
+1237: 31                    XPAL P1
+1238: CE FF                 ST   @-1(P2)
+123A: C1 00                 LD   ACIA_S(P1)
+123C: 01                    XAE
+123D: 40                    LDE
+123E: D4 70                 ANI  FERR_bm|OVRN_bm|PERR_bm
+1240: 98 02                 JZ   isr_receive
+1242: C1 01                 LD   ACIA_D(P1)      ; clear errors
+1244:       isr_receive:
+1244: 40                    LDE
+1245: D4 01                 ANI  RDRF_bm
+1247: 98 11                 JZ   isr_send
+1249: C1 01                 LD   ACIA_D(P1)      ; receive character
+124B: 01                    XAE                  ; E=char
+124C: CE FF                 ST   @-1(P2)         ; push ACIA status
+124E: C4 96                 LDI  (queue_add - 1) & 0xFF
+1250: 31                    XPAL P1
+1251: C4 11                 LDI  (queue_add - 1) >> 8
+1253: 35                    XPAH P1
+1254: 3D                    XPPC P1              ; call queue_add
+1255: 00 20                 DW   rx_queue
+1257: C6 01                 LD   @1(P2)          ; pop ACIA status
+1259: 01                    XAE
+125A:       isr_send:
+125A: 40                    LDE
+125B: D4 02                 ANI  TDRE_bm
+125D: 98 BF                 JZ   isr_sensea_exit
+125F: C4 E3                 LDI  (queue_remove - 1) & 0xFF
+1261: 31                    XPAL P1
+1262: C4 11                 LDI  (queue_remove - 1) >> 8
+1264: 35                    XPAH P1
+1265: 3D                    XPPC P1              ; call queue_remove
+1266: 10 20                 DW   tx_queue
+1268: 98 0B                 JZ   isr_send_empty
+126A: C4 00                 LDI  ACIA & 0xff
+126C: 31                    XPAL P1
+126D: C4 DF                 LDI  ACIA >> 8
+126F: 35                    XPAH P1
+1270: 40                    LDE
+1271: C9 01                 ST   ACIA_D(P1)      ; send character
+1273: 90 A9                 JMP  isr_sensea_exit
+1275:       isr_send_empty:
+1275: C4 00                 LDI  ACIA & 0xff
+1277: 31                    XPAL P1
+1278: C4 DF                 LDI  ACIA >> 8
+127A: 35                    XPAH P1
+127B: C4 94                 LDI  RX_INT_TX_NO
+127D: C9 00                 ST   ACIA_C(P1)      ; disable Tx interrupt
+127F: C4 40                 LDI  tx_int_control & 0xff
+1281: 31                    XPAL P1
+1282: C4 20                 LDI  tx_int_control >> 8
+1284: 35                    XPAH P1
+1285: C4 00                 LDI  0
+1287: C9 00                 ST   0(P1)           ; mark Tx interrupt disabled
+1289: 90 93                 JMP  isr_sensea_exit
+128B:
+   1:                       ORG  ORG_RESTART
+   1: =$0   _stack:         EQU  (stack & 0xF000) | ((stack + 1) & 0x0FFF)
+   1: C4 00                 LDI  _stack & 0xFF
+   3: 32                    XPAL P2
+   4: C4 00                 LDI  _stack >> 8
+   6: 36                    XPAH P2
+   7: =$122A    _isr_sensea:        EQU  (isr_sensea & 0xF000) | ((isr_sensea-1) & 0x0FFF)
+   7: C4 2A                 LDI  _isr_sensea & 0xFF
+   9: 33                    XPAL P3              ; setup interrupt entry P3
+   A: C4 12                 LDI  _isr_sensea >> 8
+   C: 37                    XPAH P3
+   D: =$1FFF    _initialize:        EQU  (initialize & 0xF000) | ((initialize-1) & 0x0FFF)
+   D: C4 FF                 LDI  _initialize & 0xFF
+   F: 31                    XPAL P1
+  10: C4 1F                 LDI  _initialize >> 8
+  12: 35                    XPAH P1
+  13: 3D                    XPPC P1
