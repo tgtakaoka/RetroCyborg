@@ -2,7 +2,7 @@ ASM=asm -u
 
 .PHONY: clean
 
-all: echo.s19 echoir.s19 echoitr.s19
+all: echo.s19 echoir.s19 echoitr.s19 mspatch.s19
 
 %.s19:	%.asm
 	$(ASM) -l $*.lst -o $@ $^
