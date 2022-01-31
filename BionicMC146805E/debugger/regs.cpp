@@ -1,12 +1,15 @@
 #include "regs.h"
 
 #include <libcli.h>
+
 #include <asm_mc6805.h>
 #include <dis_mc6805.h>
+#include "mc6850.h"
 #include "pins.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
+extern Mc6850 Acia;
 
 libasm::mc6805::AsmMc6805 asm6805;
 libasm::mc6805::DisMc6805 dis6805;
@@ -419,10 +422,16 @@ bool Memory::is_internal(uint16_t addr) {
 }
 
 uint8_t Memory::read(uint16_t addr) const {
+    if (Acia.isSelected(addr))
+        return Acia.read(addr);
     return is_internal(addr) ? internal_read(addr) : raw_read(addr);
 }
 
 void Memory::write(uint16_t addr, uint8_t data) {
+    if (Acia.isSelected(addr)) {
+        Acia.write(addr, data);
+        return;
+    }
     if (is_internal(addr)) {
         internal_write(addr, data);
     } else {

@@ -385,6 +385,7 @@ void Pins::reset(bool show) {
         Regs.pc = reset_vec;
     }
 
+    Acia.reset();
     SciH.reset();
 }
 

@@ -8,6 +8,7 @@ class Mc6850 {
 public:
     Mc6850(Stream &stream);
 
+    void reset();
     bool isSelected(uint16_t addr) const {
         return _enabled && (addr & ~1) == _baseAddr;
     }

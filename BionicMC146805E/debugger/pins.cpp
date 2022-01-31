@@ -191,7 +191,7 @@ Signals &Pins::cycle() {
     osc1_hi();
     delayNanoseconds(c2_hi_ns);
     signals.getAddr1();
-    osc1_lo();          // AS->LOW
+    osc1_lo();  // AS->LOW
     // c3
     signals.getAddr2();
     delayNanoseconds(c3_lo_ns);
@@ -212,7 +212,7 @@ Signals &Pins::cycle() {
         }
         delayNanoseconds(c4_read_hi_ns);
         // c5
-        osc1_lo();     // DS=HIGH
+        osc1_lo();  // DS=HIGH
         busWrite(B, signals.data);
         // change data bus to output
         busMode(B, OUTPUT);
@@ -231,7 +231,7 @@ Signals &Pins::cycle() {
         }
         delayNanoseconds(c4_write_hi_ns);
         // c5
-        osc1_lo();     // DS=HIGH
+        osc1_lo();  // DS=HIGH
         delayNanoseconds(c5_write_lo_ns);
     }
     signals.getLoadInstruction();
@@ -317,18 +317,12 @@ void Pins::reset(bool show) {
         Memory.raw_write_uint16(Memory::reset_vector, reset_vec);
         Regs.pc = reset_vec;
     }
+
+    Acia.reset();
 }
 
 void Pins::idle() {
     // MC146805E is fully static, so we can stop clock safely.
-    /*
-    Signals::inject(0x20);
-    raw_cycle();
-    Signals::inject(0xFE);
-    raw_cycle();
-    Signals::inject(0x00);
-    raw_cycle();
-    */
 }
 
 void Pins::loop() {

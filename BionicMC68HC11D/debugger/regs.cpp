@@ -1,13 +1,16 @@
 #include "regs.h"
 
 #include <libcli.h>
+
 #include <asm_mc6800.h>
 #include <dis_mc6800.h>
 #include "config.h"
+#include "mc6850.h"
 #include "pins.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
+extern Mc6850 Acia;
 
 libasm::mc6800::AsmMc6800 asm6800;
 libasm::mc6800::DisMc6800 dis6800;
@@ -230,7 +233,8 @@ void Memory::disableCOP() {
 
 void Memory::setINIT() {
     // Move internal devices ana RAM base address.
-    static uint8_t SET_INIT[] = {0x86, 0, 0x97, 0x3D, 0}; // LDAA #INIT_gc; STAA dir[INIT]
+    static uint8_t SET_INIT[] = {
+            0x86, 0, 0x97, 0x3D, 0};  // LDAA #INIT_gc; STAA dir[INIT]
     SET_INIT[1] = static_cast<uint8_t>(ram_base >> 8 & 0xF0) |
                   static_cast<uint8_t>(dev_base >> 12);
     Pins.execInst(SET_INIT, sizeof(SET_INIT));
@@ -263,10 +267,16 @@ bool Memory::is_internal(uint16_t addr) const {
 }
 
 uint8_t Memory::read(uint16_t addr) const {
+    if (Acia.isSelected(addr))
+        return Acia.read(addr);
     return is_internal(addr) ? internal_read(addr) : raw_read(addr);
 }
 
 void Memory::write(uint16_t addr, uint8_t data) {
+    if (Acia.isSelected(addr)) {
+        Acia.write(addr, data);
+        return;
+    }
     if (is_internal(addr)) {
         internal_write(addr, data);
     } else {

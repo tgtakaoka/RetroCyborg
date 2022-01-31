@@ -455,19 +455,17 @@ void Regs::setRegValue(char reg, uint32_t value) {
 }
 
 uint8_t Memory::read(uint16_t addr) const {
-    if (Acia.isSelected(addr)) {
+    if (Acia.isSelected(addr))
         return Acia.read(addr);
-    } else {
-        return raw_read(addr);
-    }
+    return raw_read(addr);
 }
 
 void Memory::write(uint16_t addr, uint8_t data) {
     if (Acia.isSelected(addr)) {
         Acia.write(addr,  data);
-    } else {
-        raw_write(addr, data);
+        return;
     }
+    raw_write(addr, data);
 }
 
 uint8_t Memory::raw_read(uint16_t addr) const {

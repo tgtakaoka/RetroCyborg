@@ -1,14 +1,17 @@
 #include "regs.h"
 
 #include <libcli.h>
+
 #include <asm_ins8070.h>
 #include <dis_ins8070.h>
 #include "config.h"
 #include "digital_fast.h"
+#include "mc6850.h"
 #include "pins.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
+extern Mc6850 Acia;
 
 libasm::ins8070::AsmIns8070 asm8070;
 libasm::ins8070::DisIns8070 dis8070;
@@ -579,10 +582,16 @@ bool Memory::is_internal(uint16_t addr) {
 }
 
 uint8_t Memory::read(uint16_t addr) const {
+    if (Acia.isSelected(addr))
+        return Acia.read(addr);
     return is_internal(addr) ? internal_read(addr) : raw_read(addr);
 }
 
 void Memory::write(uint16_t addr, uint8_t data) {
+    if (Acia.isSelected(addr)) {
+        Acia.write(addr, data);
+        return;
+    }
     if (is_internal(addr)) {
         internal_write(addr, data);
     } else {

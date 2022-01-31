@@ -296,6 +296,8 @@ void Pins::reset(bool show) {
     // The first instruction will be saving registers, and certainly can be
     // injected.
     Regs.save(show);
+
+    Acia.reset();
 }
 
 void Pins::idle() {

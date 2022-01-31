@@ -327,6 +327,8 @@ void Pins::reset(bool show) {
     for (auto i = 0; i < 2 * 13; i++)
         clock_cycle();
     Regs.save(show);
+
+    Acia.reset();
 }
 
 void Pins::idle() {

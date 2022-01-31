@@ -6,12 +6,14 @@
 #include <dis_mos6502.h>
 #include "config.h"
 #include "digital_fast.h"
+#include "mc6850.h"
 #include "pins.h"
 #include "string_util.h"
 
 static constexpr bool debug_cycles = false;
 
 extern libcli::Cli &cli;
+extern Mc6850 Acia;
 
 libasm::mos6502::AsmMos6502 asm6502;
 libasm::mos6502::DisMos6502 dis6502;
@@ -448,10 +450,16 @@ bool Memory::is_internal(uint32_t addr) {
 }
 
 uint8_t Memory::read(uint32_t addr) const {
+    if (Acia.isSelected(addr))
+        return Acia.read(addr);
     return raw_read(addr);
 }
 
 void Memory::write(uint32_t addr, uint8_t data) {
+    if (Acia.isSelected(addr)) {
+        Acia.write(addr, data);
+        return;
+    }
     raw_write(addr, data);
 }
 

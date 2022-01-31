@@ -25,9 +25,19 @@ Mc6850::Mc6850(Stream &stream)
     _txInt = Pins.allocateIrq();
 }
 
+void Mc6850::reset() {
+    _control = CDS_DIV1_gc;
+    _status = TDRE_bm;
+    _readFlags = _nextFlags = 0;
+    _txData = _rxData = 0;
+    Pins.negateIrq(_rxInt);
+    Pins.negateIrq(_txInt);
+}
+
 void Mc6850::enable(bool enabled, uint16_t baseAddr) {
     _enabled = enabled;
     _baseAddr = baseAddr & ~1;
+    reset();
 }
 
 void Mc6850::assertIrq(uint8_t irq) {

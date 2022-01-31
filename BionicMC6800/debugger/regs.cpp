@@ -1,14 +1,17 @@
 #include "regs.h"
 
 #include <libcli.h>
+
 #include <asm_mc6800.h>
 #include <dis_mc6800.h>
 #include "config.h"
 #include "digital_fast.h"
 #include "pins.h"
 #include "string_util.h"
+#include "mc6850.h"
 
 extern libcli::Cli &cli;
+extern Mc6850 Acia;
 
 libasm::mc6800::AsmMc6800 asm6800;
 libasm::mc6800::DisMc6800 dis6800;
@@ -205,10 +208,16 @@ bool Memory::is_internal(uint16_t addr) {
 }
 
 uint8_t Memory::read(uint16_t addr) const {
+    if (Acia.isSelected(addr))
+        return Acia.read(addr);
     return raw_read(addr);
 }
 
 void Memory::write(uint16_t addr, uint8_t data) {
+    if (Acia.isSelected(addr)) {
+        Acia.write(addr, data);
+        return;
+    }
     raw_write(addr, data);
 }
 

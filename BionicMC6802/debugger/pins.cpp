@@ -369,6 +369,8 @@ void Pins::reset(bool show) {
         Memory.raw_write_uint16(Memory::reset_vector, reset_vec);
         Regs.pc = reset_vec;
     }
+
+    Acia.reset();
 }
 
 void Pins::idle() {
