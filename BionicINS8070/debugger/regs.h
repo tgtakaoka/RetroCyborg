@@ -30,9 +30,12 @@ struct Regs {
     const char *cpu() const;
     const char *cpuName() const;
 
+    uint16_t nextIp() const { return pc + 1; }
+    uint32_t maxAddr() const { return UINT16_MAX; }
     void printRegList() const;
     char validUint8Reg(const char *word) const;
     char validUint16Reg(const char *word) const;
+    char validUint32Reg(const char *word) const { return 0; }
     void setRegValue(char reg, uint32_t value);
 
 private:

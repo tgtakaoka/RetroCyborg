@@ -312,7 +312,7 @@ void Regs::print() const {
         0,
     };
     constexpr char *s_bits = buffer + 44;
-    outHex16(buffer + 3, p0);
+    outHex16(buffer + 3, pc);
     outHex16(buffer + 11, p1);
     outHex16(buffer + 19, p2);
     outHex16(buffer + 27, p3);
@@ -360,7 +360,7 @@ void Regs::save(bool show) {
     static uint8_t buffer[9];
     if (show)
         Signals::resetCycles();
-    Pins.captureWrites(ST_ALL, sizeof(ST_ALL), &p0, buffer, sizeof(buffer));
+    Pins.captureWrites(ST_ALL, sizeof(ST_ALL), &pc, buffer, sizeof(buffer));
     if (show)
         Signals::printCycles();
     a = buffer[0];
@@ -390,7 +390,7 @@ void Regs::restore(bool show) {
     LD_ALL[10] = hi(p3);
     LD_ALL[13] = lo(p2);
     LD_ALL[16] = hi(p2);
-    const auto p = _pc(p0, p0 - 8); // offset restore P1 and A
+    const auto p = _pc(pc, pc - 8); // offset restore P1 and A
     LD_ALL[19] = lo(p);
     LD_ALL[22] = hi(p);
     LD_ALL[26] = lo(p1);
@@ -431,7 +431,7 @@ char Regs::validUint16Reg(const char *word) const {
 void Regs::setRegValue(char reg, uint32_t value) {
     switch (reg) {
     case '0':
-        p0 = value;
+        pc = value;
         break;
     case '1':
         p1 = value;

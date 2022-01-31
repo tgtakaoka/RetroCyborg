@@ -48,6 +48,8 @@ struct Regs {
     bool is6309() const;
     bool native6309() const { return _native6309; }
 
+    uint16_t nextIp() const { return pc; }
+    uint32_t maxAddr() const { return UINT16_MAX; }
     void printRegList() const;
     char validUint8Reg(const char *word) const;
     char validUint16Reg(const char *word) const;

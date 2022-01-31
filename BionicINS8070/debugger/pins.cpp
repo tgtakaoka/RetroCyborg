@@ -421,11 +421,11 @@ void Pins::run() {
 }
 
 void Pins::step(bool show) {
-    const auto insn = Memory.raw_read(Regs.pc + 1);
+    const auto insn = Memory.raw_read(Regs.nextIp());
     auto bus_cycles = Regs::busCycles(insn);
     if (bus_cycles == 0)
         return;
-    auto ea = Regs.effectiveAddr(insn, Regs.pc + 1);
+    auto ea = Regs.effectiveAddr(insn, Regs.nextIp());
     if (Memory::is_internal(ea))
         bus_cycles = Regs::insnLen(insn);
     Regs.restore(debug_cycles);

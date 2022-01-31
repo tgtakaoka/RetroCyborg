@@ -32,13 +32,15 @@ struct Regs {
     const char *cpu() const;
     const char *cpuName() const;
 
-    uint32_t maxAddr() const { return is65816() ? 0xFFFFFF : UINT16_MAX; }
     bool longa() const { return e == 0 && (p & 0x20) == 0; }
     bool longx() const { return e == 0 && (p & 0x10) == 0; }
 
+    uint32_t nextIp() const { return pc; }
+    uint32_t maxAddr() const { return is65816() ? 0xFFFFFF : UINT16_MAX; }
     void printRegList() const;
     char validUint8Reg(const char *word) const;
     char validUint16Reg(const char *word) const;
+    char validUint32Reg(const char *word) const { return 0; }
     void setRegValue(char reg, uint32_t value);
 
 private:

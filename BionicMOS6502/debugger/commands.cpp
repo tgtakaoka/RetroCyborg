@@ -293,10 +293,26 @@ static uint32_t toInt32Hex(const char *text) {
     return ((uint32_t)toInt24Hex(text) << 8) | toInt8Hex(text + 6);
 }
 
+static int loadIHexRecord(const char *line) {
+    const auto num = toInt8Hex(line + 1);
+    const uint16_t addr = toInt16Hex(line + 3);
+    const auto type = toInt8Hex(line + 7);
+    // TODO: Support 32bit Intel Hex
+    if (type == 0) {
+        uint8_t buffer[num];
+        for (int i = 0; i < num; i++) {
+            buffer[i] = toInt8Hex(line + i * 2 + 9);
+        }
+        memoryWrite(addr, buffer, num);
+        cli.printHex(addr, 4);
+        cli.print(':');
+        cli.printHex(num, 2);
+        cli.print(' ');
+    }
+    return num;
+}
+
 static int loadS19Record(const char *line) {
-    int len = strlen(line);
-    if (len == 0 || line[0] != 'S')
-        return 0;
     const int num = toInt8Hex(line + 2) - 3;
     uint32_t addr;
     switch (line[1]) {
@@ -338,15 +354,19 @@ static void handleLoadFile(char *line, uintptr_t extra, State state) {
             cli.println(F(" not found"));
         } else {
             uint16_t size = 0;
-            char s19[80];
-            char *p = s19;
+            char buffer[80];
+            char *p = buffer;
             while (file.available() > 0) {
                 const char c = file.read();
                 if (c == '\n') {
                     *p = 0;
-                    size += loadS19Record(s19);
-                    p = s19;
-                } else if (c != '\r' && p < s19 + sizeof(s19) - 1) {
+                    if (*buffer == 'S') {
+                        size += loadS19Record(buffer);
+                    } else if (*buffer == ':') {
+                        size += loadIHexRecord(buffer);
+                    }
+                    p = buffer;
+                } else if (c != '\r' && p < buffer + sizeof(buffer) - 1) {
                     *p++ = c;
                 }
             }
@@ -373,6 +393,11 @@ static void handleSetRegister(char *word, uintptr_t extra, State state) {
     if ((reg = Regs.validUint16Reg(word)) != 0) {
         cli.print('?');
         cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT16_MAX);
+        return;
+    }
+    if ((reg = Regs.validUint32Reg(word)) != 0) {
+        cli.print('?');
+        cli.readHex(handleRegisterValue, (uintptr_t)reg, UINT32_MAX);
         return;
     }
     Regs.printRegList();
@@ -419,7 +444,7 @@ static void handleIo(char *line, uintptr_t extra, State state) {
         if (state == State::CLI_SPACE) {
             if (dev != Pins::Device::NONE) {
                 cli.readHex(handleBaseAddr, static_cast<uintptr_t>(dev),
-                        UINT16_MAX);
+                        Regs.maxAddr());
                 return;
             }
         }
@@ -455,7 +480,7 @@ void Commands::exec(char c) {
         cli.println(F("Registers"));
     regs:
         Regs.print();
-        disassemble(Regs.pc, 1);
+        disassemble(Regs.nextIp(), 1);
         break;
     case '=':
         cli.print(F("Set register? "));
@@ -524,7 +549,7 @@ void Commands::halt(bool show) {
     Pins.halt(show);
     if (!_showRegs)
         Regs.print();
-    disassemble(Regs.pc, 1);
+    disassemble(Regs.nextIp(), 1);
     printPrompt();
 }
 
