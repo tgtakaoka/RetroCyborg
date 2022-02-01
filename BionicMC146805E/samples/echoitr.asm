@@ -19,6 +19,8 @@ tx_queue:
         rmb     tx_queue_size
 tx_int_control:
         rmb     1
+isr_irq_work:
+        rmb     1
 
         org     $0100
 initialize:
@@ -127,17 +129,18 @@ getchar:
 ;;; @clobber A,X
 putchar:
         ldx     #tx_queue
+putchar_retry:
         sei                     ; disable IRQ
         jsr     queue_add
         cli                     ; enable IRQ
-        bcc     putchar         ; queue is full
+        bcc     putchar_retry   ; branch if queue is full
         sei                     ; disable IRQ
         tst     tx_int_control
-        bne     putchar_return
+        bne     putchar_exit
         lda     #RX_INT_TX_INT  ; enable Tx interrupt
         sta     ACIA_control
         com     tx_int_control
-putchar_return:
+putchar_exit:
         cli                     ; enable IRQ
         rts
 
@@ -145,29 +148,33 @@ putchar_return:
 
 isr_irq:
         lda     ACIA_status
+        sta     isr_irq_work
         bit     #IRQF_bm
-        beq     isr_irq_return
+        beq     isr_irq_exit
+        bit     #FERR_bm|OVRN_bm|PERR_bm
+        beq     isr_irq_receive
+        lda     ACIA_data       ; reset error flags
 isr_irq_receive:
+        lda     isr_irq_work
         bit     #RDRF_bm
-        beq     isr_irq_recv_end
+        beq     isr_irq_send
         lda     ACIA_data       ; receive character
         ldx     #rx_queue
         jsr     queue_add
-isr_irq_recv_end:
 isr_irq_send:
+        lda     isr_irq_work
         bit     #TDRE_bm
-        beq     isr_irq_send_end
+        beq     isr_irq_exit
         ldx     #tx_queue
         jsr     queue_remove
         bcc     isr_irq_send_empty
         sta     ACIA_data       ; send character
-        bra     isr_irq_send_end
+isr_irq_exit:
+        rti
 isr_irq_send_empty:
         lda     #RX_INT_TX_NO
         sta     ACIA_control    ; disable Tx interrupt
         clr     tx_int_control
-isr_irq_send_end:
-isr_irq_return:
         rti
 
         org     VEC_IRQ

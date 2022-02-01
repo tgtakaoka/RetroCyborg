@@ -116,27 +116,30 @@ put_bin0:
 getchar:
         orcc    #CC_CARRY       ; set carry
         pshs    x,cc
-        orcc    #CC_IRQ         ; disable IRQ
         ldx     #rx_queue
-        bsr     queue_remove
-        bcs     getchar_end
+        orcc    #CC_IRQ         ; disable IRQ
+        lbsr    queue_remove
+        bcs     getchar_exit
         dec     ,s              ; clear carry
-getchar_end:
+getchar_exit:
         puls    cc,x,pc
 
 ;;; Put character
 ;;; @param A
 putchar:
         pshs    x,a,cc
-        orcc    #CC_IRQ         ; disable IRQ
         ldx     #tx_queue
+putchar_retry:
+        orcc    #CC_IRQ         ; disable IRQ
         lbsr    queue_add
+        andcc   #~CC_IRQ        ; enable IRQ
+        bcc     putchar_retry   ; branch if queue is full
         tst     tx_int_control
-        bne     putchar_end
+        bne     putchar_exit
         lda     #RX_INT_TX_INT  ; enable Tx interrupt
         sta     ACIA_control
         com     tx_int_control
-putchar_end:
+putchar_exit:
         puls    cc,a,x,pc
 
         include "queue.inc"
@@ -144,28 +147,29 @@ putchar_end:
 isr_irq:
         ldb     ACIA_status
         bitb    #IRQF_bm
-        beq     isr_irq_return
+        beq     isr_irq_exit
+        bitb    #FERR_bm|OVRN_bm|PERR_bm
+        beq     isr_irq_receive
+        lda     ACIA_data       ; reset error flags
 isr_irq_receive:
         bitb    #RDRF_bm
-        beq     isr_irq_recv_end
+        beq     isr_irq_send
         lda     ACIA_data       ; receive character
         ldx     #rx_queue
         lbsr    queue_add
-isr_irq_recv_end:
 isr_irq_send:
         bitb    #TDRE_bm
-        beq     isr_irq_send_end
+        beq     isr_irq_exit
         ldx     #tx_queue
         lbsr    queue_remove
         bcc     isr_irq_send_empty
         sta     ACIA_data       ; send character
-        bra     isr_irq_send_end
+isr_irq_exit:
+        rti
 isr_irq_send_empty:
         lda     #RX_INT_TX_NO
         sta     ACIA_control    ; disable Tx interrupt
         clr     tx_int_control
-isr_irq_send_end:
-isr_irq_return:
         rti
 
         org     VEC_IRQ

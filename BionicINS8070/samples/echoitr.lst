@@ -236,12 +236,12 @@ FF01:
 10BD: 6C F3                    BZ   putchar_retry   ; queue is full
 10BF: 39 FE                    AND  s, =~S_IE       ; disable IRQ
 10C1: C5 00                    LD   a, tx_int_control
-10C3: 7C 09                    BNZ  putchar_return
+10C3: 7C 09                    BNZ  putchar_exit
 10C5: 26 00 DF                 LD   p2, =ACIA
 10C8: C4 B4                    LD   a, =RX_INT_TX_INT   ; enable Tx interrupt
 10CA: CA 00                    ST   a, ACIA_C, p2
 10CC: CD 00                    ST   a, tx_int_control
-10CE:          putchar_return:
+10CE:          putchar_exit:
 10CE: 3A                       POP  ea
 10CF: 3B 01                    OR   s, =S_IE        ; enable IRQ
 10D1: 5C                       RET
@@ -353,42 +353,41 @@ FF01:
 1136: C2 00                    LD   a, ACIA_S, p2
 1138: 48                       LD   e, a            ; save ACIA status in E
 1139: D4 80                    AND  a, =IRQF_bm
-113B: 6C 31                    BZ   isr_irq_return
+113B: 6C 32                    BZ   isr_irq_exit
 113D: 40                       LD   a, e
 113E: D4 70                    AND  a, =FERR_bm|OVRN_bm|PERR_bm
 1140: 6C 02                    BZ   isr_irq_receive
 1142: C2 01                    LD   a, ACIA_D, p2   ; clear errors
 1144:          isr_irq_receive:
 1144: 40                       LD   a, e
-1145: D4 01                    AND  a, =RDRF_bm
-1147: 6C 08                    BZ   isr_irq_recv_end
-1149: C2 01                    LD   a, ACIA_D, p2   ; receive character
-114B: 26 00 20                 LD   p2, =rx_queue
-114E: 20 F8 10                 JSR  queue_add
-1151:          isr_irq_recv_end:
-1151:          isr_irq_send:
-1151: 40                       LD   a, e
-1152: D4 02                    AND  a, =TDRE_bm
-1154: 6C 18                    BZ   isr_irq_send_end
-1156: 26 10 20                 LD   p2, =tx_queue
-1159: 20 16 11                 JSR  queue_remove
-115C: 26 00 DF                 LD   p2, =ACIA
-115F: 6C 05                    BZ   isr_irq_send_empty
-1161: 40                       LD   a, e
-1162: CA 01                    ST   a, ACIA_D, p2   ; send character
-1164: 74 08                    BRA  isr_irq_send_end
-1166:          isr_irq_send_empty:
-1166: C4 94                    LD   a, =RX_INT_TX_NO
-1168: CA 00                    ST   a, ACIA_C, p2   ; disable Tx interrupt
-116A: C4 00                    LD   a, =0
-116C: CD 00                    ST   a, tx_int_control
-116E:          isr_irq_send_end:
-116E:          isr_irq_return:
-116E: 5E                       POP  p2
-116F: 3A                       POP  ea
-1170: 3B 01                    OR   s, =S_IE
-1172: 5C                       RET
-1173:
+1145: 0A                       PUSH a               ; save ACIA status
+1146: D4 01                    AND  a, =RDRF_bm
+1148: 6C 08                    BZ   isr_irq_send
+114A: C2 01                    LD   a, ACIA_D, p2   ; receive character
+114C: 26 00 20                 LD   p2, =rx_queue
+114F: 20 F8 10                 JSR  queue_add
+1152:          isr_irq_send:
+1152: 38                       POP  a               ; restore ACIA status
+1153: D4 02                    AND  a, =TDRE_bm
+1155: 6C 18                    BZ   isr_irq_exit
+1157: 26 10 20                 LD   p2, =tx_queue
+115A: 20 16 11                 JSR  queue_remove
+115D: 26 00 DF                 LD   p2, =ACIA
+1160: 6C 05                    BZ   isr_irq_send_empty
+1162: 40                       LD   a, e
+1163: CA 01                    ST   a, ACIA_D, p2   ; send character
+1165: 74 08                    BRA  isr_irq_exit
+1167:          isr_irq_send_empty:
+1167: C4 94                    LD   a, =RX_INT_TX_NO
+1169: CA 00                    ST   a, ACIA_C, p2   ; disable Tx interrupt
+116B: C4 00                    LD   a, =0
+116D: CD 00                    ST   a, tx_int_control
+116F:          isr_irq_exit:
+116F: 5E                       POP  p2
+1170: 3A                       POP  ea
+1171: 3B 01                    OR   s, =S_IE
+1173: 5C                       RET
+1174:
    4:                          ORG  ORG_INTA
    4: 24 31 11                 JMP  isr_irq
    7:

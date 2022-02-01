@@ -250,27 +250,24 @@
 10A4: C2 00                    LD   a, ACIA_S, p2
 10A6: 48                       LD   e, a
 10A7: D4 80                    AND  a, =IRQF_bm
-10A9: 6C 12                    BZ   isr_irq_return
+10A9: 6C 14                    BZ   isr_irq_exit
 10AB: 40                       LD   a, e
 10AC: D4 70                    AND  a, =FERR_bm|OVRN_bm|PERR_bm
-10AE: 7C 12                    BNZ  isr_irq_recv_err
-10B0:          isr_irq_receive:
-10B0: 40                       LD   a, e
-10B1: D4 01                    AND  a, =RDRF_bm
-10B3: 6C 08                    BZ   isr_irq_recv_end
-10B5: C2 01                    LD   a, ACIA_D, p2
-10B7: 26 00 20                 LD   p2, =rx_queue
-10BA: 20 66 10                 JSR  queue_add
-10BD:          isr_irq_recv_end:
-10BD:          isr_irq_return:
-10BD: 5E                       POP  p2
-10BE: 3A                       POP  ea
-10BF: 3B 01                    OR   s, =S_IE
-10C1: 5C                       RET
-10C2:          isr_irq_recv_err:
-10C2: C2 01                    LD   a, ACIA_D, p2   ; clear errors
-10C4: 74 EA                    BRA  isr_irq_receive
-10C6:
+10AE: 6C 02                    BZ   isr_irq_receive
+10B0: C2 01                    LD   a, ACIA_D, p2   ; clear errors
+10B2:          isr_irq_receive:
+10B2: 40                       LD   a, e
+10B3: D4 01                    AND  a, =RDRF_bm
+10B5: 6C 08                    BZ   isr_irq_exit
+10B7: C2 01                    LD   a, ACIA_D, p2
+10B9: 26 00 20                 LD   p2, =rx_queue
+10BC: 20 66 10                 JSR  queue_add
+10BF:          isr_irq_exit:
+10BF: 5E                       POP  p2
+10C0: 3A                       POP  ea
+10C1: 3B 01                    OR   s, =S_IE
+10C3: 5C                       RET
+10C4:
    4:                          ORG  ORG_INTA
    4: 24 9F 10                 JMP  isr_irq
    7:

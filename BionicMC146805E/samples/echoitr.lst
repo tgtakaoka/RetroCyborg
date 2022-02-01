@@ -107,7 +107,9 @@
   31:                          RMB   tx_queue_size
   51:          tx_int_control:
   51:                          RMB   1
-  52:
+  52:          isr_irq_work:
+  52:                          RMB   1
+  53:
  100:                          ORG   $0100
  100:          initialize:
  100: AE 21                    LDX   #rx_queue
@@ -215,17 +217,18 @@
  18A:          ;;; @clobber A,X
  18A:          putchar:
  18A: AE 31                    LDX   #tx_queue
+ 18C:          putchar_retry:
  18C: 9B                       SEI                   ; disable IRQ
  18D: CD 01 AD                 JSR   queue_add
  190: 9A                       CLI                   ; enable IRQ
- 191: 24 F7                    BCC   putchar         ; queue is full
+ 191: 24 F9                    BCC   putchar_retry   ; branch if queue is full
  193: 9B                       SEI                   ; disable IRQ
  194: 3D 51                    TST   tx_int_control
- 196: 26 07                    BNE   putchar_return
+ 196: 26 07                    BNE   putchar_exit
  198: A6 B4                    LDA   #RX_INT_TX_INT  ; enable Tx interrupt
  19A: C7 17 F8                 STA   ACIA_control
  19D: 33 51                    COM   tx_int_control
- 19F:          putchar_return:
+ 19F:          putchar_exit:
  19F: 9A                       CLI                   ; enable IRQ
  1A0: 81                       RTS
  1A1:
@@ -321,31 +324,35 @@
  1F9:
  1F9:          isr_irq:
  1F9: C6 17 F8                 LDA   ACIA_status
- 1FC: A5 80                    BIT   #IRQF_bm
- 1FE: 27 23                    BEQ   isr_irq_return
- 200:          isr_irq_receive:
- 200: A5 01                    BIT   #RDRF_bm
- 202: 27 08                    BEQ   isr_irq_recv_end
- 204: C6 17 F9                 LDA   ACIA_data       ; receive character
- 207: AE 21                    LDX   #rx_queue
- 209: CD 01 AD                 JSR   queue_add
- 20C:          isr_irq_recv_end:
- 20C:          isr_irq_send:
- 20C: A5 02                    BIT   #TDRE_bm
- 20E: 27 13                    BEQ   isr_irq_send_end
- 210: AE 31                    LDX   #tx_queue
- 212: CD 01 D8                 JSR   queue_remove
- 215: 24 05                    BCC   isr_irq_send_empty
- 217: C7 17 F9                 STA   ACIA_data       ; send character
- 21A: 20 07                    BRA   isr_irq_send_end
- 21C:          isr_irq_send_empty:
- 21C: A6 94                    LDA   #RX_INT_TX_NO
- 21E: C7 17 F8                 STA   ACIA_control    ; disable Tx interrupt
- 221: 3F 51                    CLR   tx_int_control
- 223:          isr_irq_send_end:
- 223:          isr_irq_return:
- 223: 80                       RTI
- 224:
+ 1FC: B7 52                    STA   isr_irq_work
+ 1FE: A5 80                    BIT   #IRQF_bm
+ 200: 27 25                    BEQ   isr_irq_exit
+ 202: A5 70                    BIT   #FERR_bm|OVRN_bm|PERR_bm
+ 204: 27 03                    BEQ   isr_irq_receive
+ 206: C6 17 F9                 LDA   ACIA_data       ; reset error flags
+ 209:          isr_irq_receive:
+ 209: B6 52                    LDA   isr_irq_work
+ 20B: A5 01                    BIT   #RDRF_bm
+ 20D: 27 08                    BEQ   isr_irq_send
+ 20F: C6 17 F9                 LDA   ACIA_data       ; receive character
+ 212: AE 21                    LDX   #rx_queue
+ 214: CD 01 AD                 JSR   queue_add
+ 217:          isr_irq_send:
+ 217: B6 52                    LDA   isr_irq_work
+ 219: A5 02                    BIT   #TDRE_bm
+ 21B: 27 0A                    BEQ   isr_irq_exit
+ 21D: AE 31                    LDX   #tx_queue
+ 21F: CD 01 D8                 JSR   queue_remove
+ 222: 24 04                    BCC   isr_irq_send_empty
+ 224: C7 17 F9                 STA   ACIA_data       ; send character
+ 227:          isr_irq_exit:
+ 227: 80                       RTI
+ 228:          isr_irq_send_empty:
+ 228: A6 94                    LDA   #RX_INT_TX_NO
+ 22A: C7 17 F8                 STA   ACIA_control    ; disable Tx interrupt
+ 22D: 3F 51                    CLR   tx_int_control
+ 22F: 80                       RTI
+ 230:
 1FFA:                          ORG   VEC_IRQ
 1FFA: 01 F9                    FDB   isr_irq
 1FFC:

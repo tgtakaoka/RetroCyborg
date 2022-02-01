@@ -7,6 +7,7 @@ rx_queue_size:  equ     128
 rx_queue:       rmb     rx_queue_size
 tx_queue_size:  equ     128
 tx_queue:       rmb     tx_queue_size
+tx_int_control: rmb     1
 
 ;;; SCI: Enable Rx interrupt
 RX_INT_TX_NO:   equ     TRCSR_TE_bm|TRCSR_RE_bm|TRCSR_RIE_bm
@@ -29,13 +30,14 @@ initialize:
         staa    RMCR            ; set NRZ and E/16
         ldaa    #RX_INT_TX_NO
         staa    TRCSR           ; Enable Tx and Rx/Interrupt
+        clr     tx_int_control  ; disable Tx interrupt
         cli                     ; enable IRQ
 
 receive_loop:
         bsr     getchar
         bcc     receive_loop
 echo_back:
-	tab
+        tab
         bsr     putchar         ; echo
         ldaa    #' '            ; space
         bsr     putchar
@@ -111,78 +113,87 @@ put_bin0:
 ;;; @return A
 ;;; @return CC.C 0 if no character
 getchar:
+        pshx
         pshb
         tpa
         psha                    ; save CC
         sei                     ; disable IRQ
-        pshx
         ldx     #rx_queue
         jsr     queue_remove
-        pulx
         tab                     ; char? in B
         pula                    ; restore CC to A
-        bcs     getchar_end
+        bcs     getchar_exit
         tap
         clc                     ; clear carry
         pulb
+        pulx
         rts
-getchar_end:
+getchar_exit:
         tap
         sec                     ; set carry
         tba
         pulb
+        pulx
+        rts
 
 ;;; Put character
 ;;; @param A
 putchar:
-	pshb
+        pshx
+        pshb
         psha
         tab                     ; char in B
         tpa
         psha                    ; save CC
-	sei                     ; disable IRQ
+putchar_retry:
         tba                     ; char in A
-        pshx
         ldx     #tx_queue
+        sei                     ; disable IRQ
         jsr     queue_add
-        pulx
+        cli                     ; enable IRQ
+        bcc     putchar_retry   ; branch if queue is full
+        sei                     ; disable IRQ
+        tst     tx_int_control
+        bne     putchar_exit
         ldaa    #RX_INT_TX_INT  ; Enable Tx interrupt
         staa    TRCSR
+        com     tx_int_control
+putchar_exit:
         pula                    ; restore CC
         tap
         pula
         pulb
+        pulx
         rts
 
         include "queue.inc"
 
 isr_sci:
         ldab    TRCSR
-	bitb    #TRCSR_ORFE_bm
-        bne     isr_sci_error
+        bitb    #TRCSR_ORFE_bm
+        beq     isr_sci_receive
+        ldaa    SCRDR           ; reset ORFE
+isr_sci_receive:
         bitb    #TRCSR_RDRF_bm
         beq     isr_sci_send
-isr_sci_receive:
-        ldaa    SCRDR          ; receive character
+        ldaa    SCRDR           ; receive character
         ldx     #rx_queue
         jsr     queue_add
 isr_sci_send:
         bitb    #TRCSR_TDRE_bm
-        beq     isr_sci_return
+        beq     isr_sci_exit
         ldx     #tx_queue
         jsr     queue_remove
-        bcc     isr_sci_empty
-        staa    SCTDR          ; send character
-isr_sci_return: 
+        bcc     isr_sci_send_empty
+        staa    SCTDR           ; send character
+isr_sci_exit:
         rti
-isr_sci_empty:
+isr_sci_send_empty:
         ldaa    #RX_INT_TX_NO
         staa    TRCSR           ; disable Tx interrupt
-	bra     isr_sci_return
-isr_sci_error:
-        ldaa    SCRDR          ; reset ORFE
-        bra     isr_sci_send
-	
+        clr     tx_int_control
+        rti
+
         org     VEC_SCI
         fdb     isr_sci
 

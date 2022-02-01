@@ -18,6 +18,9 @@ tx_queue:
 tx_queue_size:  equ     128
 tx_int_control:
         rmb     1
+isr_irq_work:
+        rmb     1
+
 RX_INT_TX_NO:   equ     WSB_8N1_gc|RIEB_bm
 RX_INT_TX_INT:  equ     WSB_8N1_gc|RIEB_bm|TCB_EI_gc
 
@@ -36,7 +39,7 @@ initialize:
         jsr     queue_init
         ;; initialize ACIA
         lda     #CDS_RESET_gc   ; master reset
-        sta    ACIA_control
+        sta     ACIA_control
         lda     #RX_INT_TX_NO
         sta     ACIA_control
         lda     #0
@@ -135,14 +138,14 @@ put_binchar:
 ;;; @clobber X
 getchar:
         php                     ; save P
-        sei                     ; disable IRQ
         ldx     #rx_queue
+        sei                     ; disable IRQ
         jsr     queue_remove
-        bcc     getchar_end
+        bcc     getchar_exit
         plp                     ; restore P
         sec
         rts
-getchar_end:
+getchar_exit:
         plp
         clc
         rts
@@ -151,23 +154,22 @@ getchar_end:
 ;;; @param A
 ;;; @clobber X
 putchar:
-        pha
         php                     ; save P
+        pha
 putchar_retry:
-        cli                     ; enable IRQ
-        nop
         ldx     #tx_queue
         sei                     ; disable IRQ
         jsr     queue_add
+        cli                     ; enable IRQ
         bcs     putchar_retry   ; queue is full
         lda     tx_int_control
-        bne     putchar_end
+        bne     putchar_exit
         lda     #RX_INT_TX_INT  ; enable Tx interrupt
         sta     ACIA_control
         inc     tx_int_control
-putchar_end:
-        plp                     ; restore P
+putchar_exit:
         pla
+        plp                     ; restore P
         rts
 
         include "queue.inc"
@@ -180,40 +182,41 @@ isr_irq:
         tya
         pha                     ; save Y
         lda     ACIA_status
-        pha                     ; save ACIA status
+        sta     isr_irq_work    ; save ACIA status
         and     #IRQF_bm
-        pla                     ; restore ACIA status
-        beq     isr_irq_return
-        pha                     ; save ACIA status
+        beq     isr_irq_exit
+        lda     isr_irq_work
+        and     #FERR_bm|OVRN_bm|PERR_bm
+        beq     isr_irq_receive
+        lda     ACIA_data       ; reset error flags
 isr_irq_receive:
+        lda     isr_irq_work
         and     #RDRF_bm
-        beq     isr_irq_recv_end
+        beq     isr_irq_send
         lda     ACIA_data       ; receive character
         ldx     #rx_queue
         jsr     queue_add
-isr_irq_recv_end:
 isr_irq_send:
-        pla                     ; restore ACIA status
+        lda     isr_irq_work
         and     #TDRE_bm
-        beq     isr_irq_send_end
+        beq     isr_irq_exit
         ldx     #tx_queue
         jsr     queue_remove
         bcs     isr_irq_send_empty
         sta     ACIA_data       ; send character
-        jmp     isr_irq_send_end
-isr_irq_send_empty:
-        lda     #RX_INT_TX_NO
-        sta     ACIA_control    ; disable Tx interrupt
-        lda     #0
-        sta     tx_int_control
-isr_irq_send_end:
-isr_irq_return:
+isr_irq_exit:
         pla                     ; restore Y
         tay
         pla                     ; restore X
         tax
         pla                     ; restore Y
-        rti
+        rti                     ; restore P and PC
+isr_irq_send_empty:
+        lda     #RX_INT_TX_NO
+        sta     ACIA_control    ; disable Tx interrupt
+        lda     #0
+        sta     tx_int_control
+        beq     isr_irq_exit    ; always branch
 
         org     NVEC_IRQ
         fdb     isr_irq

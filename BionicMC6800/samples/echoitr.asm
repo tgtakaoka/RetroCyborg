@@ -39,7 +39,7 @@ receive_loop:
         bsr     getchar
         bcc     receive_loop
 echo_back:
-	tab
+        tab
         bsr     putchar         ; echo
         ldaa    #' '            ; space
         bsr     putchar
@@ -124,36 +124,41 @@ getchar:
         jsr     queue_remove
         tab                     ; char? in B
         pula                    ; restore CC to A
-        bcs     getchar_end
+        bcs     getchar_exit
         tap
         clc                     ; clear carry
         pulb
         rts
-getchar_end:
+getchar_exit:
         tap
         sec                     ; set carry
         tba
         pulb
+        rts
 
 ;;; Put character
 ;;; @param A
 ;;; @clobber X
 putchar:
-	pshb
+        pshb
         psha
         tab                     ; char in B
         tpa
         psha                    ; save CC
-	sei                     ; disable IRQ
+putchar_retry:
         tba                     ; char in A
         ldx     #tx_queue
+        sei                     ; disable IRQ
         jsr     queue_add
+        cli                     ; enable IRQ
+        bcc     putchar_retry   ; branch if queue is full
+        sei                     ; disable IRQ
         tst     tx_int_control
-        bne     putchar_end
+        bne     putchar_exit
         ldaa    #RX_INT_TX_INT  ; enable Tx interrupt
         staa    ACIA_control
         com     tx_int_control
-putchar_end:
+putchar_exit:
         pula                    ; restore CC
         tap
         pula
@@ -165,28 +170,29 @@ putchar_end:
 isr_irq:
         ldab    ACIA_status
         bitb    #IRQF_bm
-        beq     isr_irq_return
+        beq     isr_irq_exit
+        bitb    #FERR_bm|OVRN_bm|PERR_bm
+        beq     isr_irq_receive
+        ldaa    ACIA_data       ; reset error flags
 isr_irq_receive:
         bitb    #RDRF_bm
-        beq     isr_irq_recv_end
+        beq     isr_irq_send
         ldaa    ACIA_data       ; receive character
         ldx     #rx_queue
         jsr     queue_add
-isr_irq_recv_end:
 isr_irq_send:
         bitb    #TDRE_bm
-        beq     isr_irq_send_end
+        beq     isr_irq_exit
         ldx     #tx_queue
         jsr     queue_remove
         bcc     isr_irq_send_empty
         staa    ACIA_data       ; send character
-        bra     isr_irq_send_end
+isr_irq_exit:
+        rti
 isr_irq_send_empty:
         ldaa    #RX_INT_TX_NO
         staa    ACIA_control    ; disable Tx interrupt
         clr     tx_int_control
-isr_irq_send_end:
-isr_irq_return:
         rti
 
         org     VEC_IRQ

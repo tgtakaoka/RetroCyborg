@@ -153,12 +153,12 @@ putchar_retry:
         bz      putchar_retry   ; queue is full
         and     s, =~S_IE       ; disable IRQ
         ld      a, tx_int_control
-        bnz     putchar_return
+        bnz     putchar_exit
         ld      p2, =ACIA
         ld      a, =RX_INT_TX_INT ; enable Tx interrupt
         st      a, ACIA_C, p2
         st      a, tx_int_control
-putchar_return:
+putchar_exit:
         pop     ea
         or      s, =S_IE        ; enable IRQ
         ret
@@ -171,37 +171,36 @@ isr_irq:
         ld      a, ACIA_S, p2
         ld      e, a            ; save ACIA status in E
         and     a, =IRQF_bm
-        bz      isr_irq_return
+        bz      isr_irq_exit
         ld      a, e
         and     a, =FERR_bm|OVRN_bm|PERR_bm
         bz      isr_irq_receive
         ld      a, ACIA_D, p2   ; clear errors
 isr_irq_receive:
         ld      a, e
+        push    a               ; save ACIA status
         and     a, =RDRF_bm
-        bz      isr_irq_recv_end
+        bz      isr_irq_send
         ld      a, ACIA_D, p2   ; receive character
         ld      p2, =rx_queue
         jsr     queue_add
-isr_irq_recv_end:
 isr_irq_send:
-        ld      a, e
+        pop     a               ; restore ACIA status
         and     a, =TDRE_bm
-        bz      isr_irq_send_end
+        bz      isr_irq_exit
         ld      p2, =tx_queue
         jsr     queue_remove
         ld      p2, =ACIA
         bz      isr_irq_send_empty
         ld      a, e
         st      a, ACIA_D, p2   ; send character
-        bra     isr_irq_send_end
+        bra     isr_irq_exit
 isr_irq_send_empty:
         ld      a, =RX_INT_TX_NO
         st      a, ACIA_C, p2   ; disable Tx interrupt
         ld      a, =0
         st      a, tx_int_control
-isr_irq_send_end:
-isr_irq_return:
+isr_irq_exit:
         pop     p2
         pop     ea
         or      s, =S_IE

@@ -68,26 +68,23 @@ isr_irq:
         ld      a, ACIA_S, p2
         ld      e, a
         and     a, =IRQF_bm
-        bz      isr_irq_return
+        bz      isr_irq_exit
         ld      a, e
         and     a, =FERR_bm|OVRN_bm|PERR_bm
-        bnz     isr_irq_recv_err
+        bz      isr_irq_receive
+        ld      a, ACIA_D, p2   ; clear errors
 isr_irq_receive:
         ld      a, e
         and     a, =RDRF_bm
-        bz      isr_irq_recv_end
+        bz      isr_irq_exit
         ld      a, ACIA_D, p2
         ld      p2, =rx_queue
         jsr     queue_add
-isr_irq_recv_end:
-isr_irq_return:
+isr_irq_exit:
         pop     p2
         pop     ea
         or      s, =S_IE
         ret
-isr_irq_recv_err:
-        ld      a, ACIA_D, p2   ; clear errors
-        bra     isr_irq_receive
 
         org     ORG_INTA
         jmp     isr_irq
