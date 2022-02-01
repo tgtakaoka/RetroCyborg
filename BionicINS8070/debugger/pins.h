@@ -29,7 +29,8 @@ public:
 
     enum Device : uint8_t {
         NONE = 0,
-        ACIA = 1,  // MC6850 ACIA
+        ACIA = 1,     // MC6850 ACIA
+        BITBANG = 2,  // INS8070 F1 & SA bnit bang software UART
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
@@ -43,6 +44,7 @@ private:
     bool _freeRunning;
     uint8_t _irq;
 
+    void clock_cycle() const;
     Signals &prepareCycle();
     Signals &completeCycle(Signals &signals);
     Signals &cycle();
