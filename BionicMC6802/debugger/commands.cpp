@@ -66,18 +66,37 @@ static uint8_t mem_buffer[16];
 static char str_buffer[40];
 
 static void memoryDump(uint32_t addr, uint16_t len) {
-    for (uint16_t i = 0; i < len; i++, addr++) {
-        const uint8_t data = Memory.read(addr);
-        if (i % 16 == 0) {
-            if (i)
-                cli.println();
-            cli.printHex(addr, 4);
-            cli.print(':');
+    const auto start = addr;
+    const auto end = addr + len;
+    for (addr &= ~0xF; addr < end; addr += 16) {
+        cli.printHex(addr, 4);
+        cli.print(':');
+        for (auto i = 0; i < 16; i++) {
+            const auto a = addr + i;
+            if (a < start || a >= end) {
+                cli.print(F("   "));
+            } else {
+                const char data = Memory.read(a);
+                cli.print(' ');
+                cli.printHex(data, 2);
+            }
         }
-        cli.printHex(data, 2);
         cli.print(' ');
+        for (auto i = 0; i < 16; i++) {
+            const auto a = addr + i;
+            if (a < start || a >= end) {
+                cli.print(' ');
+            } else {
+                const char data = Memory.read(a);
+                if (isprint(data)) {
+                    cli.print(data);
+                } else {
+                    cli.print('.');
+                }
+            }
+        }
+        cli.println();
     }
-    cli.println();
 }
 
 static void handleDump(uint32_t value, uintptr_t extra, State state) {
@@ -165,13 +184,6 @@ cancel:
     printPrompt();
 }
 
-static void memoryWrite(
-        uint32_t addr, const uint8_t values[], const uint8_t len) {
-    for (uint8_t i = 0; i < len; i++, addr++) {
-        Memory.write(addr, values[i]);
-    }
-}
-
 static void handleMemory(uint32_t value, uintptr_t extra, State state) {
     if (state == State::CLI_DELETE) {
         if (extra == MEMORY_ADDR)
@@ -202,7 +214,7 @@ static void handleMemory(uint32_t value, uintptr_t extra, State state) {
             }
         }
         cli.println();
-        memoryWrite(last_addr, mem_buffer, index);
+        Memory.write(last_addr, mem_buffer, index);
         memoryDump(last_addr, index);
         last_addr += index;
     }
@@ -225,7 +237,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
     } else {
         print(insn);
         cli.println();
-        memoryWrite(insn.address(), insn.bytes(), insn.length());
+        Memory.write(insn.address(), insn.bytes(), insn.length());
         last_addr += insn.length();
     }
     cli.printHex(last_addr, 4);
@@ -303,7 +315,7 @@ static int loadIHexRecord(const char *line) {
         for (int i = 0; i < num; i++) {
             buffer[i] = toInt8Hex(line + i * 2 + 9);
         }
-        memoryWrite(addr, buffer, num);
+        Memory.write(addr, buffer, num);
         cli.printHex(addr, 4);
         cli.print(':');
         cli.printHex(num, 2);
@@ -335,7 +347,7 @@ static int loadS19Record(const char *line) {
     for (int i = 0; i < num; i++) {
         buffer[i] = toInt8Hex(line + i * 2);
     }
-    memoryWrite(addr, buffer, num);
+    Memory.write(addr, buffer, num);
     cli.printHex(addr, 4);
     cli.print(':');
     cli.printHex(num, 2);

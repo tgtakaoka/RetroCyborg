@@ -463,6 +463,12 @@ void Memory::write(uint32_t addr, uint8_t data) {
     raw_write(addr, data);
 }
 
+void Memory::write(uint32_t addr, const uint8_t *data, uint8_t len) {
+    for (auto i = 0; i < len; i++) {
+        write(addr++, *data++);
+    }
+}
+
 uint8_t Memory::raw_read(uint32_t addr) const {
     return addr < memory_size ? memory[addr] : 0xFF;
 }

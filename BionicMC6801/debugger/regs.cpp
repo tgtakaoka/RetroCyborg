@@ -266,6 +266,12 @@ void Memory::write(uint16_t addr, uint8_t data) {
     }
 }
 
+void Memory::write(uint16_t addr, const uint8_t *data, uint8_t len) {
+    for (auto i = 0; i < len; i++) {
+        write(addr++, *data++);
+    }
+}
+
 uint8_t Memory::raw_read(uint16_t addr) const {
     return memory[addr];
 }

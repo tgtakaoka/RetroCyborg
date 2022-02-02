@@ -62,6 +62,7 @@ public:
 
     uint8_t read(uint32_t addr) const;
     void write(uint32_t addr, uint8_t data);
+    void write(uint32_t addr, const uint8_t *data, uint8_t len);
     uint8_t raw_read(uint32_t addr) const;
     void raw_write(uint32_t addr, uint8_t data);
     uint16_t raw_read_uint16(uint32_t addr) const;

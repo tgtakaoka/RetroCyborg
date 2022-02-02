@@ -439,6 +439,12 @@ void Memory::write(uint16_t addr, uint8_t data) {
     }
 }
 
+void Memory::write(uint16_t addr, const uint8_t *data, uint8_t len) {
+    for (auto i = 0; i < len; i++) {
+        write(addr++, *data++);
+    }
+}
+
 uint8_t Memory::internal_read(uint8_t addr) const {
     static uint8_t LDA_STA[6] = {
             0xB6, 0, 0, 0xB7, 0x10, 0};  // LDA dir[addr], STA $10
