@@ -256,6 +256,20 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
     return addr;
 }
 
+uint16_t Regs::assemble(uint16_t addr, const char *line) const {
+    assembler.setCpu(cpu());
+    libasm::Insn insn(addr);
+    if (assembler.encode(line, insn)) {
+        cli.print(F("Error: "));
+        cli.println(assembler.errorText(assembler.getError()));
+    } else {
+        Memory.write(insn.address(), insn.bytes(), insn.length());
+        disassemble(insn.address(), 1);
+        addr += insn.length();
+    }
+    return addr;
+}
+
 uint8_t Memory::internal_read(uint8_t addr) const {
     static uint8_t LDAA_STAA[] = {
             0x96, 0, 0, 0x97, 0x20};  // LDAA dir[addr], STAA $20

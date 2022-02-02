@@ -30,6 +30,7 @@ struct Regs {
     char validUint32Reg(const char *word) const { return 0; }
     void setRegValue(char reg, uint32_t value);
     uint16_t disassemble(uint16_t addr, uint16_t numInsn) const;
+    uint16_t assemble(uint16_t addr, const char *line) const;
 };
 
 extern Regs Regs;
@@ -50,7 +51,6 @@ public:
 
     static constexpr auto memory_size = 0x10000;
     static constexpr auto reset_vector = 0xFFFE;
-    static bool is_internal(uint16_t addr);
 
 protected:
     uint8_t nextByte() { return read(address()); }

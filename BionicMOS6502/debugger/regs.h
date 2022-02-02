@@ -43,6 +43,7 @@ struct Regs {
     char validUint32Reg(const char *word) const { return 0; }
     void setRegValue(char reg, uint32_t value);
     uint32_t disassemble(uint32_t addr, uint16_t numInsn) const;
+    uint32_t assemble(uint32_t addr, const char *line) const;
 
 private:
     const char *_cpuType;
@@ -71,7 +72,6 @@ public:
 
     static constexpr auto memory_size = 0x1000000;
     static constexpr uint32_t reset_vector = 0xFFFC;
-    static bool is_internal(uint32_t addr);
 
 protected:
     uint8_t nextByte() { return read(address()); }

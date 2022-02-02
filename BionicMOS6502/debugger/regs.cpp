@@ -480,8 +480,18 @@ uint32_t Regs::disassemble(uint32_t addr, uint16_t numInsn) const {
     return addr;
 }
 
-bool Memory::is_internal(uint32_t addr) {
-    return false;
+uint32_t Regs::assemble(uint32_t addr, const char *line) const {
+    assembler.setCpu(cpu());
+    libasm::Insn insn(addr);
+    if (assembler.encode(line, insn)) {
+        cli.print(F("Error: "));
+        cli.println(assembler.errorText(assembler.getError()));
+    } else {
+        Memory.write(insn.address(), insn.bytes(), insn.length());
+        disassemble(insn.address(), 1);
+        addr += insn.length();
+    }
+    return addr;
 }
 
 uint8_t Memory::read(uint32_t addr) const {

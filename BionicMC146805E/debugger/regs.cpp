@@ -446,6 +446,20 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
     return addr;
 }
 
+uint16_t Regs::assemble(uint16_t addr, const char *line) const {
+    assembler.setCpu(cpu());
+    libasm::Insn insn(addr);
+    if (assembler.encode(line, insn)) {
+        cli.print(F("Error: "));
+        cli.println(assembler.errorText(assembler.getError()));
+    } else {
+        Memory.write(insn.address(), insn.bytes(), insn.length());
+        disassemble(insn.address(), 1);
+        addr += insn.length();
+    }
+    return addr;
+}
+
 bool Memory::is_internal(uint16_t addr) {
     if (addr < 0x0A)  // Internal Peripherals
         return true;
