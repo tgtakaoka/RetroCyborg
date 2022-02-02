@@ -220,12 +220,11 @@ void Regs::restore(bool show) {
         cli.println(F("@@ restore"));
     if (show)
         Signals::resetCycles();
-    const uint8_t tp = t & 0xF;
-    LDT[0] = 0xD0 | tp;        // SEP
+    uint8_t tmp = t & 0xF;
+    dirty[tmp] = true;
+    LDT[0] = 0xD0 | tmp;       // SEP
     LDT[1] = 0xE0 | (t >> 4);  // SEX
-    dirty[tp] = true;
-    uint8_t xp;
-    Pins.captureWrites(LDT, sizeof(LDT), nullptr, &xp, sizeof(xp));
+    Pins.captureWrites(LDT, sizeof(LDT), nullptr, &tmp, sizeof(tmp));
     LDQ_DF[0] = q ? 0x7B : 0x7A;
     LDQ_DF[2] = df ? 1 : 0;
     Pins.execInst(LDQ_DF, sizeof(LDQ_DF));

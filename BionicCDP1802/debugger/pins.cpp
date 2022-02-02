@@ -435,10 +435,9 @@ void Pins::halt(bool show) {
     if (_freeRunning) {
         if (debug_cycles)
             cli.println(F("@@ halt"));
-        // Signals::resetCycles() at loop().
         suspend();
         if (show)
-            Signals::printCycles();
+            Signals::disassembleCycles();
         Regs.save(debug_cycles);
         turn_off_led();
         _freeRunning = false;
