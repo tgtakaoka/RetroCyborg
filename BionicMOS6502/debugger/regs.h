@@ -42,6 +42,7 @@ struct Regs {
     char validUint16Reg(const char *word) const;
     char validUint32Reg(const char *word) const { return 0; }
     void setRegValue(char reg, uint32_t value);
+    uint32_t disassemble(uint32_t addr, uint16_t numInsn) const;
 
 private:
     const char *_cpuType;

@@ -29,6 +29,7 @@ struct Regs {
     char validUint16Reg(const char *word) const;
     char validUint32Reg(const char *word) const { return 0; }
     void setRegValue(char reg, uint32_t value);
+    uint16_t disassemble(uint16_t addr, uint16_t numInsn) const;
 };
 
 extern Regs Regs;

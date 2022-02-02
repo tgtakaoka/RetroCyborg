@@ -35,7 +35,6 @@ typedef libcli::Cli::State State;
 extern libcli::Cli &cli;
 
 extern libasm::Assembler &assembler;
-extern libasm::Disassembler &disassembler;
 
 #define USAGE                                                              \
     F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep c/C:ont G:o " \
@@ -136,29 +135,6 @@ static void print(const libasm::Insn &insn) {
     }
 }
 
-static uint16_t disassemble(uint32_t addr, uint16_t numInsn) {
-    disassembler.setCpu(Regs.cpu());
-    disassembler.setUppercase(true);
-    uint16_t num = 0;
-    while (num < numInsn) {
-        char operands[20];
-        libasm::Insn insn(addr);
-        Memory.setAddress(addr);
-        disassembler.decode(Memory, insn, operands, sizeof(operands));
-        addr += insn.length();
-        num++;
-        print(insn);
-        if (disassembler.getError()) {
-            cli.print(F("Error: "));
-            cli.println(disassembler.errorText(disassembler.getError()));
-            continue;
-        }
-        cli.printStr(insn.name(), -6);
-        cli.printlnStr(operands, -12);
-    }
-    return addr;
-}
-
 static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
     if (state == State::CLI_CANCEL)
         goto cancel;
@@ -179,7 +155,7 @@ static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
         ;
     }
     cli.println();
-    last_addr = disassemble(last_addr, value);
+    last_addr = Regs.disassemble(last_addr, value);
 cancel:
     printPrompt();
 }
@@ -492,7 +468,7 @@ void Commands::exec(char c) {
         cli.println(F("Registers"));
     regs:
         Regs.print();
-        disassemble(Regs.nextIp(), 1);
+        Regs.disassemble(Regs.nextIp(), 1);
         break;
     case '=':
         cli.print(F("Set register? "));
@@ -561,7 +537,7 @@ void Commands::halt(bool show) {
     Pins.halt(show);
     if (!_showRegs)
         Regs.print();
-    disassemble(Regs.nextIp(), 1);
+    Regs.disassemble(Regs.nextIp(), 1);
     printPrompt();
 }
 

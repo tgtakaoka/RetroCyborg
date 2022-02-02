@@ -221,6 +221,41 @@ void Regs::setRegValue(char reg, uint32_t value) {
     }
 }
 
+static void printInsn(const libasm::Insn &insn) {
+    cli.printHex(insn.address(), 4);
+    cli.print(':');
+    for (int i = 0; i < insn.length(); i++) {
+        cli.printHex(insn.bytes()[i], 2);
+        cli.print(' ');
+    }
+    for (int i = insn.length(); i < 5; i++) {
+        cli.print(F("   "));
+    }
+}
+
+uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
+    disassembler.setCpu(cpu());
+    disassembler.setUppercase(true);
+    uint16_t num = 0;
+    while (num < numInsn) {
+        char operands[20];
+        libasm::Insn insn(addr);
+        Memory.setAddress(addr);
+        disassembler.decode(Memory, insn, operands, sizeof(operands));
+        addr += insn.length();
+        num++;
+        printInsn(insn);
+        if (disassembler.getError()) {
+            cli.print(F("Error: "));
+            cli.println(disassembler.errorText(disassembler.getError()));
+            continue;
+        }
+        cli.printStr(insn.name(), -6);
+        cli.printlnStr(operands, -12);
+    }
+    return addr;
+}
+
 uint8_t Memory::internal_read(uint8_t addr) const {
     static uint8_t LDAA_STAA[] = {
             0x96, 0, 0, 0x97, 0x20};  // LDAA dir[addr], STAA $20
