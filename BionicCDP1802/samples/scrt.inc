@@ -31,15 +31,15 @@
 ;;; @return R5=scrt_return
 ;;; @clobber D, R15
 scrt_init:
-        ldi     scrt_start >> 8
+        ldi     hi(scrt_start)
         phi     R3
-        ldi     scrt_start & 0ffh
+        ldi     lo(scrt_start)
         plo     R3
         sep     R3              ; P=3
 scrt_start:     
-        ldi     scrt_init_tab >> 8
+        ldi     hi(scrt_init_tab)
         phi     R15
-        ldi     scrt_init_tab & 0ffh
+        ldi     lo(scrt_init_tab)
         plo     R15
         lda     R15             ; setup interrupt
         phi     R1
@@ -166,18 +166,18 @@ scrt_isr:
         ghi     R3
         stxd
         ;;
-        ldi     scrt_call >> 8  ; initialize call pointer R4
+        ldi     hi(scrt_call)  ; initialize call pointer R4
         phi     R4
-        ldi     scrt_call & 0FFh
+        ldi     lo(scrt_call)
         plo     R4
-        ldi     scrt_return >> 8 ; initialize return pointer R5
+        ldi     hi(scrt_return) ; initialize return pointer R5
         phi     R5
-        ldi     scrt_return & 0FFh
+        ldi     lo(scrt_return)
         plo     R5
         ;;
-        ldi     isr >> 8
+        ldi     hi(isr)
         phi     R3
-        ldi     isr & 0FFh
+        ldi     lo(isr)
         plo     R3
         sep     R3              ; call interrupt service routine with P=3
         br      scrt_isr_exit   ; return from isr by SEP P1

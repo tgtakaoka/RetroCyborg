@@ -355,6 +355,7 @@ static void printInsn(const libasm::Insn &insn) {
 uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
     disassembler.setCpu(cpu());
     disassembler.setUppercase(true);
+    dis1802.useRegister(true);
     uint16_t num = 0;
     while (num < numInsn) {
         char operands[20];
@@ -377,6 +378,8 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
 
 uint16_t Regs::assemble(uint16_t addr, const char *line) const {
     assembler.setCpu(cpu());
+    asm1802.useRegister(true);
+    asm1802.smartBranch(true);
     libasm::Insn insn(addr);
     if (assembler.encode(line, insn)) {
         cli.print(F("Error: "));

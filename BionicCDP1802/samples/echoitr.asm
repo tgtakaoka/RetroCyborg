@@ -32,18 +32,18 @@ main:
         dw      tx_queue
         db      tx_queue_size
         ;; initialize ACIA
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         phi     R8
-        ldi     ACIA & 0FFH
+        ldi     lo(ACIA)
         plo     R8
         ldi     CDS_RESET_gc    ; Master reset
         str     R8              ; ACIA_control
         ldi     RX_INT_TX_NO
         str     R8              ; ACIA_control
         ;; initialize tx_int_control
-        ldi     tx_int_control >> 8
+        ldi     hi(tx_int_control)
         phi     R8
-        ldi     tx_int_control & 0FFh
+        ldi     lo(tx_int_control)
         plo     R8
         ldi     0
         str     R8              ; disable Tx interrupt
@@ -204,17 +204,17 @@ putchar_loop:
         sex     R3
         dis                     ; disable interrupt
         db      33h
-        ldi     tx_int_control >> 8
+        ldi     hi(tx_int_control)
         phi     R15
-        ldi     tx_int_control & 0FFh
+        ldi     lo(tx_int_control)
         plo     R15
         ldn     R15
         bnz     putchar_exit    ; branch if Tx interrupt enabled
         ldi     1
         str     R15             ; mark enable Tx interrupt
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         phi     R15
-        ldi     ACIA & 0FFh
+        ldi     lo(ACIA)
         plo     R15
         ldi     RX_INT_TX_INT   ; enable Tx interrupt
         str     R15             ; ACIA_C
@@ -241,9 +241,9 @@ isr:
         ghi     R7
         stxd
         ;;
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         phi     R8
-        ldi     ACIA & 0FFh
+        ldi     lo(ACIA)
         plo     R8              ; R8=ACIA
         ldn     R8              ; ACIA_status
         phi     R7              ; R7.1=status
@@ -279,9 +279,9 @@ isr_send:
 isr_send_empty:
         ldi     RX_INT_TX_NO    ; disable Tx interrupt
         str     R8              ; ACIA_C
-        ldi     tx_int_control >> 8
+        ldi     hi(tx_int_control)
         phi     R8
-        ldi     tx_int_control & 0FFh
+        ldi     lo(tx_int_control)
         plo     R8
         ldi     0
         str     R8              ; mark Tx interrupt disabled

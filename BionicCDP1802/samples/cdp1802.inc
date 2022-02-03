@@ -1,6 +1,6 @@
 ;;; -*- mode: asm; mode: flyspell-prog; -*-
 
-;;; CDP1802 Registers
+;;; CDP1802 register alias
 R0:     equ     0
 R1:     equ     1
 R2:     equ     2

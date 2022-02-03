@@ -24,9 +24,9 @@ tx_int_control:
         org     0x1000
 stack:  equ     $-1
 initialize:
-        ldi     (queue_init-1) & 0xFF
+        ldi     lo(addr(queue_init))
         xpal    P1
-        ldi     (queue_init-1) >> 8
+        ldi     hi(addr(queue_init))
         xpah    P1
         ldi     rx_queue_size
         xppc    P1              ; call queue_init
@@ -36,9 +36,9 @@ initialize:
         dw      tx_queue
 
         ;; initialize ACIA
-        ldi     ACIA & 0xFF
+        ldi     lo(ACIA)
         xpal    P1
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         xpah    P1
         ldi     CDS_RESET_gc    ; Master reset
         st      ACIA_C(P1)
@@ -46,49 +46,49 @@ initialize:
                                 ; Transmit, Receive interrupts disabled
         st      ACIA_C(P1)
 
-        ldi     tx_int_control & 0xFF
+        ldi     lo(tx_int_control)
         xpal    P1
-        ldi     tx_int_control >> 8
+        ldi     hi(tx_int_control)
         xpah    P1
         ldi     0
         st      0(P1)           ; disable Tx interrupt
         ien                     ; enable interrupt
 
 loop:
-        ldi     (getchar-1) & 0xff
+        ldi     lo(addr(getchar))
         xpal    P1
-        ldi     (getchar-1) >> 8
+        ldi     hi(addr(getchar))
         xpah    P1
 wait_char:
         xppc    P1              ; call getchar
         jz      wait_char
-        ldi     (putchar-1) & 0xff
+        ldi     lo(addr(putchar))
         xpal    P1
-        ldi     (putchar-1) >> 8
+        ldi     hi(addr(putchar))
         xpah    P1
         lde
         xppc    P1              ; call putchar
         ldi     ' '             ; space
         xppc    P1              ; call putchar
-        ldi     (put_hex8-1) & 0xff
+        ldi     lo(addr(put_hex8))
         xpal    P1
-        ldi     (put_hex8-1) >> 8
+        ldi     hi(addr(put_hex8))
         xpah    P1
         xppc    P1              ; call put_hex8
-        ldi     (putchar-1) & 0xff
+        ldi     lo(addr(putchar))
         xpal    P1
-        ldi     (putchar-1) >> 8
+        ldi     hi(addr(putchar))
         xpah    P1
         ldi     ' '             ; space
         xppc    P1              ; call putchar
-        ldi     (put_bin8-1) & 0xff
+        ldi     lo(addr(put_bin8))
         xpal    P1
-        ldi     (put_bin8-1) >> 8
+        ldi     hi(addr(put_bin8))
         xpah    P1
         xppc    P1              ; call put_bin8
-        ldi     (putchar-1) & 0xff
+        ldi     lo(addr(putchar))
         xpal    P1
-        ldi     (putchar-1) >> 8
+        ldi     hi(addr(putchar))
         xpah    P1
         ldi     '\r'
         xppc    P1              ; call putchar
@@ -105,19 +105,19 @@ put_hex8_exit:
         xpah    P1
         xppc    P1
 put_hex8:
-        ldi     (putchar-1) >> 8
+        ldi     hi(addr(putchar))
         xpah    P1
         st      @-1(P2)         ; push P1
-        ldi     (putchar-1) & 0xff
+        ldi     lo(addr(putchar))
         xpal    P1
         st      @-1(P2)
         ldi     '0'
         xppc    P1              ; call putchar
         ldi     'x'
         xppc    P1              ; call putchar
-        ldi     (put_hex4-1) & 0xff
+        ldi     lo(addr(put_hex4))
         xpal    P1
-        ldi     (put_hex4-1) >> 8
+        ldi     hi(addr(put_hex4))
         xpah    P1
         lde
         st      @-1(P2)         ; push E
@@ -145,10 +145,10 @@ put_hex4:
         st      @-1(P2)         ; push E
         ani     0xf
         xae                     ; E=4 bit data
-        ldi     (putchar-1) >> 8
+        ldi     hi(addr(putchar))
         xpah    P1
         st      @-1(P2)         ; push P1
-        ldi     (putchar-1) & 0xff
+        ldi     lo(addr(putchar))
         xpal    P1
         st      @-1(P2)
         lde
@@ -180,10 +180,10 @@ put_bin8_exit:
 put_bin8:
         lde
         st      @-1(P2)         ; push E
-        ldi     (putchar-1) >> 8
+        ldi     hi(addr(putchar))
         xpah    P1
         st      @-1(P2)         ; push P1
-        ldi     (putchar-1) & 0xff
+        ldi     lo(addr(putchar))
         xpal    P1
         st      @-1(P2)
         ldi     '0'
@@ -221,10 +221,10 @@ getchar_exit:
         xppc    P1
 getchar:
         st      @-1(P2)         ; for return value
-        ldi     (queue_remove-1) >> 8
+        ldi     hi(addr(queue_remove))
         xpah    P1
         st      @-1(P2)         ; push P1
-        ldi     (queue_remove-1) & 0xff
+        ldi     lo(addr(queue_remove))
         xpal    P1
         st      @-1(P2)
         dint                    ; disable IRQ
@@ -249,10 +249,10 @@ putchar:
         st      @-1(P2)         ; push A
         lde
         st      @-1(P2)         ; push E
-        ldi     (queue_add-1) >> 8
+        ldi     hi(addr(queue_add))
         xpah    P1
         st      @-1(P2)         ; push P1
-        ldi     (queue_add-1) & 0xff
+        ldi     lo(addr(queue_add))
         xpal    P1
         st      @-1(P2)
         ld      3(P2)           ; restore char
@@ -266,14 +266,14 @@ putchar_retry:
         dint                    ; disable interrupt
         ldi     tx_int_control & 0xff
         xpal    p1
-        ldi     tx_int_control >> 8
+        ldi     hi(tx_int_control)
         xpah    p1
         ld      0(P1)           ; check tx interrupt state
         jnz     putchar_return
         ild     0(P1)           ; Tx interrupt is enabled
-        ldi     ACIA & 0xff
+        ldi     lo(ACIA)
         xpal    P1
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         xpah    P1
         ldi     RX_INT_TX_INT   ; enable Tx interrupt
         st      ACIA_C(P1)
@@ -297,10 +297,10 @@ isr_sensea:
         st      @-1(P2)         ; save A
         lde
         st      @-1(P2)         ; save E
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         xpah    P1
         st      @-1(P2)
-        ldi     ACIA & 0xFF     ; save P1 and load P1
+        ldi     lo(ACIA)     ; save P1 and load P1
         xpal    P1
         st      @-1(P2)
         ld      ACIA_S(P1)
@@ -316,9 +316,9 @@ isr_receive:
         ld      ACIA_D(P1)      ; receive character
         xae                     ; E=char
         st      @-1(P2)         ; push ACIA status
-        ldi     (queue_add - 1) & 0xFF
+        ldi     lo(addr(queue_add))
         xpal    P1
-        ldi     (queue_add - 1) >> 8
+        ldi     hi(addr(queue_add))
         xpah    P1
         xppc    P1              ; call queue_add
         dw      rx_queue
@@ -328,49 +328,46 @@ isr_send:
         lde
         ani     TDRE_bm
         jz      isr_sensea_exit
-        ldi     (queue_remove - 1) & 0xFF
+        ldi     lo(addr(queue_remove))
         xpal    P1
-        ldi     (queue_remove - 1) >> 8
+        ldi     hi(addr(queue_remove))
         xpah    P1
         xppc    P1              ; call queue_remove
         dw      tx_queue
         jz      isr_send_empty
-        ldi     ACIA & 0xff
+        ldi     lo(ACIA)
         xpal    P1
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         xpah    P1
         lde
         st      ACIA_D(P1)      ; send character
         jmp     isr_sensea_exit
 isr_send_empty:
-        ldi     ACIA & 0xff
+        ldi     lo(ACIA)
         xpal    P1
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         xpah    P1
         ldi     RX_INT_TX_NO
         st      ACIA_C(P1)      ; disable Tx interrupt
         ldi     tx_int_control & 0xff
         xpal    P1
-        ldi     tx_int_control >> 8
+        ldi     hi(tx_int_control)
         xpah    P1
         ldi     0
         st      0(P1)           ; mark Tx interrupt disabled
         jmp     isr_sensea_exit
 
         org     ORG_RESTART
-_stack: equ     (stack & 0xF000) | ((stack + 1) & 0x0FFF)
-        ldi     _stack & 0xFF
+        ldi     lo(stack)
         xpal    P2
-        ldi     _stack >> 8
+        ldi     hi(stack)
         xpah    P2
-_isr_sensea:    equ     (isr_sensea & 0xF000) | ((isr_sensea-1) & 0x0FFF)
-        ldi     _isr_sensea & 0xFF
+        ldi     lo(addr(isr_sensea))
         xpal    P3              ; setup interrupt entry P3
-        ldi     _isr_sensea >> 8
+        ldi     hi(addr(isr_sensea))
         xpah    P3
-_initialize:    equ     (initialize & 0xF000) | ((initialize-1) & 0x0FFF)
-        ldi     _initialize & 0xFF
+        ldi     lo(addr(initialize))
         xpal    P1
-        ldi     _initialize >> 8
+        ldi     hi(addr(initialize))
         xpah    P1
         xppc    P1

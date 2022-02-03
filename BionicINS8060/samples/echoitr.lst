@@ -88,9 +88,9 @@
 1000:                       ORG  0x1000
 1000: =$FFF stack:          EQU  $-1
 1000:       initialize:
-1000: C4 57                 LDI  (queue_init-1) & 0xFF
+1000: C4 57                 LDI  lo(addr(queue_init))
 1002: 31                    XPAL P1
-1003: C4 11                 LDI  (queue_init-1) >> 8
+1003: C4 11                 LDI  hi(addr(queue_init))
 1005: 35                    XPAH P1
 1006: C4 10                 LDI  rx_queue_size
 1008: 3D                    XPPC P1              ; call queue_init
@@ -100,9 +100,9 @@
 100E: 10 20                 DW   tx_queue
 1010:
 1010:       ;; initialize ACIA
-1010: C4 00                 LDI  ACIA & 0xFF
+1010: C4 00                 LDI  lo(ACIA)
 1012: 31                    XPAL P1
-1013: C4 DF                 LDI  ACIA >> 8
+1013: C4 DF                 LDI  hi(ACIA)
 1015: 35                    XPAH P1
 1016: C4 03                 LDI  CDS_RESET_gc    ; Master reset
 1018: C9 00                 ST   ACIA_C(P1)
@@ -110,49 +110,49 @@
 101C:       ; Transmit, Receive interrupts disabled
 101C: C9 00                 ST   ACIA_C(P1)
 101E:
-101E: C4 40                 LDI  tx_int_control & 0xFF
+101E: C4 40                 LDI  lo(tx_int_control)
 1020: 31                    XPAL P1
-1021: C4 20                 LDI  tx_int_control >> 8
+1021: C4 20                 LDI  hi(tx_int_control)
 1023: 35                    XPAH P1
 1024: C4 00                 LDI  0
 1026: C9 00                 ST   0(P1)           ; disable Tx interrupt
 1028: 05                    IEN                  ; enable interrupt
 1029:
 1029:       loop:
-1029: C4 FA                 LDI  (getchar-1) & 0xff
+1029: C4 FA                 LDI  lo(addr(getchar))
 102B: 31                    XPAL P1
-102C: C4 10                 LDI  (getchar-1) >> 8
+102C: C4 10                 LDI  hi(addr(getchar))
 102E: 35                    XPAH P1
 102F:       wait_char:
 102F: 3D                    XPPC P1              ; call getchar
 1030: 98 FD                 JZ   wait_char
-1032: C4 1B                 LDI  (putchar-1) & 0xff
+1032: C4 1B                 LDI  lo(addr(putchar))
 1034: 31                    XPAL P1
-1035: C4 11                 LDI  (putchar-1) >> 8
+1035: C4 11                 LDI  hi(addr(putchar))
 1037: 35                    XPAH P1
 1038: 40                    LDE
 1039: 3D                    XPPC P1              ; call putchar
 103A: C4 20                 LDI  ' '             ; space
 103C: 3D                    XPPC P1              ; call putchar
-103D: C4 68                 LDI  (put_hex8-1) & 0xff
+103D: C4 68                 LDI  lo(addr(put_hex8))
 103F: 31                    XPAL P1
-1040: C4 10                 LDI  (put_hex8-1) >> 8
+1040: C4 10                 LDI  hi(addr(put_hex8))
 1042: 35                    XPAH P1
 1043: 3D                    XPPC P1              ; call put_hex8
-1044: C4 1B                 LDI  (putchar-1) & 0xff
+1044: C4 1B                 LDI  lo(addr(putchar))
 1046: 31                    XPAL P1
-1047: C4 11                 LDI  (putchar-1) >> 8
+1047: C4 11                 LDI  hi(addr(putchar))
 1049: 35                    XPAH P1
 104A: C4 20                 LDI  ' '             ; space
 104C: 3D                    XPPC P1              ; call putchar
-104D: C4 C5                 LDI  (put_bin8-1) & 0xff
+104D: C4 C5                 LDI  lo(addr(put_bin8))
 104F: 31                    XPAL P1
-1050: C4 10                 LDI  (put_bin8-1) >> 8
+1050: C4 10                 LDI  hi(addr(put_bin8))
 1052: 35                    XPAH P1
 1053: 3D                    XPPC P1              ; call put_bin8
-1054: C4 1B                 LDI  (putchar-1) & 0xff
+1054: C4 1B                 LDI  lo(addr(putchar))
 1056: 31                    XPAL P1
-1057: C4 11                 LDI  (putchar-1) >> 8
+1057: C4 11                 LDI  hi(addr(putchar))
 1059: 35                    XPAH P1
 105A: C4 0D                 LDI  '\r'
 105C: 3D                    XPPC P1              ; call putchar
@@ -169,19 +169,19 @@
 1067: 35                    XPAH P1
 1068: 3D                    XPPC P1
 1069:       put_hex8:
-1069: C4 11                 LDI  (putchar-1) >> 8
+1069: C4 11                 LDI  hi(addr(putchar))
 106B: 35                    XPAH P1
 106C: CE FF                 ST   @-1(P2)         ; push P1
-106E: C4 1B                 LDI  (putchar-1) & 0xff
+106E: C4 1B                 LDI  lo(addr(putchar))
 1070: 31                    XPAL P1
 1071: CE FF                 ST   @-1(P2)
 1073: C4 30                 LDI  '0'
 1075: 3D                    XPPC P1              ; call putchar
 1076: C4 78                 LDI  'x'
 1078: 3D                    XPPC P1              ; call putchar
-1079: C4 97                 LDI  (put_hex4-1) & 0xff
+1079: C4 97                 LDI  lo(addr(put_hex4))
 107B: 31                    XPAL P1
-107C: C4 10                 LDI  (put_hex4-1) >> 8
+107C: C4 10                 LDI  hi(addr(put_hex4))
 107E: 35                    XPAH P1
 107F: 40                    LDE
 1080: CE FF                 ST   @-1(P2)         ; push E
@@ -209,10 +209,10 @@
 1099: CE FF                 ST   @-1(P2)         ; push E
 109B: D4 0F                 ANI  0xf
 109D: 01                    XAE                  ; E=4 bit data
-109E: C4 11                 LDI  (putchar-1) >> 8
+109E: C4 11                 LDI  hi(addr(putchar))
 10A0: 35                    XPAH P1
 10A1: CE FF                 ST   @-1(P2)         ; push P1
-10A3: C4 1B                 LDI  (putchar-1) & 0xff
+10A3: C4 1B                 LDI  lo(addr(putchar))
 10A5: 31                    XPAL P1
 10A6: CE FF                 ST   @-1(P2)
 10A8: 40                    LDE
@@ -244,10 +244,10 @@
 10C6:       put_bin8:
 10C6: 40                    LDE
 10C7: CE FF                 ST   @-1(P2)         ; push E
-10C9: C4 11                 LDI  (putchar-1) >> 8
+10C9: C4 11                 LDI  hi(addr(putchar))
 10CB: 35                    XPAH P1
 10CC: CE FF                 ST   @-1(P2)         ; push P1
-10CE: C4 1B                 LDI  (putchar-1) & 0xff
+10CE: C4 1B                 LDI  lo(addr(putchar))
 10D0: 31                    XPAL P1
 10D1: CE FF                 ST   @-1(P2)
 10D3: C4 30                 LDI  '0'
@@ -285,10 +285,10 @@
 10FA: 3D                    XPPC P1
 10FB:       getchar:
 10FB: CE FF                 ST   @-1(P2)         ; for return value
-10FD: C4 11                 LDI  (queue_remove-1) >> 8
+10FD: C4 11                 LDI  hi(addr(queue_remove))
 10FF: 35                    XPAH P1
 1100: CE FF                 ST   @-1(P2)         ; push P1
-1102: C4 E3                 LDI  (queue_remove-1) & 0xff
+1102: C4 E3                 LDI  lo(addr(queue_remove))
 1104: 31                    XPAL P1
 1105: CE FF                 ST   @-1(P2)
 1107: 04                    DINT                 ; disable IRQ
@@ -313,10 +313,10 @@
 111C: CE FF                 ST   @-1(P2)         ; push A
 111E: 40                    LDE
 111F: CE FF                 ST   @-1(P2)         ; push E
-1121: C4 11                 LDI  (queue_add-1) >> 8
+1121: C4 11                 LDI  hi(addr(queue_add))
 1123: 35                    XPAH P1
 1124: CE FF                 ST   @-1(P2)         ; push P1
-1126: C4 96                 LDI  (queue_add-1) & 0xff
+1126: C4 96                 LDI  lo(addr(queue_add))
 1128: 31                    XPAL P1
 1129: CE FF                 ST   @-1(P2)
 112B: C2 03                 LD   3(P2)           ; restore char
@@ -330,14 +330,14 @@
 1135: 04                    DINT                 ; disable interrupt
 1136: C4 40                 LDI  tx_int_control & 0xff
 1138: 31                    XPAL p1
-1139: C4 20                 LDI  tx_int_control >> 8
+1139: C4 20                 LDI  hi(tx_int_control)
 113B: 35                    XPAH p1
 113C: C1 00                 LD   0(P1)           ; check tx interrupt state
 113E: 9C 0C                 JNZ  putchar_return
 1140: A9 00                 ILD  0(P1)           ; Tx interrupt is enabled
-1142: C4 00                 LDI  ACIA & 0xff
+1142: C4 00                 LDI  lo(ACIA)
 1144: 31                    XPAL P1
-1145: C4 DF                 LDI  ACIA >> 8
+1145: C4 DF                 LDI  hi(ACIA)
 1147: 35                    XPAH P1
 1148: C4 B4                 LDI  RX_INT_TX_INT   ; enable Tx interrupt
 114A: C9 00                 ST   ACIA_C(P1)
@@ -524,10 +524,10 @@
 122B: CE FF                 ST   @-1(P2)         ; save A
 122D: 40                    LDE
 122E: CE FF                 ST   @-1(P2)         ; save E
-1230: C4 DF                 LDI  ACIA >> 8
+1230: C4 DF                 LDI  hi(ACIA)
 1232: 35                    XPAH P1
 1233: CE FF                 ST   @-1(P2)
-1235: C4 00                 LDI  ACIA & 0xFF     ; save P1 and load P1
+1235: C4 00                 LDI  lo(ACIA)        ; save P1 and load P1
 1237: 31                    XPAL P1
 1238: CE FF                 ST   @-1(P2)
 123A: C1 00                 LD   ACIA_S(P1)
@@ -543,9 +543,9 @@
 1249: C1 01                 LD   ACIA_D(P1)      ; receive character
 124B: 01                    XAE                  ; E=char
 124C: CE FF                 ST   @-1(P2)         ; push ACIA status
-124E: C4 96                 LDI  (queue_add - 1) & 0xFF
+124E: C4 96                 LDI  lo(addr(queue_add))
 1250: 31                    XPAL P1
-1251: C4 11                 LDI  (queue_add - 1) >> 8
+1251: C4 11                 LDI  hi(addr(queue_add))
 1253: 35                    XPAH P1
 1254: 3D                    XPPC P1              ; call queue_add
 1255: 00 20                 DW   rx_queue
@@ -555,49 +555,46 @@
 125A: 40                    LDE
 125B: D4 02                 ANI  TDRE_bm
 125D: 98 BF                 JZ   isr_sensea_exit
-125F: C4 E3                 LDI  (queue_remove - 1) & 0xFF
+125F: C4 E3                 LDI  lo(addr(queue_remove))
 1261: 31                    XPAL P1
-1262: C4 11                 LDI  (queue_remove - 1) >> 8
+1262: C4 11                 LDI  hi(addr(queue_remove))
 1264: 35                    XPAH P1
 1265: 3D                    XPPC P1              ; call queue_remove
 1266: 10 20                 DW   tx_queue
 1268: 98 0B                 JZ   isr_send_empty
-126A: C4 00                 LDI  ACIA & 0xff
+126A: C4 00                 LDI  lo(ACIA)
 126C: 31                    XPAL P1
-126D: C4 DF                 LDI  ACIA >> 8
+126D: C4 DF                 LDI  hi(ACIA)
 126F: 35                    XPAH P1
 1270: 40                    LDE
 1271: C9 01                 ST   ACIA_D(P1)      ; send character
 1273: 90 A9                 JMP  isr_sensea_exit
 1275:       isr_send_empty:
-1275: C4 00                 LDI  ACIA & 0xff
+1275: C4 00                 LDI  lo(ACIA)
 1277: 31                    XPAL P1
-1278: C4 DF                 LDI  ACIA >> 8
+1278: C4 DF                 LDI  hi(ACIA)
 127A: 35                    XPAH P1
 127B: C4 94                 LDI  RX_INT_TX_NO
 127D: C9 00                 ST   ACIA_C(P1)      ; disable Tx interrupt
 127F: C4 40                 LDI  tx_int_control & 0xff
 1281: 31                    XPAL P1
-1282: C4 20                 LDI  tx_int_control >> 8
+1282: C4 20                 LDI  hi(tx_int_control)
 1284: 35                    XPAH P1
 1285: C4 00                 LDI  0
 1287: C9 00                 ST   0(P1)           ; mark Tx interrupt disabled
 1289: 90 93                 JMP  isr_sensea_exit
 128B:
    1:                       ORG  ORG_RESTART
-   1: =$0   _stack:         EQU  (stack & 0xF000) | ((stack + 1) & 0x0FFF)
-   1: C4 00                 LDI  _stack & 0xFF
+   1: C4 FF                 LDI  lo(stack)
    3: 32                    XPAL P2
-   4: C4 00                 LDI  _stack >> 8
+   4: C4 0F                 LDI  hi(stack)
    6: 36                    XPAH P2
-   7: =$122A    _isr_sensea:        EQU  (isr_sensea & 0xF000) | ((isr_sensea-1) & 0x0FFF)
-   7: C4 2A                 LDI  _isr_sensea & 0xFF
+   7: C4 2A                 LDI  lo(addr(isr_sensea))
    9: 33                    XPAL P3              ; setup interrupt entry P3
-   A: C4 12                 LDI  _isr_sensea >> 8
+   A: C4 12                 LDI  hi(addr(isr_sensea))
    C: 37                    XPAH P3
-   D: =$1FFF    _initialize:        EQU  (initialize & 0xF000) | ((initialize-1) & 0x0FFF)
-   D: C4 FF                 LDI  _initialize & 0xFF
+   D: C4 FF                 LDI  lo(addr(initialize))
    F: 31                    XPAL P1
-  10: C4 1F                 LDI  _initialize >> 8
+  10: C4 1F                 LDI  hi(addr(initialize))
   12: 35                    XPAH P1
   13: 3D                    XPPC P1

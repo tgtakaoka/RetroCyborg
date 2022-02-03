@@ -2,7 +2,7 @@
    0:                             INCLUDE              "cdp1802.inc"
    0:             ;;; -*- mode: asm; mode: flyspell-prog; -*-
    0:
-   0:             ;;; CDP1802 Registers
+   0:             ;;; CDP1802 register alias
    0: =$0         R0:             EQU  0
    0: =$1         R1:             EQU  1
    0: =$2         R2:             EQU  2
@@ -74,9 +74,9 @@
    0:
  100:                             ORG  0100H
  100:             main:
- 100: F8 DF                       LDI  ACIA >> 8
+ 100: F8 DF                       LDI  hi(ACIA)
  102: B8                          PHI  R8
- 103: F8 00                       LDI  ACIA & 0ffh
+ 103: F8 00                       LDI  lo(ACIA)
  105: A8                          PLO  R8              ; R8=ACIA
  106: F8 03                       LDI  CDS_RESET_gc    ; Master reset
  108: 58                          STR  R8              ; ACIA_control
@@ -111,8 +111,8 @@
    0:                             ORG  ORG_RESET
    0: 71                          DIS                  ; IE=0
    1: 00                          DB   00h             ; X:P=0:0
-   2: F8 01                       LDI  main >> 8
+   2: F8 01                       LDI  hi(main)
    4: B3                          PHI  R3
-   5: F8 00                       LDI  main & 0xff
+   5: F8 00                       LDI  lo(main)
    7: A3                          PLO  R3
    8: D3                          SEP  R3              ; jump to main with R3 as PC

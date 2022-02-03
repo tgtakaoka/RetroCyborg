@@ -75,9 +75,9 @@
 1000:                       ORG  0x1000
 1000: =$FFF stack:          EQU  $-1
 1000:       initialize:
-1000: C4 00                 LDI  ACIA & 0xFF
+1000: C4 00                 LDI  lo(ACIA)
 1002: 31                    XPAL P1
-1003: C4 DF                 LDI  ACIA >> 8
+1003: C4 DF                 LDI  hi(ACIA)
 1005: 35                    XPAH P1
 1006: C4 03                 LDI  CDS_RESET_gc    ; Master reset
 1008: C9 00                 ST   ACIA_C(P1)
@@ -106,14 +106,12 @@
 1027: 90 EE                 JMP  transmit_loop
 1029:
    1:                       ORG  ORG_RESTART
-   1: =$0   _stack:         EQU  (stack & 0xF000) | ((stack + 1) & 0x0FFF)
-   1: C4 00                 LDI  (_stack) & 0xFF
+   1: C4 FF                 LDI  lo(stack)
    3: 32                    XPAL P2
-   4: C4 00                 LDI  _stack >> 8
+   4: C4 0F                 LDI  hi(stack)
    6: 36                    XPAH P2
-   7: =$1FFF    _initialize:        EQU  (initialize & 0xF000) | ((initialize-1) & 0x0FFF)
-   7: C4 FF                 LDI  _initialize & 0xFF
+   7: C4 FF                 LDI  lo(addr(initialize))
    9: 33                    XPAL P3
-   A: C4 1F                 LDI  _initialize >> 8
+   A: C4 1F                 LDI  hi(addr(initialize))
    C: 37                    XPAH P3
    D: 3F                    XPPC P3

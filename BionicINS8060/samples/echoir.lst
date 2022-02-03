@@ -87,18 +87,18 @@
 1000:                       ORG  0x1000
 1000: =$FFF stack:          EQU  $-1
 1000:       initialize:
-1000: C4 5C                 LDI  (queue_init-1) & 0xFF
+1000: C4 5C                 LDI  lo(addr(queue_init))
 1002: 31                    XPAL P1
-1003: C4 10                 LDI  (queue_init-1) >> 8
+1003: C4 10                 LDI  hi(addr(queue_init))
 1005: 35                    XPAH P1
 1006: C4 10                 LDI  rx_queue_size
 1008: 3D                    XPPC P1              ; call queue_init
 1009: 00 20                 DW   rx_queue
 100B:
 100B:       ;; initialize ACIA
-100B: C4 00                 LDI  ACIA & 0xFF
+100B: C4 00                 LDI  lo(ACIA)
 100D: 31                    XPAL P1
-100E: C4 DF                 LDI  ACIA >> 8
+100E: C4 DF                 LDI  hi(ACIA)
 1010: 35                    XPAH P1
 1011: C4 03                 LDI  CDS_RESET_gc    ; Master reset
 1013: C9 00                 ST   ACIA_C(P1)
@@ -108,9 +108,9 @@
 1019: 05                    IEN                  ; enable interrupt
 101A:
 101A:       loop:
-101A: C4 E8                 LDI  (queue_remove-1) & 0xFF
+101A: C4 E8                 LDI  lo(addr(queue_remove))
 101C: 31                    XPAL P1
-101D: C4 10                 LDI  (queue_remove-1) >> 8
+101D: C4 10                 LDI  hi(addr(queue_remove))
 101F: 35                    XPAH P1
 1020: 04                    DINT                 ; Disable IRQ
 1021: 3D                    XPPC P1              ; call queue_remote
@@ -118,9 +118,9 @@
 1024: 05                    IEN                  ; Enable IRQ
 1025: 98 F3                 JZ   loop
 1027:       echo:
-1027: C4 38                 LDI  (putchar - 1) & 0xFF
+1027: C4 38                 LDI  lo(addr(putchar))
 1029: 31                    XPAL p1
-102A: C4 10                 LDI  (putchar - 1) >> 8
+102A: C4 10                 LDI  hi(addr(putchar))
 102C: 35                    XPAH p1
 102D: 3D                    XPPC p1
 102E: 40                    LDE
@@ -134,10 +134,10 @@
 1038:       putchar_exit:
 1038: 3D                    XPPC P1              ; return
 1039:       putchar:
-1039: C4 DF                 LDI  ACIA >> 8
+1039: C4 DF                 LDI  hi(ACIA)
 103B: 35                    XPAH P1
 103C: CE FF                 ST   @-1(P2)
-103E: C4 00                 LDI  ACIA & 0xFF     ; save P1 and load P1
+103E: C4 00                 LDI  lo(ACIA)        ; save P1 and load P1
 1040: 31                    XPAL P1
 1041: CE FF                 ST   @-1(P2)
 1043:       transmit_loop:
@@ -332,10 +332,10 @@
 1130: CE FF                 ST   @-1(P2)         ; save A
 1132: 40                    LDE
 1133: CE FF                 ST   @-1(P2)         ; save E
-1135: C4 DF                 LDI  ACIA >> 8
+1135: C4 DF                 LDI  hi(ACIA)
 1137: 35                    XPAH P1
 1138: CE FF                 ST   @-1(P2)
-113A: C4 00                 LDI  ACIA & 0xFF     ; save P1 and load P1
+113A: C4 00                 LDI  lo(ACIA)        ; save P1 and load P1
 113C: 31                    XPAL P1
 113D: CE FF                 ST   @-1(P2)
 113F: C1 00                 LD   ACIA_S(P1)
@@ -353,28 +353,25 @@
 1151: 98 D0                 JZ   isr_sensea_exit
 1153: C1 01                 LD   ACIA_D(P1)
 1155: 01                    XAE                  ; E=char
-1156: C4 10                 LDI  (queue_add - 1) >> 8
+1156: C4 10                 LDI  hi(addr(queue_add))
 1158: 35                    XPAH P1
-1159: C4 9B                 LDI  (queue_add - 1) & 0xFF
+1159: C4 9B                 LDI  lo(addr(queue_add))
 115B: 31                    XPAL P1
 115C: 3D                    XPPC P1              ; call queue_add
 115D: 00 20                 DW   rx_queue
 115F: 90 C2                 JMP  isr_sensea_exit
 1161:
    1:                       ORG  ORG_RESTART
-   1: =$0   _stack:         EQU  (stack & 0xF000) | ((stack + 1) & 0x0FFF)
-   1: C4 00                 LDI  _stack & 0xFF
+   1: C4 FF                 LDI  lo(stack)
    3: 32                    XPAL P2
-   4: C4 00                 LDI  _stack >> 8
+   4: C4 0F                 LDI  hi(stack)
    6: 36                    XPAH P2
-   7: =$112F    _isr_sensea:        EQU  (isr_sensea & 0xF000) | ((isr_sensea-1) & 0x0FFF)
-   7: C4 2F                 LDI  _isr_sensea & 0xFF
+   7: C4 2F                 LDI  lo(addr(isr_sensea))
    9: 33                    XPAL P3              ; setup interrupt entry P3
-   A: C4 11                 LDI  _isr_sensea >> 8
+   A: C4 11                 LDI  hi(addr(isr_sensea))
    C: 37                    XPAH P3
-   D: =$1FFF    _initialize:        EQU  (initialize & 0xF000) | ((initialize-1) & 0x0FFF)
-   D: C4 FF                 LDI  _initialize & 0xFF
+   D: C4 FF                 LDI  lo(addr(initialize))
    F: 31                    XPAL P1
-  10: C4 1F                 LDI  _initialize >> 8
+  10: C4 1F                 LDI  hi(addr(initialize))
   12: 35                    XPAH P1
   13: 3D                    XPPC P1

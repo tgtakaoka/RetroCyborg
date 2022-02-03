@@ -7,9 +7,9 @@ ACIA:   equ     0DF00H
 
         org     0100H
 main:
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         phi     R8
-        ldi     ACIA & 0ffh
+        ldi     lo(ACIA)
         plo     R8              ; R8=ACIA
         ldi     CDS_RESET_gc    ; Master reset
         str     R8              ; ACIA_control
@@ -44,8 +44,8 @@ transmit_data:
         org     ORG_RESET
         dis                     ; IE=0
         db      00h             ; X:P=0:0
-        ldi     main >> 8
+        ldi     hi(main)
         phi     R3
-        ldi     main & 0xff
+        ldi     lo(main)
         plo     R3
         sep     R3               ; jump to main with R3 as PC

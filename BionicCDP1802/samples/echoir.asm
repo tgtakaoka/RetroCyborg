@@ -23,9 +23,9 @@ main:
         dw      rx_queue
         db      rx_queue_size
         ;; initialize ACIA
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         phi     R8
-        ldi     ACIA & 0FFH
+        ldi     lo(ACIA)
         plo     R8
         ldi     CDS_RESET_gc    ; Master reset
         str     R8              ; ACIA_control
@@ -66,9 +66,9 @@ putchar:
         ghi     R8
         stxd
         ;;
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         phi     R8
-        ldi     ACIA & 0FFh
+        ldi     lo(ACIA)
         plo     R8
 putchar_loop:
         ldn     R8              ; ACIA_status
@@ -97,9 +97,9 @@ isr:
         glo     R7              ; save R7.0
         stxd
         ;;
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         phi     R8
-        ldi     ACIA & 0FFh
+        ldi     lo(ACIA)
         plo     R8              ; R8=ACIA
         ldn     R8              ; ACIA_status
         plo     R7              ; R7.0=status

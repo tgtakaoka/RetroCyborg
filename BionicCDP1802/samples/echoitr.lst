@@ -2,7 +2,7 @@
    0:                             INCLUDE              "cdp1802.inc"
    0:             ;;; -*- mode: asm; mode: flyspell-prog; -*-
    0:
-   0:             ;;; CDP1802 Registers
+   0:             ;;; CDP1802 register alias
    0: =$0         R0:             EQU  0
    0: =$1         R1:             EQU  1
    0: =$2         R2:             EQU  2
@@ -99,18 +99,18 @@
  109: 20 10                       DW   tx_queue
  10B: 30                          DB   tx_queue_size
  10C:             ;; initialize ACIA
- 10C: F8 DF                       LDI  ACIA >> 8
+ 10C: F8 DF                       LDI  hi(ACIA)
  10E: B8                          PHI  R8
- 10F: F8 00                       LDI  ACIA & 0FFH
+ 10F: F8 00                       LDI  lo(ACIA)
  111: A8                          PLO  R8
  112: F8 03                       LDI  CDS_RESET_gc    ; Master reset
  114: 58                          STR  R8              ; ACIA_control
  115: F8 94                       LDI  RX_INT_TX_NO
  117: 58                          STR  R8              ; ACIA_control
  118:             ;; initialize tx_int_control
- 118: F8 20                       LDI  tx_int_control >> 8
+ 118: F8 20                       LDI  hi(tx_int_control)
  11A: B8                          PHI  R8
- 11B: F8 40                       LDI  tx_int_control & 0FFh
+ 11B: F8 40                       LDI  lo(tx_int_control)
  11D: A8                          PLO  R8
  11E: F8 00                       LDI  0
  120: 58                          STR  R8              ; disable Tx interrupt
@@ -271,17 +271,17 @@
  1BE: E3                          SEX  R3
  1BF: 71                          DIS                  ; disable interrupt
  1C0: 33                          DB   33h
- 1C1: F8 20                       LDI  tx_int_control >> 8
+ 1C1: F8 20                       LDI  hi(tx_int_control)
  1C3: BF                          PHI  R15
- 1C4: F8 40                       LDI  tx_int_control & 0FFh
+ 1C4: F8 40                       LDI  lo(tx_int_control)
  1C6: AF                          PLO  R15
  1C7: 0F                          LDN  R15
  1C8: 3A D9                       BNZ  putchar_exit    ; branch if Tx interrupt enabled
  1CA: F8 01                       LDI  1
  1CC: 5F                          STR  R15             ; mark enable Tx interrupt
- 1CD: F8 DF                       LDI  ACIA >> 8
+ 1CD: F8 DF                       LDI  hi(ACIA)
  1CF: BF                          PHI  R15
- 1D0: F8 00                       LDI  ACIA & 0FFh
+ 1D0: F8 00                       LDI  lo(ACIA)
  1D2: AF                          PLO  R15
  1D3: F8 B4                       LDI  RX_INT_TX_INT   ; enable Tx interrupt
  1D5: 5F                          STR  R15             ; ACIA_C
@@ -474,9 +474,9 @@
  27C: 97                          GHI  R7
  27D: 73                          STXD
  27E:             ;;
- 27E: F8 DF                       LDI  ACIA >> 8
+ 27E: F8 DF                       LDI  hi(ACIA)
  280: B8                          PHI  R8
- 281: F8 00                       LDI  ACIA & 0FFh
+ 281: F8 00                       LDI  lo(ACIA)
  283: A8                          PLO  R8              ; R8=ACIA
  284: 08                          LDN  R8              ; ACIA_status
  285: B7                          PHI  R7              ; R7.1=status
@@ -512,9 +512,9 @@
  2AD:             isr_send_empty:
  2AD: F8 94                       LDI  RX_INT_TX_NO    ; disable Tx interrupt
  2AF: 58                          STR  R8              ; ACIA_C
- 2B0: F8 20                       LDI  tx_int_control >> 8
+ 2B0: F8 20                       LDI  hi(tx_int_control)
  2B2: B8                          PHI  R8
- 2B3: F8 40                       LDI  tx_int_control & 0FFh
+ 2B3: F8 40                       LDI  lo(tx_int_control)
  2B5: A8                          PLO  R8
  2B6: F8 00                       LDI  0
  2B8: 58                          STR  R8              ; mark Tx interrupt disabled
@@ -570,15 +570,15 @@
    5:             ;;; @return R5=scrt_return
    5:             ;;; @clobber D, R15
    5:             scrt_init:
-   5: F8 00                       LDI  scrt_start >> 8
+   5: F8 00                       LDI  hi(scrt_start)
    7: B3                          PHI  R3
-   8: F8 0C                       LDI  scrt_start & 0ffh
+   8: F8 0C                       LDI  lo(scrt_start)
    A: A3                          PLO  R3
    B: D3                          SEP  R3              ; P=3
    C:             scrt_start:
-   C: F8 00                       LDI  scrt_init_tab >> 8
+   C: F8 00                       LDI  hi(scrt_init_tab)
    E: BF                          PHI  R15
-   F: F8 25                       LDI  scrt_init_tab & 0ffh
+   F: F8 25                       LDI  lo(scrt_init_tab)
   11: AF                          PLO  R15
   12: 4F                          LDA  R15             ; setup interrupt
   13: B1                          PHI  R1
@@ -705,18 +705,18 @@
   78: 93                          GHI  R3
   79: 73                          STXD
   7A:             ;;
-  7A: F8 00                       LDI  scrt_call >> 8  ; initialize call pointer R4
+  7A: F8 00                       LDI  hi(scrt_call)   ; initialize call pointer R4
   7C: B4                          PHI  R4
-  7D: F8 2E                       LDI  scrt_call & 0FFh
+  7D: F8 2E                       LDI  lo(scrt_call)
   7F: A4                          PLO  R4
-  80: F8 00                       LDI  scrt_return >> 8    ; initialize return pointer R5
+  80: F8 00                       LDI  hi(scrt_return) ; initialize return pointer R5
   82: B5                          PHI  R5
-  83: F8 40                       LDI  scrt_return & 0FFh
+  83: F8 40                       LDI  lo(scrt_return)
   85: A5                          PLO  R5
   86:             ;;
-  86: F8 02                       LDI  isr >> 8
+  86: F8 02                       LDI  hi(isr)
   88: B3                          PHI  R3
-  89: F8 76                       LDI  isr & 0FFh
+  89: F8 76                       LDI  lo(isr)
   8B: A3                          PLO  R3
   8C: D3                          SEP  R3              ; call interrupt service routine with P=3
   8D: 30 4E                       BR   scrt_isr_exit   ; return from isr by SEP P1

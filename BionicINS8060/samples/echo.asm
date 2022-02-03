@@ -11,9 +11,9 @@ ACIA_D: equ     1               ; ACIA data register offset
         org     0x1000
 stack:  equ     $-1
 initialize:
-        ldi     ACIA & 0xFF
+        ldi     lo(ACIA)
         xpal    P1
-        ldi     ACIA >> 8
+        ldi     hi(ACIA)
         xpah    P1
         ldi     CDS_RESET_gc    ; Master reset
         st      ACIA_C(P1)
@@ -42,14 +42,12 @@ transmit_data:
         jmp     transmit_loop
 
         org     ORG_RESTART
-_stack: equ     (stack & 0xF000) | ((stack + 1) & 0x0FFF)
-        ldi     (_stack) & 0xFF
+        ldi     lo(stack)
         xpal    P2
-        ldi     _stack >> 8
+        ldi     hi(stack)
         xpah    P2
-_initialize:    equ     (initialize & 0xF000) | ((initialize-1) & 0x0FFF)
-        ldi     _initialize & 0xFF
+        ldi     lo(addr(initialize))
         xpal    P3
-        ldi     _initialize >> 8
+        ldi     hi(addr(initialize))
         xpah    P3
         xppc    P3
