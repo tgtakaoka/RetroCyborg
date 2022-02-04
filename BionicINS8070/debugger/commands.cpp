@@ -22,19 +22,16 @@
 #include "commands.h"
 
 #include <SD.h>
-#include <asm_base.h>
-#include <dis_base.h>
 #include <libcli.h>
-#include <string.h>
 
 #include "config.h"
 #include "pins.h"
 #include "regs.h"
 
+#include <string.h>
+
 typedef libcli::Cli::State State;
 extern libcli::Cli &cli;
-
-extern libasm::Assembler &assembler;
 
 #define USAGE                                                              \
     F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep c/C:ont G:o " \
@@ -75,7 +72,7 @@ static void memoryDump(uint32_t addr, uint16_t len) {
             if (a < start || a >= end) {
                 cli.print(F("   "));
             } else {
-                const char data = Memory.read(a);
+                const auto data = Memory.read(a);
                 cli.print(' ');
                 cli.printHex(data, 2);
             }
@@ -121,18 +118,6 @@ static void handleDump(uint32_t value, uintptr_t extra, State state) {
     last_addr += value;
 cancel:
     printPrompt();
-}
-
-static void print(const libasm::Insn &insn) {
-    cli.printHex(insn.address(), 4);
-    cli.print(':');
-    for (int i = 0; i < insn.length(); i++) {
-        cli.printHex(insn.bytes()[i], 2);
-        cli.print(' ');
-    }
-    for (int i = insn.length(); i < 5; i++) {
-        cli.print(F("   "));
-    }
 }
 
 static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
@@ -205,17 +190,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
         return;
     }
     cli.println();
-    assembler.setCpu(Regs.cpu());
-    libasm::Insn insn(last_addr);
-    if (assembler.encode(line, insn)) {
-        cli.print(F("Error: "));
-        cli.println(assembler.errorText(assembler.getError()));
-    } else {
-        print(insn);
-        cli.println();
-        Memory.write(insn.address(), insn.bytes(), insn.length());
-        last_addr += insn.length();
-    }
+    last_addr = Regs.assemble(last_addr, line);
     cli.printHex(last_addr, 4);
     cli.print('?');
     cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));

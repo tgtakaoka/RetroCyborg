@@ -72,7 +72,7 @@ static void memoryDump(uint32_t addr, uint16_t len) {
             if (a < start || a >= end) {
                 cli.print(F("   "));
             } else {
-                const char data = Memory.read(a);
+                const auto data = Memory.read(a);
                 cli.print(' ');
                 cli.printHex(data, 2);
             }
