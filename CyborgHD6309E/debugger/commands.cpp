@@ -8,12 +8,13 @@
   d - dump memory. addr [length]
   m - write memory. addr byte...
   s - step one instruction.
-  S - step one instruction with printing signal status.
+  S - step one instruction with printing bus cycles.
   r - print MPU registers.
   = - set MPU register. register value
   c - continuously run with printing register.
-  G - go, continuously run MPU.
+  G - Go, continuously run MPU.
   h - halt MPU.
+  H - halt MPU with printing bus cycles.
   D - disassemble
   A - assemble
   F - list files in SD card
@@ -23,7 +24,6 @@
 
 #include "commands.h"
 
-#include <Arduino.h>
 #include <SD.h>
 #include <libcli.h>
 
@@ -38,8 +38,8 @@ using namespace libasm;
 typedef libcli::Cli::State State;
 extern libcli::Cli &cli;
 
-#define USAGE                                                            \
-    F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep C:ont G:o " \
+#define USAGE                                                              \
+    F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep c/C:ont G:o " \
       "h/H:alt F:iles L:oad I:nst p:ins")
 
 class Commands Commands;
@@ -169,7 +169,7 @@ static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
     if (extra == DIS_ADDR) {
         last_addr = value;
         if (state == State::CLI_SPACE) {
-            cli.readHex(handleDisassemble, DIS_LENGTH, UINT16_MAX);
+            cli.readDec(handleDisassemble, DIS_LENGTH, UINT16_MAX);
             return;
         }
         value = 16;
@@ -314,7 +314,7 @@ static void handleLoadFile(char *line, uintptr_t extra, State state) {
         File file = SD.open(line);
         if (!file) {
             cli.print(line);
-            cli.println(F(": not found"));
+            cli.println(F(" not found"));
         } else {
             uint16_t size = 0;
             char buffer[80];
@@ -437,16 +437,17 @@ void Commands::exec(char c) {
             return;
         }
         break;
+    case 'c':
     case 'C':
         cli.println(F("Continue"));
         _target = STEP;
-        _showRegs = false;
+        _showRegs = (c == 'C');
         return;
     case 'G':
         if (_target != RUN) {
             cli.println(F("Go"));
             _target = RUN;
-            _showRegs = true;
+            _showRegs = false;
             Pins.run();
         }
         return;
@@ -490,7 +491,7 @@ void Commands::begin() {
 void Commands::loop() {
     if (_target == STEP) {
         Pins.step();
-        Regs.get(true);
+        Regs.get(_showRegs);
     }
 }
 

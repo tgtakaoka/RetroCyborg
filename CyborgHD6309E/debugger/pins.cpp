@@ -557,9 +557,6 @@ void Pins::begin() {
     pinMode(USR_LED, OUTPUT);
     turnoff_led();
 
-    Console.begin(CONSOLE_BAUD);
-    cli.begin(Console);
-
 #ifdef SPI_MAPPING
     SPI.swap(SPI_MAPPING);
 #endif

@@ -4,7 +4,7 @@
 
 #include <Arduino.h>
 
-#define VERSION_TEXT "Prototype5 2.3.2"
+#define VERSION_TEXT "1.0.0"
 
 #define IO_BASE_ADDR 0xDF00
 

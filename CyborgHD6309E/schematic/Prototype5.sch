@@ -4,7 +4,7 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
-Title "CyborgHD6309E Prototype5"
+Title "CyborgHD6309E"
 Date "2021-02-24"
 Rev "7"
 Comp "Tadashi G. Takaoka"
@@ -1287,18 +1287,6 @@ Wire Wire Line
 Connection ~ 7550 3650
 Wire Wire Line
 	7650 3750 7550 3750
-Wire Bus Line
-	7850 1250 7850 2650
-Wire Bus Line
-	5200 1150 5200 2650
-Wire Bus Line
-	1800 1150 1800 2700
-Wire Bus Line
-	7150 1150 7150 2650
-Wire Bus Line
-	3800 1250 3800 3450
-Wire Bus Line
-	5800 1250 5800 3450
 Connection ~ 7400 3750
 Connection ~ 7550 3750
 Wire Wire Line
@@ -1315,4 +1303,16 @@ F 3 "" H 7550 3950 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Connection ~ 7550 3950
+Wire Bus Line
+	7850 1250 7850 2650
+Wire Bus Line
+	5200 1150 5200 2650
+Wire Bus Line
+	1800 1150 1800 2700
+Wire Bus Line
+	7150 1150 7150 2650
+Wire Bus Line
+	3800 1250 3800 3450
+Wire Bus Line
+	5800 1250 5800 3450
 $EndSCHEMATC
