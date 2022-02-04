@@ -347,6 +347,8 @@ void Pins::reset(bool show) {
     Regs.reset();
     if (show)
         Signals::printCycles();
+
+    Acia.reset();
 }
 
 /**

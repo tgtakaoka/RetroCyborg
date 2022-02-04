@@ -60,8 +60,8 @@ isr_irq_recv_end:
 isr_irq_return:
         rti
 
-        org     $FFF8
+        org     VEC_IRQ
         fdb     isr_irq
 
-        org     $FFFE
+        org     VEC_RESET
         fdb     initialize

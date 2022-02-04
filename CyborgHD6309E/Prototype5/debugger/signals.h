@@ -66,8 +66,10 @@ private:
     bool haltAsserted() const { return (_pins & halt) == 0; }
 
     static constexpr auto MAX_CYCLES = 60;
+    static uint8_t _put;
+    static uint8_t _get;
     static uint8_t _cycles;
-    static Signals _signals[MAX_CYCLES + 1];
+    static Signals _signals[MAX_CYCLES];
 };
 
 #endif /* __SIGNALS_H__ */

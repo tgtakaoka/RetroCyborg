@@ -11,7 +11,6 @@ CC_FIRQ       equ  %01000000   ; if 1, FIRQ is masked
 CC_ENTIRE     equ  %10000000   ; set to 1 if entire registers are pushed
 
 ;;; Vector
-VEC_RESERVED:   equ     $FFF0  ; $FFF0: Reserved
 VEC_SWI3:       equ     $FFF2  ; $FFF2: Software Interrupt 3
 VEC_SWI2:       equ     $FFF4  ; $FFF4: Software Interrupt 2
 VEC_FIRQ:       equ     $FFF6  ; $FFF6: Fast Interrupt Request

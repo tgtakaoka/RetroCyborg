@@ -1,10 +1,19 @@
 #include "regs.h"
 
 #include <libcli.h>
+
+#include <asm_mc6809.h>
+#include <dis_mc6809.h>
+#include "mc6850.h"
 #include "pins.h"
 #include "string_util.h"
 
 extern libcli::Cli &cli;
+
+libasm::mc6809::AsmMc6809 asm6809;
+libasm::mc6809::DisMc6809 dis6809;
+libasm::Assembler &assembler(asm6809);
+libasm::Disassembler &disassembler(dis6809);
 
 struct Regs Regs;
 struct Memory Memory;
@@ -23,6 +32,8 @@ struct Memory Memory;
 
 static const char MC6809[] = "MC6809";
 static const char HD6309[] = "HD6309";
+static const char MC6809E[] = "MC6809E";
+static const char HD6309E[] = "HD6309E";
 
 void Regs::setCpuType() {
     static const uint8_t CLRB[] = {0x5F};
@@ -31,17 +42,22 @@ void Regs::setCpuType() {
 
     Pins.execInst(CLRB, sizeof(CLRB));
     Pins.execInst(COMD, sizeof(COMD));
-    uint8_t b;
-    Pins.captureWrites(STB, sizeof(STB), &b, 1);
-    _cpuType = b ? HD6309 : MC6809;
+    uint8_t reg_b;
+    Pins.captureWrites(STB, sizeof(STB), &reg_b, sizeof(reg_b));
+    _cpuType = reg_b ? HD6309 : MC6809;
 }
 
 const char *Regs::cpu() const {
     return _cpuType ? _cpuType : MC6809;
 }
 
+const char *Regs::cpuName() const {
+    return is6309() ? HD6309E : MC6809E;
+}
+
 void Regs::reset() {
     _cpuType = nullptr;
+    _native6309 = false;
 }
 
 bool Regs::is6309() const {
@@ -64,9 +80,15 @@ void Regs::print() const {
         ' ', 'A', '=', 0, 0,       // A=44
         ' ', 'B', '=', 0, 0,       // B=49
         ' ',                       // 6309=51
-        'W', '=', 0, 0, 0, 0,      // w=54
-        ' ', 'V', '=', 0, 0, 0, 0, // v=61
-        0,                         // EOS
+        'W', '=', 0, 0, 0, 0, ' ', // w=54
+        'V', '=', 0, 0, 0, 0,      // v=61
+        0,                         // Native mode=65
+        'N', 0,
+    };
+    static char cc_bits[] = {
+        ' ', 'C', 'C', '=',
+        0, 0, 0, 0, 0, 0, 0, 0, // CC=4
+        0,
     };
     // clang-format on
     outHex8(buffer + 3, dp);
@@ -79,18 +101,14 @@ void Regs::print() const {
     outHex8(buffer + 49, b);
     if (is6309()) {
         buffer[51] = ' ';
-        outHex16(buffer + 54, getW());
+        outHex8(buffer + 54, e);
+        outHex8(buffer + 56, f);
         outHex16(buffer + 61, v);
+        buffer[65] = native6309() ? ' ' : 0;
     } else {
         buffer[51] = 0;
     }
-    // clang-format off
-    static char cc_bits[] = {
-        ' ', 'C', 'C', '=',
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0,
-    };
-    // clang-format on
+    cli.print(buffer);
     char *p = cc_bits + 4;
     *p++ = bit1(cc & 0x80, 'E');
     *p++ = bit1(cc & 0x40, 'F');
@@ -100,7 +118,6 @@ void Regs::print() const {
     *p++ = bit1(cc & 0x04, 'Z');
     *p++ = bit1(cc & 0x02, 'V');
     *p = bit1(cc & 0x01, 'C');
-    cli.print(buffer);
     cli.println(cc_bits);
 }
 
@@ -312,6 +329,57 @@ void Regs::setRegValue(char reg, uint32_t value) {
     return true;
 }
 
+static void printInsn(const libasm::Insn &insn) {
+    cli.printHex(insn.address(), 4);
+    cli.print(':');
+    for (int i = 0; i < insn.length(); i++) {
+        cli.printHex(insn.bytes()[i], 2);
+        cli.print(' ');
+    }
+    for (int i = insn.length(); i < 5; i++) {
+        cli.print(F("   "));
+    }
+}
+
+uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
+    disassembler.setCpu(cpu());
+    disassembler.setUppercase(true);
+    uint16_t num = 0;
+    while (num < numInsn) {
+        char operands[20];
+        libasm::Insn insn(addr);
+        Memory.setAddress(addr);
+        disassembler.decode(Memory, insn, operands, sizeof(operands));
+        addr += insn.length();
+        num++;
+        printInsn(insn);
+        if (disassembler.getError()) {
+            cli.print(F("Error: "));
+            cli.println(reinterpret_cast<const __FlashStringHelper *>(
+                    disassembler.errorText(disassembler.getError())));
+            continue;
+        }
+        cli.printStr(insn.name(), -6);
+        cli.printlnStr(operands, -12);
+    }
+    return addr;
+}
+
+uint16_t Regs::assemble(uint16_t addr, const char *line) const {
+    assembler.setCpu(cpu());
+    libasm::Insn insn(addr);
+    if (assembler.encode(line, insn)) {
+        cli.print(F("Error: "));
+        cli.println(reinterpret_cast<const __FlashStringHelper *>(
+                assembler.errorText(assembler.getError())));
+    } else {
+        Memory.write(insn.address(), insn.bytes(), insn.length());
+        disassemble(insn.address(), 1);
+        addr += insn.length();
+    }
+    return addr;
+}
+
 uint8_t Memory::read(uint16_t addr) const {
     static uint8_t LDA[] = {0xB6, 0, 0};  // LDA $addr
     LDA[1] = hi(addr);
@@ -329,6 +397,12 @@ void Memory::write(uint16_t addr, uint8_t data) {
     STA[2] = lo(addr);
     Pins.execInst(LDA, sizeof(LDA));
     Pins.execInst(STA, sizeof(STA));
+}
+
+void Memory::write(uint16_t addr, const uint8_t *data, uint8_t len) {
+    for (auto i = 0; i < len; i++) {
+        write(addr++, *data++);
+    }
 }
 
 uint8_t Memory::nextByte() {

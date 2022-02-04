@@ -20,7 +20,6 @@ initialize:
 receive_loop:
         lda     ACIA_status
         lsra
-        nop
         bcc     receive_loop
 receive_data:
         ldb     ACIA_data
@@ -36,5 +35,5 @@ transmit_data:
         ldb     #$0a
         bra     transmit_loop
 
-        org     $FFFE
+        org     VEC_RESET
         fdb     initialize

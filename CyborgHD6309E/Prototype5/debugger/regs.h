@@ -40,19 +40,26 @@ struct Regs {
     void get(bool show = false);
     void save();
     void restore();
-
     void reset();
-    bool is6309() const;
-    const char *cpu() const;
 
+    const char *cpu() const;
+    const char *cpuName() const;
+    bool is6309() const;
+    bool native6309() const { return _native6309; }
+
+    uint16_t nextIp() const { return pc; }
+    uint32_t maxAddr() const { return UINT16_MAX; }
     void printRegList() const;
     char validUint8Reg(const char *word) const;
     char validUint16Reg(const char *word) const;
     char validUint32Reg(const char *word) const;
     void setRegValue(char reg, uint32_t value);
+    uint16_t disassemble(uint16_t addr, uint16_t numInsn) const;
+    uint16_t assemble(uint16_t addr, const char *line) const;
 
 private:
     const char *_cpuType;
+    bool _native6309;
 
     void setCpuType();
     void save6309();
@@ -69,6 +76,7 @@ public:
 
     uint8_t read(uint16_t addr) const;
     void write(uint16_t addr, uint8_t data);
+    void write(uint16_t addr, const uint8_t *data, uint8_t len);
 
 protected:
     uint8_t nextByte() override;

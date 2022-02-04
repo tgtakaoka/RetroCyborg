@@ -13,7 +13,6 @@
    0: =$80           CC_ENTIRE       EQU   %10000000       ; set to 1 if entire registers are pushed
    0:
    0:                ;;; Vector
-   0: =$FFF0         VEC_RESERVED:   EQU   $FFF0           ; $FFF0: Reserved
    0: =$FFF2         VEC_SWI3:       EQU   $FFF2           ; $FFF2: Software Interrupt 3
    0: =$FFF4         VEC_SWI2:       EQU   $FFF4           ; $FFF4: Software Interrupt 2
    0: =$FFF6         VEC_FIRQ:       EQU   $FFF6           ; $FFF6: Fast Interrupt Request
@@ -86,21 +85,20 @@
 100E:                receive_loop:
 100E: B6 DF 00                       LDA   ACIA_status
 1011: 44                             LSRA
-1012: 12                             NOP
-1013: 24 F9                          BCC   receive_loop
-1015:                receive_data:
-1015: F6 DF 01                       LDB   ACIA_data
-1018:                transmit_loop:
-1018: B6 DF 00                       LDA   ACIA_status
+1012: 24 FA                          BCC   receive_loop
+1014:                receive_data:
+1014: F6 DF 01                       LDB   ACIA_data
+1017:                transmit_loop:
+1017: B6 DF 00                       LDA   ACIA_status
+101A: 44                             LSRA
 101B: 44                             LSRA
-101C: 44                             LSRA
-101D: 24 F9                          BCC   transmit_loop
-101F:                transmit_data:
-101F: F7 DF 01                       STB   ACIA_data
-1022: C1 0D                          CMPB  #$0d
-1024: 26 E8                          BNE   receive_loop
-1026: C6 0A                          LDB   #$0a
-1028: 20 EE                          BRA   transmit_loop
-102A:
-FFFE:                                ORG   $FFFE
+101C: 24 F9                          BCC   transmit_loop
+101E:                transmit_data:
+101E: F7 DF 01                       STB   ACIA_data
+1021: C1 0D                          CMPB  #$0d
+1023: 26 E9                          BNE   receive_loop
+1025: C6 0A                          LDB   #$0a
+1027: 20 EE                          BRA   transmit_loop
+1029:
+FFFE:                                ORG   VEC_RESET
 FFFE: 10 00                          FDB   initialize

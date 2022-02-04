@@ -25,14 +25,13 @@
 
 #include <Arduino.h>
 #include <SD.h>
-#include <asm_mc6809.h>
-#include <dis_mc6809.h>
 #include <libcli.h>
-#include <string.h>
 
 #include "config.h"
 #include "pins.h"
 #include "regs.h"
+
+#include <string.h>
 
 using namespace libasm;
 
@@ -98,18 +97,37 @@ cancel:
 
 static void memoryDump(uint16_t addr, uint16_t len) {
     Regs.save();
-    for (uint16_t i = 0; i < len; i++, addr++) {
-        const uint8_t data = Memory.read(addr);
-        if (i % 16 == 0) {
-            if (i)
-                cli.println();
-            cli.printHex(addr, 4);
-            cli.print(':');
+    const auto start = addr;
+    const auto end = addr + len;
+    for (addr &= ~0xF; addr < end; addr += 16) {
+        cli.printHex(addr, 4);
+        cli.print(':');
+        for (auto i = 0; i < 16; i++) {
+            const auto a = addr + i;
+            if (a < start || a >= end) {
+                cli.print(F("   "));
+            } else {
+                const auto data = Memory.read(a);
+                cli.print(' ');
+                cli.printHex(data, 2);
+            }
         }
-        cli.printHex(data, 2);
         cli.print(' ');
+        for (auto i = 0; i < 16; i++) {
+            const auto a = addr + i;
+            if (a < start || a >= end) {
+                cli.print(' ');
+            } else {
+                const char data = Memory.read(a);
+                if (isprint(data)) {
+                    cli.print(data);
+                } else {
+                    cli.print('.');
+                }
+            }
+        }
+        cli.println();
     }
-    cli.println();
     Regs.restore();
 }
 
@@ -138,43 +156,6 @@ cancel:
     printPrompt();
 }
 
-static void print(const Insn &insn) {
-    cli.printHex(insn.address(), 4);
-    cli.print(':');
-    for (int i = 0; i < insn.length(); i++) {
-        cli.printHex(insn.bytes()[i], 2);
-        cli.print(' ');
-    }
-    for (int i = insn.length(); i < 5; i++) {
-        cli.print(F("   "));
-    }
-}
-
-static uint16_t disassemble(uint16_t addr, uint16_t numInsn) {
-    mc6809::DisMc6809 dis6809;
-    Disassembler &disassembler(dis6809);
-    disassembler.setCpu(Regs.cpu());
-    disassembler.setUppercase(true);
-    uint16_t num = 0;
-    while (num < numInsn) {
-        char operands[20];
-        Insn insn(addr);
-        Memory.setAddress(addr);
-        disassembler.decode(Memory, insn, operands, sizeof(operands));
-        addr += insn.length();
-        num++;
-        print(insn);
-        if (disassembler.getError()) {
-            cli.print(F("Error: "));
-            cli.println(disassembler.errorText(disassembler.getError()));
-            continue;
-        }
-        cli.printStr(insn.name(), -6);
-        cli.printlnStr(operands, -12);
-    }
-    return addr;
-}
-
 static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
     if (state == State::CLI_CANCEL)
         goto cancel;
@@ -194,18 +175,9 @@ static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
         value = 16;
     }
     cli.println();
-    last_addr = disassemble(last_addr, value);
+    last_addr = Regs.disassemble(last_addr, value);
 cancel:
     printPrompt();
-}
-
-static void memoryWrite(
-        uint16_t addr, const uint8_t values[], const uint8_t len) {
-    Regs.save();
-    for (uint8_t i = 0; i < len; i++, addr++) {
-        Memory.write(addr, values[i]);
-    }
-    Regs.restore();
 }
 
 static void handleMemory(uint32_t value, uintptr_t extra, State state) {
@@ -238,7 +210,7 @@ static void handleMemory(uint32_t value, uintptr_t extra, State state) {
             }
         }
         cli.println();
-        memoryWrite(last_addr, mem_buffer, index);
+        Memory.write(last_addr, mem_buffer, index);
         memoryDump(last_addr, index);
         last_addr += index;
     }
@@ -253,19 +225,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
         return;
     }
     cli.println();
-    mc6809::AsmMc6809 as6809;
-    Assembler &assembler(as6809);
-    assembler.setCpu(Regs.cpu());
-    Insn insn(last_addr);
-    if (assembler.encode(line, insn)) {
-        cli.print(F("Error: "));
-        cli.println(assembler.errorText(assembler.getError()));
-    } else {
-        print(insn);
-        cli.println();
-        memoryWrite(insn.address(), insn.bytes(), insn.length());
-        last_addr += insn.length();
-    }
+    last_addr = Regs.assemble(last_addr, line);
     cli.printHex(last_addr, 4);
     cli.print('?');
     cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));
@@ -324,16 +284,21 @@ static uint16_t toInt16Hex(const char *text) {
 }
 
 static int loadS19Record(const char *line) {
-    int len = strlen(line);
-    if (len == 0 || line[0] != 'S' || line[1] != '1')
-        return 0;
     const int num = toInt8Hex(line + 2) - 3;
-    const uint16_t addr = toInt16Hex(line + 4);
+    uint16_t addr;
+    switch (line[1]) {
+    case '1':
+        addr = toInt16Hex(line + 4);
+        line += 8;
+        break;
+    default:
+        return 0;
+    }
     uint8_t buffer[num];
     for (int i = 0; i < num; i++) {
-        buffer[i] = toInt8Hex(line + i * 2 + 8);
+        buffer[i] = toInt8Hex(line + i * 2);
     }
-    memoryWrite(addr, buffer, num);
+    Memory.write(addr, buffer, num);
     cli.printHex(addr, 4);
     cli.print(':');
     cli.printHex(num, 2);
@@ -352,15 +317,17 @@ static void handleLoadFile(char *line, uintptr_t extra, State state) {
             cli.println(F(": not found"));
         } else {
             uint16_t size = 0;
-            char s19[80];
-            char *p = s19;
+            char buffer[80];
+            char *p = buffer;
             while (file.available() > 0) {
                 const char c = file.read();
                 if (c == '\n') {
                     *p = 0;
-                    size += loadS19Record(s19);
-                    p = s19;
-                } else if (c != '\r' && p < s19 + sizeof(s19) - 1) {
+                    if (*buffer == 'S') {
+                        size += loadS19Record(buffer);
+                    }
+                    p = buffer;
+                } else if (c != '\r' && p < buffer + sizeof(buffer) - 1) {
                     *p++ = c;
                 }
             }
@@ -413,17 +380,6 @@ static void handleRegisterValue(uint32_t value, uintptr_t reg, State state) {
     printPrompt();
 }
 
-static void handleIo(char *line, uintptr_t extra, State state);
-
-static void printIoDevice(State state) {
-    cli.println();
-    uint16_t baseAddr;
-    if (Pins.getIoDevice(baseAddr) == Pins::SerialDevice::DEV_ACIA) {
-        cli.print(F("ACIA (MC6850) at $"));
-        cli.printlnHex(baseAddr, 4);
-    }
-}
-
 void Commands::exec(char c) {
     switch (c) {
     case 'p':
@@ -459,7 +415,7 @@ void Commands::exec(char c) {
         cli.println(F("Registers"));
     regs:
         Regs.get(true);
-        disassemble(Regs.pc, 1);
+        Regs.disassemble(Regs.nextIp(), 1);
         break;
     case '=':
         cli.print(F("Set register? "));
@@ -504,8 +460,8 @@ void Commands::exec(char c) {
         return;
     case '?':
         cli.print(F("* Cyborg"));
-        cli.print(Regs.cpu());
-        cli.println(VERSION_TEXT);
+        cli.print(Regs.cpuName());
+        cli.println(F(" * " VERSION_TEXT));
         cli.println(USAGE);
         break;
     case '\r':
@@ -522,7 +478,7 @@ void Commands::halt(bool show) {
     _target = HALT;
     Pins.halt(show);
     Regs.get(_showRegs);
-    disassemble(Regs.pc, 1);
+    Regs.disassemble(Regs.nextIp(), 1);
     printPrompt();
 }
 

@@ -7,28 +7,38 @@
 
 extern libcli::Cli &cli;
 
-uint8_t Signals::_cycles;
-Signals Signals::_signals[MAX_CYCLES + 1];
+uint8_t Signals::_put = 0;
+uint8_t Signals::_get = 0;
+uint8_t Signals::_cycles = 0;
+Signals Signals::_signals[MAX_CYCLES];
 
 void Signals::printCycles() {
     const Signals *prev = nullptr;
-    for (uint8_t i = 0; i < _cycles; i++) {
-        _signals[i].print(prev);
-        prev = &_signals[i];
+    for (auto i = 0; i < _cycles; i++) {
+        const auto idx = (_get + i) % MAX_CYCLES;
+        _signals[idx].print(prev);
+        prev = &_signals[idx];
     }
 }
 
 Signals &Signals::currCycle() {
-    return _signals[_cycles];
+    return _signals[_put];
 }
 
 void Signals::resetCycles() {
     _cycles = 0;
+    _signals[_get = _put];
 }
 
 void Signals::nextCycle() {
-    if (_cycles < MAX_CYCLES)
+    _put++;
+    _put %= MAX_CYCLES;
+    if (_cycles < MAX_CYCLES) {
         _cycles++;
+    } else {
+        _get++;
+        _get %= MAX_CYCLES;
+    }
 }
 
 void Signals::get() {
@@ -58,36 +68,32 @@ void Signals::get() {
     _debug = 0;
 }
 
-static void outPin(char *p, bool value, const __FlashStringHelper *name) {
-    if (value) {
-        outText(p, name);
-        return;
-    }
-    for (PGM_P s = reinterpret_cast<PGM_P>(name); pgm_read_byte(s); s++)
-        *p++ = ' ';
-}
-
 void Signals::print(const Signals *prev) const {
+    // clang-format off
     static char buffer[] = {
-        'D', ' ',                // _debug=0
-        'B', 'A', ' ',           // ba=2
-        'B', 'S', ' ',           // bs=5
-        'B', 'U', 'S', 'Y', ' ', // busy=8
-        'L', 'I', 'C', ' ',      // lic=13
-        'A', 'V', 'M', 'A', ' ', // avma=17
-        'R', 'D', ' ',           // r/w=22
-        'D', '=', 0, 0,          // _dbus=27
-        ' ',                     // status?=29
-        'S', 0                   // status=30
+        'D', ' ',               // _debug=0
+        'V',                    // ba/bs=2
+        'A',                    // avma=3
+        'B',                    // busy=4
+        'L',                    // lic=5
+        'W', ' ',               // rw=6
+        'D', '=', 0, 0,         // _dbus=10
+        ' ',                    // status?=12
+        'S', 0                  // status=13
     };
+    // clang-format on
     buffer[0] = _debug ? _debug : ' ';
-    outPin(buffer + 2, _pins & ba, F("BA"));
-    outPin(buffer + 5, _pins & bs, F("BS"));
-    outPin(buffer + 8, _pins & busy, F("BUSY"));
-    outPin(buffer + 13, _pins & lic, F("LIC"));
-    outPin(buffer + 17, _pins & avma, F("AVMA"));
-    outText(buffer + 22, (_pins & rw) ? F("RD") : F("WR"));
-    outHex8(buffer + 27, _dbus);
+    char *p = buffer + 2;
+    if ((_pins & ba) == 0) {
+        *p++ = (_pins & bs) == 0 ? ' ' : 'V';
+    } else {
+        *p++ = (_pins & bs) == 0 ? 'S' : 'H';
+    }
+    *p++ = (_pins & avma) == 0 ? ' ' : 'A';
+    *p++ = (_pins & busy) == 0 ? ' ' : 'B';
+    *p++ = (_pins & lic) == 0 ? ' ' : 'L';
+    *p++ = (_pins & rw) == 0 ? 'W' : 'R';
+    outHex8(buffer + 10, _dbus);
     if (prev) {
         char status;
         if (fetchingVector()) {
@@ -105,10 +111,10 @@ void Signals::print(const Signals *prev) const {
         } else {
             status = 'S';
         }
-        buffer[29] = ' ';
-        buffer[30] = status;
+        buffer[12] = ' ';
+        buffer[13] = status;
     } else {
-        buffer[29] = 0;
+        buffer[12] = 0;
     }
     cli.println(buffer);
 }
@@ -116,10 +122,16 @@ void Signals::print(const Signals *prev) const {
 void Signals::printSignals() {
     Signals s;
     s.get();
-    static char buffer[6 + 5];
-    outPin(buffer, s.resetAsserted(), F("RESET "));
-    outPin(buffer + 6, s.haltAsserted(), F("HALT"));
-    buffer[10] = 0;
+    // clang-format off
+    static char buffer[] = {
+        'R',                    // RESET=0
+        'H',                    // HALT=1
+        ' ',
+        0,
+    };
+    // clang-format on
+    buffer[0] = s.resetAsserted() ? 'R' : ' ';
+    buffer[1] = s.haltAsserted() ? 'H' : ' ';
     cli.print(buffer);
     s.print();
 }

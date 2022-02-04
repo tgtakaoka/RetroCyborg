@@ -1,4 +1,3 @@
-/* -*- mode: c++; c-basic-offset: 4; tab-width: 4; -*- */
 #ifndef __MC6850_H__
 #define __MC6850_H__
 
@@ -7,12 +6,12 @@
 
 class Mc6850 {
 public:
-    Mc6850(HardwareSerial &serial);
+    Mc6850(Stream &stream);
 
+    void reset();
     bool isSelected(uint16_t addr) const {
         return _enabled && (addr & ~1) == _baseAddr;
     }
-
     void write(uint8_t data, uint16_t addr);
     uint8_t read(uint16_t addr);
     void loop();
@@ -20,7 +19,7 @@ public:
     uint16_t baseAddr() const { return _baseAddr; }
 
 private:
-    HardwareSerial &_serial;
+    Stream &_stream;
     uint8_t _control;
     uint8_t _status;
     uint8_t _readFlags;
@@ -76,3 +75,10 @@ private:
 };
 
 #endif
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// End:
+// vim: set ft=cpp et ts=4 sw=4:
