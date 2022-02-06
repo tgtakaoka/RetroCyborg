@@ -8,6 +8,7 @@ struct Signals {
     void getAddr2();
     void getDirection();
     void getLoadInstruction();
+    bool fetchInsn() const { return li != 0; }
     void getData();
     void clear();
     static void inject(uint8_t data);
@@ -24,6 +25,7 @@ struct Signals {
     bool writeRam() const { return _capture == false; }
 
     static void printCycles();
+    static void disassembleCycles();
     static Signals &currCycle();
     static void resetCycles();
     static void nextCycle();
@@ -33,9 +35,11 @@ private:
     bool _capture;
     char _debug;
 
-    static constexpr uint8_t MAX_CYCLES = 40;
+    static constexpr uint8_t MAX_CYCLES = 64;
+    static uint8_t _put;
+    static uint8_t _get;
     static uint8_t _cycles;
-    static Signals _signals[MAX_CYCLES + 1];
+    static Signals _signals[MAX_CYCLES];
 };
 #endif /* __SIGNALS_H__ */
 

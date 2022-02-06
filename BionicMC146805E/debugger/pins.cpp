@@ -14,7 +14,7 @@ class Pins Pins;
 
 Mc6850 Acia(Console);
 
-static constexpr bool debug_cycles = true;
+static constexpr bool debug_cycles = false;
 
 /**
  * MC146805E bus cycle.
@@ -176,7 +176,7 @@ void Pins::begin() {
     setDeviceBase(Device::ACIA);
 }
 
-Signals &Pins::cycle() {
+Signals &Pins::prepareCycle() {
     // MC146805E bus cycle is CLK/5, so we toggle CLK 5 times
     // c1
     delayNanoseconds(c1_lo_ns);
@@ -197,8 +197,13 @@ Signals &Pins::cycle() {
     delayNanoseconds(c3_lo_ns);
     osc1_hi();
     delayNanoseconds(c3_hi_ns);
+    signals.getLoadInstruction();
     osc1_lo();  // DS->HIGH
 
+    return signals;
+}
+
+Signals &Pins::completeCycle(Signals &signals) {
     if (signals.rw == HIGH) {
         // c4
         delayNanoseconds(c4_read_lo_ns);
@@ -234,7 +239,6 @@ Signals &Pins::cycle() {
         osc1_lo();  // DS=HIGH
         delayNanoseconds(c5_write_lo_ns);
     }
-    signals.getLoadInstruction();
     osc1_hi();
     Signals::nextCycle();
     delayNanoseconds(c5_hi_ns);
@@ -242,6 +246,10 @@ Signals &Pins::cycle() {
     osc1_lo();  // DS->LOW
 
     return signals;
+}
+
+Signals &Pins::cycle() {
+    return completeCycle(prepareCycle());
 }
 
 Signals &Pins::raw_cycle() {
@@ -328,9 +336,19 @@ void Pins::idle() {
 void Pins::loop() {
     if (_freeRunning) {
         Acia.loop();
-        cycle();
-        if (user_sw() == LOW)
+        Signals &signals = prepareCycle();
+        if (signals.fetchInsn()) {
+            const auto insn = Memory.raw_read(signals.addr);
+            if ((insn & ~1) == 0x8E) {  // STOP/WAIT
+                Commands.halt(true);
+                return;
+            }
+        }
+        if (user_sw() == LOW) {
             Commands.halt(true);
+            return;
+        }
+        completeCycle(signals);
     } else {
         idle();
     }
@@ -339,40 +357,56 @@ void Pins::loop() {
 void Pins::halt(bool show) {
     if (_freeRunning) {
         _freeRunning = false;
-        Signals::resetCycles();
         while (true) {
-            Signals &signals = raw_cycle();
+            Signals &signals = Signals::currCycle();
             // Wait until Load Instruction signal asserted
-            if (signals.li == HIGH) {
-                const uint8_t cycles = Regs.cycles(signals.data);
-                // Execute the instruction until its end cycle.
-                for (uint8_t c = 1; c < cycles; c++) {
-                    raw_cycle().debug(c < 10 ? '0' + c : 'a' + c - 10);
+            if (signals.fetchInsn()) {
+                const auto insn = Memory.raw_read(signals.addr);
+                if ((insn & ~1) == 0x8E) {  // STOP/WAIT
+                    Signals::inject(0x20);  // BRA *
+                    completeCycle(signals).debug('B');
+                    Signals::inject(0xFE);
+                    cycle().debug('B');
+                    cycle().debug('B');
+                    break;
                 }
+                rawStep(signals);
                 break;
             }
+            completeCycle(signals);
+            prepareCycle();
         }
         if (show)
-            Signals::printCycles();
-        turn_off_led();
+            Signals::disassembleCycles();
         Regs.save(debug_cycles);
+        turn_off_led();
     }
 }
 
 void Pins::run() {
     Regs.restore();
+    // Reset cycles for dump valid bus cycles at HALT.
+    Signals::resetCycles();
     _freeRunning = true;
     turn_on_led();
 }
 
+void Pins::rawStep(Signals &signals) {
+    const uint8_t insn = Memory.read(signals.addr);
+    const uint8_t cycles = Regs.cycles(insn);
+    completeCycle(signals).debug('1');
+    for (uint8_t c = 1; c < cycles; c++) {
+        raw_cycle().debug(c + '1');
+    }
+}
+
 void Pins::step(bool show) {
     const uint8_t insn = Memory.read(Regs.pc);
-    const uint8_t cycles = Regs.cycles(insn);
+    if ((insn & ~1) == 0x8E)  // STOP/WAIT
+        return;
     Regs.restore(debug_cycles);
     Signals::resetCycles();
-    for (uint8_t c = 0; c < cycles; c++) {
-        raw_cycle().debug(c < 9 ? '1' + c : 'a' + c - 9);
-    }
+    rawStep(prepareCycle());
     if (show)
         Signals::printCycles();
     Regs.save(debug_cycles);

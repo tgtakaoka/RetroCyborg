@@ -44,7 +44,10 @@ private:
     uint8_t _irq;
 
     Signals &cycle();
+    Signals &prepareCycle();
+    Signals &completeCycle(Signals &signals);
     Signals &raw_cycle();
+    void rawStep(Signals &signals);
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
