@@ -9,7 +9,6 @@ struct Signals {
     bool fetchVector() const { return _vector; }
     bool fetchInsn() const { return _insn; }
     bool busLock() const { return _lock; }
-    bool waiting() const { return _waiting; }
     void clear();
     static void inject(uint8_t data);
     static void capture();
@@ -23,7 +22,8 @@ struct Signals {
     bool readRam() const { return _inject == false; }
     bool writeRam() const { return _capture == false; }
 
-    static void printCycles(const Signals *end = nullptr);
+    static void printCycles();
+    static void disassembleCycles();
     static Signals &currCycle();
     static void resetCycles();
     static void nextCycle();
@@ -45,14 +45,15 @@ private:
     bool _insn;
     bool _vector;
     bool _lock;
-    bool _waiting;
     bool _inject;
     bool _capture;
     char _debug;
 
-    static constexpr uint8_t MAX_CYCLES = 60;
+    static constexpr uint8_t MAX_CYCLES = 64;
+    static uint8_t _put;
+    static uint8_t _get;
     static uint8_t _cycles;
-    static Signals _signals[MAX_CYCLES + 1];
+    static Signals _signals[MAX_CYCLES];
 
     static MpuType _type;
     static constexpr uint8_t WAI = 0xCB;

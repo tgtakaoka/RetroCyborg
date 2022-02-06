@@ -94,13 +94,11 @@ static void negate_be() {
     digitalWriteFast(PIN_BE, LOW);
 }
 
-static void assert_rdy() __attribute__((unused));
 static void assert_rdy() {
     digitalWriteFast(PIN_RDY, HIGH);
     pinMode(PIN_RDY, INPUT_PULLUP);
 }
 
-static void negate_rdy() __attribute__((unused));
 static void negate_rdy() {
     digitalWriteFast(PIN_RDY, LOW);
     pinMode(PIN_RDY, OUTPUT_OPENDRAIN);
@@ -294,13 +292,7 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
-    assert_rdy();
-    while (true) {
-        Signals &signals = rawPrepareCycle();
-        if (signals.fetchInsn())
-            break;
-        completeCycle(signals);
-    }
+    unhalt();
     uint8_t inj = 0;
     uint8_t cap = 0;
     while (inj < len || cap < max) {
@@ -369,32 +361,34 @@ void Pins::idle() {
 void Pins::loop() {
     if (_freeRunning) {
         Acia.loop();
-        cycle();
-        if (user_sw() == LOW)
+        Signals &signals = prepareCycle();
+        if (signals.fetchInsn() && Signals::stopInsn(Memory.raw_read(signals.addr))) {
             Commands.halt(true);
+            return;
+        }
+        if (user_sw() == LOW) {
+            Commands.halt(true);
+            return;
+        }
+        completeCycle(signals);
     } else {
         idle();
     }
 }
 
-void Pins::suspend() {
-    while (true) {
-        Signals &signals = rawPrepareCycle();
-        if (signals.fetchInsn())
-            break;
-        completeCycle(signals);
-        if (signals.waiting())
-            break;
-    }
-    negate_rdy();
-}
-
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        Signals::resetCycles();
-        suspend();
+        while (true) {
+            Signals &signals = Signals::currCycle();
+            if (signals.fetchInsn()) {
+                negate_rdy();
+                break;
+            }
+            completeCycle(signals);
+            prepareCycle();
+        }
         if (show)
-            Signals::printCycles();
+            Signals::disassembleCycles();
         Regs.save(debug_cycles);
         _freeRunning = false;
         turn_off_led();
@@ -403,6 +397,8 @@ void Pins::halt(bool show) {
 
 void Pins::run() {
     Regs.restore(debug_cycles);
+    // Reset cycles for dump valid bus cycles at HALT.
+    Signals::resetCycles();
     unhalt();
     _freeRunning = true;
     turn_on_led();
@@ -425,8 +421,6 @@ void Pins::rawStep() {
         if (signals.fetchInsn())
             break;
         completeCycle(signals);
-        if (signals.waiting())
-            break;
     }
     negate_rdy();
 }

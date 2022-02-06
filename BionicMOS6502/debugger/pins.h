@@ -53,7 +53,6 @@ private:
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
     Signals &unhalt();
-    void suspend();
 
     Device _serialDevice;
 

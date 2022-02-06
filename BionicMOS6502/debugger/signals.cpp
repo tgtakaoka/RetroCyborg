@@ -1,4 +1,3 @@
-
 #include "signals.h"
 
 #include <libcli.h>
@@ -10,8 +9,10 @@
 
 extern libcli::Cli &cli;
 
-uint8_t Signals::_cycles;
-Signals Signals::_signals[MAX_CYCLES + 1];
+uint8_t Signals::_put = 0;
+uint8_t Signals::_get = 0;
+uint8_t Signals::_cycles = 0;
+Signals Signals::_signals[MAX_CYCLES];
 Signals::MpuType Signals::_type = Signals::MpuType::MOS6502;
 
 void Signals::clear() {
@@ -19,27 +20,55 @@ void Signals::clear() {
     _inject = _capture = false;
 }
 
-void Signals::printCycles(const Signals *end) {
-    if (end == nullptr)
-        end = &currCycle();
-    for (const auto *signals = _signals; signals < end; signals++) {
-        signals->print();
+void Signals::printCycles() {
+    for (auto i = 0; i < _cycles; i++) {
+        _signals[(i + _get) % MAX_CYCLES].print();
+        Pins.idle();
+    }
+}
+
+void Signals::disassembleCycles() {
+    uint16_t lasti = 0;
+    uint16_t nexti = 0;
+    for (auto i = 0; i < _cycles; i++) {
+        const auto x = (i + _get) % MAX_CYCLES;
+        const Signals &signals = _signals[x];
+        if (signals.fetchInsn()) {
+            nexti = Regs.disassemble(lasti = signals.addr, 1);
+        } else if (signals.rw == 0) {
+            cli.printHex(signals.addr, 4);
+            cli.print(F(": W "));
+            cli.printlnHex(signals.data, 2);
+        } else {
+            if (signals.addr < lasti || signals.addr >= nexti) {
+                cli.printHex(signals.addr, 4);
+                cli.print(F(": R "));
+                cli.printlnHex(signals.data, 2);
+            }
+        }
         Pins.idle();
     }
 }
 
 Signals &Signals::currCycle() {
-    return _signals[_cycles];
+    return _signals[_put];
 }
 
 void Signals::resetCycles() {
-    _signals[_cycles = 0].clear();
+    _cycles = 0;
+    _signals[_get = _put].clear();
 }
 
 void Signals::nextCycle() {
-    if (_cycles < MAX_CYCLES)
+    _put++;
+    _put %= MAX_CYCLES;
+    if (_cycles < MAX_CYCLES) {
         _cycles++;
-    _signals[_cycles].clear();
+    } else {
+        _get++;
+        _get %= MAX_CYCLES;
+    }
+    _signals[_put].clear();
 }
 
 void Signals::getAddr() {
@@ -52,11 +81,9 @@ void Signals::getAddr() {
     if (_type == MpuType::MOS6502) {
         _vector = rw != LOW && addr >= 0xFFFA;
         _lock = false;
-        _waiting = false;
     } else {
         _vector = digitalReadFast(PIN_VP) == LOW;
         _lock = digitalReadFast(PIN_ML) == LOW;
-        _waiting = digitalReadFast(PIN_RDY) == LOW;
     }
     if (_type == MpuType::W65C816S) {
         addr |= static_cast<uint32_t>(busRead(D)) << 16;
@@ -105,8 +132,7 @@ void Signals::print() const {
     } else {
         // clang-format off
         static char b6502[] = {
-            ' ',                       // _debug=0
-            'R',                       // rdy=1
+            ' ', ' ',                  // _debug=0
             'V',                       // vp/sync/ml=2
             'W',                       // rw=3
             ' ', 'A', '=', 0, 0, 0, 0, // addr=7
@@ -119,7 +145,6 @@ void Signals::print() const {
         outHex8(buffer + 14, data);
     }
     buffer[0] = _debug;
-    buffer[1] = waiting() ? 'R' : ' ';
     buffer[2] =
             fetchInsn() ? 'S' : (fetchVector() ? 'V' : (busLock() ? 'L' : ' '));
     buffer[3] = (rw == LOW) ? 'W' : 'R';
