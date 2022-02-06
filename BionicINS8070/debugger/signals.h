@@ -7,6 +7,11 @@ struct Signals {
     bool getDirection();
     bool read() const { return rds == 0; }
     bool write() const { return wds == 0; }
+    /**
+     * Return true if this bus cycle fulfills instruction fetch condition.
+     * May return false even if this bus cycle is instruction fetch.
+     */
+    bool fetchInsn() const;
     void getAddr();
     void getData();
     void clear();
@@ -23,7 +28,7 @@ struct Signals {
     bool readRam() const { return _inject == false; }
     bool writeRam() const { return _capture == false; }
 
-    static void printCycles(const Signals *end = nullptr);
+    static void printCycles();
     static Signals &currCycle();
     static void resetCycles();
     static void nextCycle();
@@ -34,8 +39,10 @@ private:
     char _debug;
 
     static constexpr uint8_t MAX_CYCLES = 60;
+    static uint8_t _put;
+    static uint8_t _get;
     static uint8_t _cycles;
-    static Signals _signals[MAX_CYCLES + 1];
+    static Signals _signals[MAX_CYCLES];
 };
 #endif /* __SIGNALS_H__ */
 

@@ -284,18 +284,21 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
-    for (auto i = 0; i < len; i++) {
-        Signals::inject(inst[i]);
-        cycle();
-    }
+    uint8_t inj = 0;
     uint8_t cap = 0;
-    if (buf) {
-        while (cap < max) {
+    while (inj < len || cap < max) {
+        Signals &signals = prepareCycle();
+        if (signals.read()) {
+            Signals::inject(inst[inj++]);
+        } else {
             Signals::capture();
-            const Signals &signals = cycle();
+        }
+        completeCycle(signals);
+        if (signals.write() && buf) {
             if (cap == 0 && addr)
                 *addr = signals.addr;
-            buf[cap++] = signals.data;
+            if (cap < max)
+                buf[cap++] = signals.data;
         }
     }
     return cap;
@@ -333,82 +336,17 @@ void Pins::loop() {
     }
 }
 
-bool Pins::isInsnFetch(const Signals *c0, const Signals *c1, const Signals *c2,
-        const Signals *c3, const Signals *c4) {
-    if (c4->addr == c2->addr + 1 && c2->addr == c1->addr + 1) {
-        if (c1->read() && c2->read()) {
-            // 8 bit operation
-            if (debug_cycles)
-                cli.println(F("8 bit operation"));
-            return true;
-        }
-    }
-    if (c4->addr == c1->addr + 1 && c1->addr == c0->addr + 1) {
-        if (c0->read() && c1->read()) {
-            if (c3->addr == c2->addr + 1 && c2->read() == c3->read()) {
-                // 16 bit operation
-                if (debug_cycles)
-                    cli.println(F("16 bit operation"));
-                return true;
-            }
-            if (c3->addr == c2->addr && c2->read() && c3->write()) {
-                // read-modify-write operation
-                if (debug_cycles)
-                    cli.println(F("read-modify-write operation"));
-                return true;
-            }
-        }
-    }
-    if (c2->read() && (c2->data & ~0x1B) == 0x64 && c3->addr == c2->addr + 1 &&
-            c3->read()) {
-        const auto target = c3->addr + static_cast<int8_t>(c3->data);
-        if (c4->addr == target + 1) {
-            // branch operation
-            if (debug_cycles)
-                cli.println(F("branch operation"));
-            return true;
-        }
-    }
-    if (c1->read() && c1->data == 0x24 && c2->addr == c1->addr + 1 &&
-            c3->addr == c1->addr + 2 && c2->read() && c3->read()) {
-        const auto target = (static_cast<uint16_t>(c3->data) << 8) | c2->data;
-        if (c4->addr == target + 1) {
-            // jump operation
-            if (debug_cycles)
-                cli.println(F("jump operation"));
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void Pins::suspend(bool show) {
-    Signals::resetCycles();
-    const Signals *c0 = &cycle();
-    const Signals *c1 = &cycle();
-    const Signals *c2 = &cycle();
-    const Signals *c3 = &cycle();
-    while (true) {
-        Signals &signals = prepareCycle();
-        if (signals.read() && !Acia.isSelected(signals.addr) &&
-                isInsnFetch(c0, c1, c2, c3, &signals)) {
-            Regs.save();
-            break;
-        }
-        completeCycle(signals);
-        c0 = c1;
-        c1 = c2;
-        c2 = c3;
-        c3 = &signals;
-    }
-    if (show)
-        Signals::printCycles(c3 + 1);
-}
-
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        suspend(show);
+        while (true) {
+            Signals &signals = prepareCycle();
+            if (signals.fetchInsn())
+                break;
+            completeCycle(signals);
+        }
+        if (show)
+            Signals::printCycles();
+        Regs.save();
         _freeRunning = false;
         turn_off_led();
     }
@@ -416,6 +354,8 @@ void Pins::halt(bool show) {
 
 void Pins::run() {
     Regs.restore(debug_cycles);
+    // Reset cycles for dump valid bus cycles at HALT.
+    Signals::resetCycles();
     _freeRunning = true;
     turn_on_led();
 }

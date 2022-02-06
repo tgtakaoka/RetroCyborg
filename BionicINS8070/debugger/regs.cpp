@@ -422,28 +422,19 @@ static constexpr uint8_t lo(const uint16_t v) {
 }
 
 void Regs::save(bool show) {
-    static const uint8_t ST_EA[] = { 0x88, 0xFE };       // ST EA,$-1,PC
-    static const uint8_t LD_EA_SP[] = { 0x31 };          // LD EA,SP
-    static const uint8_t LD_SP[] = { 0x25, 0x00, 0x01 }; // LD SP,=0x0100
-    static const uint8_t PUSH_P2[] = { 0x56 };           // PUSH P2
-    static const uint8_t PUSH_P3[] = { 0x57 };           // PUSH P3
-    static const uint8_t LD_EA_T[] = { 0x0B };           // LD EA,T
-    static const uint8_t PUSH_EA[] = { 0x08 };           // PUSH EA
-    static const uint8_t LD_A_S[] = { 0x06 };            // LD A,S
-    static const uint8_t PUSH_A[] = { 0x0A };            // PUSH A
+    static const uint8_t PUSH_ALL[] = {
+        0x88, 0xFE,             // ST EA,-1,PC
+        0x31, 0x88, 0xFE,       // LD EA,SP; ST EA,-1,PC
+        0x25, 0x00, 0x01,       // LD SP,=0x0100
+        0x56,                   // PUSH P2
+        0x57,                   // PUSH P3
+        0x0B, 0x08,             // LD EA,T; PUSH EA
+        0x06, 0x0A,             // LD A,S; PUSH A
+    };
     static uint8_t buffer[11];
     if (show)
         Signals::resetCycles();
-    Pins.captureWrites(ST_EA, sizeof(ST_EA), &pc, buffer + 0, 2);
-    Pins.execInst(LD_EA_SP, sizeof(LD_EA_SP));
-    Pins.captureWrites(ST_EA, sizeof(ST_EA), nullptr, buffer + 2, 2);
-    Pins.execInst(LD_SP, sizeof(LD_SP));
-    Pins.captureWrites(PUSH_P2, sizeof(PUSH_P2), nullptr, buffer + 4, 2);
-    Pins.captureWrites(PUSH_P3, sizeof(PUSH_P3), nullptr, buffer + 6, 2);
-    Pins.execInst(LD_EA_T, sizeof(LD_EA_T));
-    Pins.captureWrites(PUSH_EA, sizeof(PUSH_EA), nullptr, buffer + 8, 2);
-    Pins.execInst(LD_A_S, sizeof(LD_A_S));
-    Pins.captureWrites(PUSH_A, sizeof(PUSH_A), nullptr, buffer + 10, 1);
+    Pins.captureWrites(PUSH_ALL, sizeof(PUSH_ALL), &pc, buffer, sizeof(buffer));
     if (show)
         Signals::printCycles();
     a = buffer[0];
@@ -456,38 +447,33 @@ void Regs::save(bool show) {
 }
 
 void Regs::restore(bool show) {
-    static uint8_t LD_P3[] = { 0x27, 0, 0 };    // LD P3,#P3
-    static uint8_t LD_P2[] = { 0x26, 0, 0 };    // LD P2,#P2
-    static uint8_t LD_SP[] = { 0x25, 0, 0 };    // LD SP,#SP
-    static uint8_t LD_T[] = { 0xA4, 0, 0 };     // LD T,#T
-    static uint8_t LD_EA_ES[] = { 0x84, 0, 0 }; // LD EA,#E|S
-    static const uint8_t LD_S_A[] = { 0x07 };   // LD S,A
-    static uint8_t LD_A[] = { 0xC4, 0 };        // LD A,#A
-    static uint8_t JMP[] = { 0x24, 0, 0 };      // JMP #PC
-    LD_P3[1] = lo(p3);
-    LD_P3[2] = hi(p3);
-    LD_P2[1] = lo(p2);
-    LD_P2[2] = hi(p2);
-    LD_SP[1] = lo(sp);
-    LD_SP[2] = hi(sp);
-    LD_T[1] = lo(t);
-    LD_T[2] = hi(t);
-    LD_EA_ES[1] = s;
-    LD_EA_ES[2] = e;
-    LD_A[1] = a;
-    JMP[1] = lo(pc);
-    JMP[2] = hi(pc);
+    static uint8_t LD_ALL[] = {
+        0x27, 0, 0,             // p3=2:1; LD P3,=p3
+        0x26, 0, 0,             // p2=5:4; LD P2,=p2
+        0x25, 0, 0,             // sp=8:7; LD SP,=sp
+        0xA4, 0, 0,             // t=11:10; LD T,=t
+        0x84, 0, 0,             // e=14 s=13; LD EA,=e|s
+        0x07,                   // LD S,A
+        0xC4, 0,                // a=17; LD A,=a
+        0x24, 0, 0,             // pc=20:19; JMP =pc
+    };
 
     if (show)
         Signals::resetCycles();
-    Pins.execInst(LD_P3, sizeof(LD_P3));
-    Pins.execInst(LD_P2, sizeof(LD_P2));
-    Pins.execInst(LD_SP, sizeof(LD_SP));
-    Pins.execInst(LD_T, sizeof(LD_T));
-    Pins.execInst(LD_EA_ES, sizeof(LD_EA_ES));
-    Pins.execInst(LD_S_A, sizeof(LD_S_A));
-    Pins.execInst(LD_A, sizeof(LD_A));
-    Pins.execInst(JMP, sizeof(JMP));
+    LD_ALL[1] = lo(p3);
+    LD_ALL[2] = hi(p3);
+    LD_ALL[4] = lo(p2);
+    LD_ALL[5] = hi(p2);
+    LD_ALL[7] = lo(sp);
+    LD_ALL[8] = hi(sp);
+    LD_ALL[10] = lo(t);
+    LD_ALL[11] = hi(t);
+    LD_ALL[13] = s;
+    LD_ALL[14] = e;
+    LD_ALL[17] = a;
+    LD_ALL[19] = lo(pc);
+    LD_ALL[20] = hi(pc);
+    Pins.execInst(LD_ALL, sizeof(LD_ALL));
     if (show)
         Signals::printCycles();
 }

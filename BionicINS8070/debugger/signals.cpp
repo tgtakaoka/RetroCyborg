@@ -9,35 +9,103 @@
 
 extern libcli::Cli &cli;
 
-uint8_t Signals::_cycles;
-Signals Signals::_signals[MAX_CYCLES + 1];
+static constexpr bool debug_cycles = false;
+
+uint8_t Signals::_put = 0;
+uint8_t Signals::_get = 0;
+uint8_t Signals::_cycles = 0;
+Signals Signals::_signals[MAX_CYCLES];
 
 void Signals::clear() {
     // fields including _debug will be written in Pins::cycle().
     _inject = _capture = false;
 }
 
-void Signals::printCycles(const Signals *end) {
-    if (end == nullptr)
-        end = &currCycle();
-    for (const auto *signals = _signals; signals < end; signals++) {
-        signals->print();
+void Signals::printCycles() {
+    for (auto i = 0; i < _cycles; i++) {
+        _signals[(i + _get) % MAX_CYCLES].print();
         Pins.idle();
     }
 }
 
+bool Signals::fetchInsn() const {
+    if (write())
+        return false;
+    const uint8_t pos = this - _signals;
+    const uint8_t cycles = (pos + MAX_CYCLES - _get) % MAX_CYCLES;
+    if (_cycles != MAX_CYCLES && cycles < 4)
+        return false;
+    const Signals &c0 = _signals[(pos + MAX_CYCLES - 4) % MAX_CYCLES];
+    const Signals &c1 = _signals[(pos + MAX_CYCLES - 3) % MAX_CYCLES];
+    const Signals &c2 = _signals[(pos + MAX_CYCLES - 2) % MAX_CYCLES];
+    const Signals &c3 = _signals[(pos + MAX_CYCLES - 1) % MAX_CYCLES];
+    if (addr == c2.addr + 1 && c2.addr == c1.addr + 1) {
+        if (c1.read() && c2.read()) {
+            // 8 bit operation
+            if (debug_cycles)
+                cli.println(F("8 bit operation"));
+            return true;
+        }
+    }
+    if (addr == c1.addr + 1 && c1.addr == c0.addr + 1) {
+        if (c0.read() && c1.read()) {
+            if (c3.addr == c2.addr + 1 && c2.read() == c3.read()) {
+                // 16 bit operation
+                if (debug_cycles)
+                    cli.println(F("16 bit operation"));
+                return true;
+            }
+            if (c3.addr == c2.addr && c2.read() && c3.write()) {
+                // read-modify-write operation
+                if (debug_cycles)
+                    cli.println(F("read-modify-write operation"));
+                return true;
+            }
+        }
+    }
+    if (c2.read() && (c2.data & ~0x1B) == 0x64 && c3.addr == c2.addr + 1 &&
+            c3.read()) {
+        const auto target = c3.addr + static_cast<int8_t>(c3.data);
+        if (addr == target + 1) {
+            // branch operation
+            if (debug_cycles)
+                cli.println(F("branch operation"));
+            return true;
+        }
+    }
+    if (c1.read() && c1.data == 0x24 && c2.addr == c1.addr + 1 &&
+            c3.addr == c1.addr + 2 && c2.read() && c3.read()) {
+        const auto target = (static_cast<uint16_t>(c3.data) << 8) | c2.data;
+        if (addr == target + 1) {
+            // jump operation
+            if (debug_cycles)
+                cli.println(F("jump operation"));
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Signals &Signals::currCycle() {
-    return _signals[_cycles];
+    return _signals[_put];
 }
 
 void Signals::resetCycles() {
-    _signals[_cycles = 0].clear();
+    _cycles = 0;
+    _signals[_get = _put].clear();
 }
 
 void Signals::nextCycle() {
-    if (_cycles++ >= MAX_CYCLES)
-        _cycles = 0;
-    _signals[_cycles].clear();
+    _put++;
+    _put %= MAX_CYCLES;
+    if (_cycles < MAX_CYCLES) {
+        _cycles++;
+    } else {
+        _get++;
+        _get %= MAX_CYCLES;
+    }
+    _signals[_put].clear();
 }
 
 bool Signals::getDirection() {
