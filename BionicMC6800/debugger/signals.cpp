@@ -80,8 +80,8 @@ void Signals::capture() {
 void Signals::print() const {
     // clang-format off
     static char buffer[] = {
-        ' ',                       // _debug=0
-        ' ', 'V',                  // vma=2
+        ' ', ' ',                  // _debug=0
+        'V',                       // vma=2
         'W',                       // rw=3
         ' ', 'A', '=', 0, 0, 0, 0, // addr=7
         ' ', 'D', '=', 0, 0,       // data=14
@@ -92,7 +92,7 @@ void Signals::print() const {
     buffer[2] = (vma == LOW) ? ' ' : 'V';
     buffer[3] = (rw == LOW) ? 'W' : 'R';
     outHex16(buffer + 7, addr);
-    outHex8(buffer + 13, data);
+    outHex8(buffer + 14, data);
     cli.println(buffer);
 }
 
