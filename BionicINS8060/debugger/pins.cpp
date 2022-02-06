@@ -339,35 +339,44 @@ void Pins::idle() {
 void Pins::loop() {
     if (_freeRunning) {
         Acia.loop();
-        const Signals &signals = cycle();
-        if (signals.halt())
+        Signals &signals = prepareCycle();
+        if (signals.fetchInsn() && Memory.raw_read(signals.addr) == 0x00) {
+            // HALT
             Commands.halt(true);
-        if (user_sw() == LOW)
+            return;
+        }
+        if (user_sw() == LOW) {
             Commands.halt(true);
+            return;
+        }
+        completeCycle(signals);
     } else {
         idle();
     }
 }
 
-void Pins::suspend(bool show) {
-    if (show)
-        Signals::resetCycles();
-    while (true) {
-        Signals &signals = prepareCycle();
-        if (signals.fetchInsn()) {
-            rawStep(signals);
-            if (show)
-                Signals::printCycles();
-            Regs.save(debug_cycles);
-            return;
-        }
-        completeCycle(signals);
-    }
-}
-
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        suspend(show);
+        while (true) {
+            Signals &signals = Signals::currCycle();
+            if (signals.fetchInsn()) {
+                if (Memory.raw_read(signals.addr) == 0x00) {
+                    // HALT, inject JMP $ instead.
+                    Signals::inject(0x90); // JMP $
+                    completeCycle(signals).debug('B');
+                    Signals::inject(0xFE);
+                    cycle().debug('B');
+                } else {
+                    rawStep(signals);
+                }
+                break;
+            }
+            completeCycle(signals);
+            prepareCycle();
+        }
+        if (show)
+            Signals::disassembleCycles();
+        Regs.save(debug_cycles);
         _freeRunning = false;
         turn_off_led();
     }
@@ -375,6 +384,8 @@ void Pins::halt(bool show) {
 
 void Pins::run() {
     Regs.restore(debug_cycles);
+    // Reset cycles for dump valid bus cycles at HALT.
+    Signals::resetCycles();
     _freeRunning = true;
     turn_on_led();
 }

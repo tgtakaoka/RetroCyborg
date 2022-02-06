@@ -51,7 +51,6 @@ private:
     void rawStep(Signals &signals);
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
-    void suspend(bool show = false);
     static bool isInsnFetch(const Signals *c0, const Signals *c1,
             const Signals *c2, const Signals *c3, const Signals *c4);
 

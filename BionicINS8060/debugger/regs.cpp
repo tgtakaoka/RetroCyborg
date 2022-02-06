@@ -15,6 +15,8 @@
 extern libcli::Cli &cli;
 extern Mc6850 Acia;
 
+static constexpr bool debug_cycles = false;
+
 libasm::ins8060::AsmIns8060 asm8060;
 libasm::ins8060::DisIns8060 dis8060;
 libasm::Assembler &assembler(asm8060);
@@ -358,6 +360,8 @@ void Regs::save(bool show) {
     };
     // clang-format on
     static uint8_t buffer[9];
+    if (debug_cycles)
+        cli.println(F("@@ save"));
     if (show)
         Signals::resetCycles();
     Pins.captureWrites(ST_ALL, sizeof(ST_ALL), &pc, buffer, sizeof(buffer));
@@ -384,6 +388,8 @@ void Regs::restore(bool show) {
         0xC4, 0,                      // LDI a
     };
     // clang-format on
+    if (debug_cycles)
+        cli.println(F("@@ restore"));
     LD_ALL[1] = s;
     LD_ALL[4] = e;
     LD_ALL[7] = lo(p3);

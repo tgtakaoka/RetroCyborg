@@ -31,7 +31,8 @@ struct Signals {
     bool readRam() const { return _inject == false; }
     bool writeRam() const { return _capture == false; }
 
-    static void printCycles(const Signals *end = nullptr);
+    static void printCycles();
+    static void disassembleCycles();
     static Signals &currCycle();
     static void resetCycles();
     static void nextCycle();
@@ -41,9 +42,11 @@ private:
     bool _capture;
     char _debug;
 
-    static constexpr uint8_t MAX_CYCLES = 60;
+    static constexpr uint8_t MAX_CYCLES = 64;
+    static uint8_t _put;
+    static uint8_t _get;
     static uint8_t _cycles;
-    static Signals _signals[MAX_CYCLES + 1];
+    static Signals _signals[MAX_CYCLES];
 };
 #endif /* __SIGNALS_H__ */
 
