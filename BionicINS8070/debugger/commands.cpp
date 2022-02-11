@@ -229,11 +229,18 @@ static void listDirectory(File dir, const char *parent = nullptr) {
     }
 }
 
-static void handleFileListing() {
+static void handleFileListing(char *line, uintptr_t extra, State state) {
+    if (state == State::CLI_CANCEL) {
+        printPrompt();
+        return;
+    }
+    cli.println();
+    const char *dir = (*line == 0) ? "/" : line;
     SD.begin(BUILTIN_SDCARD);
-    File root = SD.open("/");
+    File root = SD.open(dir);
     listDirectory(root);
     root.close();
+    printPrompt();
 }
 
 static uint8_t toInt(const char c) {
@@ -308,8 +315,12 @@ static int loadS19Record(const char *line) {
 
 static void handleLoadFile(char *line, uintptr_t extra, State state) {
     (void)extra;
-    if (state != State::CLI_CANCEL && *line) {
-        cli.println();
+    if (state == State::CLI_CANCEL) {
+        printPrompt();
+        return;
+    }
+    cli.println();
+    if (*line) {
         SD.begin(BUILTIN_SDCARD);
         File file = SD.open(line);
         if (!file) {
@@ -480,9 +491,9 @@ void Commands::exec(char c) {
         }
         return;
     case 'F':
-        cli.println(F("Files"));
-        handleFileListing();
-        break;
+        cli.print(F("Files? "));
+        cli.readLine(handleFileListing, 0, str_buffer, sizeof(str_buffer));
+        return;
     case 'L':
         cli.print(F("Load? "));
         cli.readLine(handleLoadFile, 0, str_buffer, sizeof(str_buffer));
