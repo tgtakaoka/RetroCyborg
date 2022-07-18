@@ -30,4 +30,10 @@ K 16-Bit CMOS Microprocessor 8086
 F https://www.alldatasheet.com/datasheet-pdf/pdf/1051722/RENESAS/80C86.html
 $ENDCMP
 #
+$CMP uPD70116
+D 16-bit General Purpose Microprocessor, DIP-40
+K 16-Bit CMOS Microprocessor 8086 V30
+F https://datasheetspdf.com/pdf-file/516641/NECElectronics/UPD70116/1
+$ENDCMP
+#
 #End Doc Library

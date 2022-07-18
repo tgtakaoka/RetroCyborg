@@ -20,14 +20,20 @@ $ENDCMP
 #
 $CMP P8088
 D 16-bit General Purpose Microprocessor, DIP-40
-K 8-Bit HMOS Microprocessor 8086
+K 16/8-Bit HMOS Microprocessor 8086/8088
 F http://pdf.datasheetcatalog.com/datasheet_pdf/intel/P8088_and_P8088-2.pdf
 $ENDCMP
 #
 $CMP P80C88A
 D 16-bit General Purpose Microprocessor, DIP-40
-K 8-Bit HMOS Microprocessor 8086
+K 16/8-Bit CMOS Microprocessor 8088/8086
 F https://datasheetspdf.com/datasheet/P80C88A.html
+$ENDCMP
+#
+$CMP uPD70108
+D 16-bit General Purpose Microprocessor, DIP-40
+K 16/8-Bit CMOS Microprocessor 8088/8086 V20
+F http://pdf.datasheetcatalog.com/datasheet_pdf/intel/P8088_and_P8088-2.pdf
 $ENDCMP
 #
 #End Doc Library
