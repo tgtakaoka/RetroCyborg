@@ -1,0 +1,27 @@
+                       BionicMezzanine (Front side)
+      _____
+  GND|*    |GND
+  P10|     |P20
+  P11|     |P21
+  P12|     |P22                                     _________
+  P13|  B  |P23                        SENSE P45  1|*        |40 P44 FLAG
+  P14|  i  |P24                        ADR12 P34  2|         |39     VCC
+  P15|  o  |P25                        ADR11 P33  3|         |38 P46 CLOCK
+  P16|  n  |P26                        ADR10 P32  4|         |37 P40 #PAUSE
+  P17|  i  |P27                         ADR9 P31  5|         |36 P55 #OPACK
+   E0|  c  |E1                          ADR8 P30  6|         |35 P47 RUN/#WAIT
+  P30|     |P40                         ADR7 P27  7|    S    |34 P43 INTACK
+  P31|  C  |P41                         ADR6 P26  8|    C    |33 P10 DBUS0
+  P32|  o  |P42                         ADR5 P25  9|    N    |32 P11 DBUS1
+  P33|  n  |P43          _____          ADR4 P24 10|    2    |31 P12 DBUS2
+  P34|  n  |P44  #OE1  1|*    |20 Vcc   ADR3 P23 11|    6    |30 P13 DBUS3
+  P35|  e  |P45    A0  2|     |19 #OE2  ADR2 P22 12|    5    |29 P14 DBUS4
+  P36|  c  |P46    A1  3|  7  |18 Y0    ADR1 P21 13|    0    |28 P15 DBUS5
+  P37|  t  |P47    A2  4|  4  |17 Y1    ADR0 P20 14|    A    |27 P16 DBUS6
+   E2|  o  |E3     A3  5|  5  |16 Y2  #ADREN P54 15|         |26 P17 DBUS7
+  P50|  r  |P54    A4  6|  4  |15 Y3   RESET P53 16|         |25 P52 #DBUSEN
+  P51|     |P55    A5  7|  1  |14 Y4  #INTRQ P42 17|         |24 P50 OPREQ
+  P52|     |P56    A6  8|     |13 Y5   ADR14 P36 18|         |23 P41 #R/W
+  P53|     |P57    A7  9|     |12 Y6   ADR13 P35 19|         |22 P51 WRP
+  VCC|_____|VCC   GND 10|_____|11 Y7   M/#IO P37 20|_________|21     GND
+Bionic Connector      CD74HCT541E                   SCN2650A
