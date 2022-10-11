@@ -23,18 +23,18 @@ tx_queue:
         org     0x1000
 stack:  equ     $-1
 initialize:
-        ldi     lo(addr(queue_init))
+        ldi     l(addr(queue_init))
         xpal    P1
-        ldi     hi(addr(queue_init))
+        ldi     h(addr(queue_init))
         xpah    P1
         ldi     rx_queue_size
         xppc    P1              ; call queue_init
         dw      rx_queue
 
         ;; initialize ACIA
-        ldi     lo(ACIA)
+        ldi     l(ACIA)
         xpal    P1
-        ldi     hi(ACIA)
+        ldi     h(ACIA)
         xpah    P1
         ldi     CDS_RESET_gc    ; Master reset
         st      ACIA_C(P1)
@@ -44,9 +44,9 @@ initialize:
         ien                     ; enable interrupt
 
 loop:
-        ldi     lo(addr(queue_remove))
+        ldi     l(addr(queue_remove))
         xpal    P1
-        ldi     hi(addr(queue_remove))
+        ldi     h(addr(queue_remove))
         xpah    P1
         dint                    ; Disable IRQ
         xppc    P1              ; call queue_remote
@@ -54,9 +54,9 @@ loop:
         ien                     ; Enable IRQ
         jz      loop
 echo:
-        ldi     lo(addr(putchar))
+        ldi     l(addr(putchar))
         xpal    p1
-        ldi     hi(addr(putchar))
+        ldi     h(addr(putchar))
         xpah    p1
         xppc    p1
         lde
@@ -70,10 +70,10 @@ echo:
 putchar_exit:
         xppc    P1              ; return
 putchar:
-        ldi     hi(ACIA)
+        ldi     h(ACIA)
         xpah    P1
         st      @-1(P2)
-        ldi     lo(ACIA)     ; save P1 and load P1
+        ldi     l(ACIA)     ; save P1 and load P1
         xpal    P1
         st      @-1(P2)
 transmit_loop:
@@ -105,10 +105,10 @@ isr_sensea:
         st      @-1(P2)         ; save A
         lde
         st      @-1(P2)         ; save E
-        ldi     hi(ACIA)
+        ldi     h(ACIA)
         xpah    P1
         st      @-1(P2)
-        ldi     lo(ACIA)     ; save P1 and load P1
+        ldi     l(ACIA)     ; save P1 and load P1
         xpal    P1
         st      @-1(P2)
         ld      ACIA_S(P1)
@@ -126,25 +126,25 @@ isr_receive:
         jz      isr_sensea_exit
         ld      ACIA_D(P1)
         xae                     ; E=char
-        ldi     hi(addr(queue_add))
+        ldi     h(addr(queue_add))
         xpah    P1
-        ldi     lo(addr(queue_add))
+        ldi     l(addr(queue_add))
         xpal    P1
         xppc    P1              ; call queue_add
         dw      rx_queue
         jmp     isr_sensea_exit
 
         org     ORG_RESTART
-        ldi     lo(stack)
+        ldi     l(stack)
         xpal    P2
-        ldi     hi(stack)
+        ldi     h(stack)
         xpah    P2
-        ldi     lo(addr(isr_sensea))
+        ldi     l(addr(isr_sensea))
         xpal    P3              ; setup interrupt entry P3
-        ldi     hi(addr(isr_sensea))
+        ldi     h(addr(isr_sensea))
         xpah    P3
-        ldi     lo(addr(initialize))
+        ldi     l(addr(initialize))
         xpal    P1
-        ldi     hi(addr(initialize))
+        ldi     h(addr(initialize))
         xpah    P1
         xppc    P1

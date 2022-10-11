@@ -14,7 +14,7 @@
 ACIA:   EQU   $DF00
 
         ORG   $A080
-PEEK:  
+PEEK:
         LDAB  ACIA
         ASRB
         RTS

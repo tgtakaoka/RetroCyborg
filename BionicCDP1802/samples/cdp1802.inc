@@ -20,3 +20,7 @@ R15:    equ     15
 
 ;;; Transfer locations
 ORG_RESET:      equ     0000H   ; Reset transfer location
+
+;;; Utility function
+hi:     function        v, v >> 8
+lo:     function        v, v & 0FFH

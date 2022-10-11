@@ -5,8 +5,6 @@
 ACIA:   equ     $17F8
         include "mc6850.inc"
 
-        org     $2000
-
 rx_queue_size:  equ     16
 RX_INT_TX_NO:   equ     WSB_8N1_gc|RIEB_bm
 

@@ -13,10 +13,8 @@
 extern libcli::Cli &cli;
 extern Mc6850 Acia;
 
-libasm::cdp1802::AsmCdp1802 asm1802;
-libasm::cdp1802::DisCdp1802 dis1802;
-libasm::Assembler &assembler(asm1802);
-libasm::Disassembler &disassembler(dis1802);
+libasm::cdp1802::AsmCdp1802 assembler;
+libasm::cdp1802::DisCdp1802 disassembler;
 
 struct Regs Regs;
 struct Memory Memory;
@@ -352,10 +350,13 @@ static void printInsn(const libasm::Insn &insn) {
     }
 }
 
+static const char TEXT_TRUE[] = "true";
+static const char OPT_USE_REGISTER[] = "use-register";
+
 uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
     disassembler.setCpu(cpu());
-    disassembler.setUppercase(true);
-    dis1802.useRegister(true);
+    disassembler.setOption("uppercase", TEXT_TRUE);
+    disassembler.setOption(OPT_USE_REGISTER, TEXT_TRUE);
     uint16_t num = 0;
     while (num < numInsn) {
         char operands[20];
@@ -367,7 +368,7 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
         printInsn(insn);
         if (disassembler.getError()) {
             cli.print(F("Error: "));
-            cli.println(disassembler.errorText(disassembler.getError()));
+            cli.println(disassembler.errorText_P(disassembler.getError()));
             continue;
         }
         cli.printStr(insn.name(), -6);
@@ -378,12 +379,12 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
 
 uint16_t Regs::assemble(uint16_t addr, const char *line) const {
     assembler.setCpu(cpu());
-    asm1802.useRegister(true);
-    asm1802.smartBranch(true);
+    assembler.setOption(OPT_USE_REGISTER, TEXT_TRUE);
+    assembler.setOption("smart-branch", TEXT_TRUE);
     libasm::Insn insn(addr);
     if (assembler.encode(line, insn)) {
         cli.print(F("Error: "));
-        cli.println(assembler.errorText(assembler.getError()));
+        cli.println(assembler.errorText_P(assembler.getError()));
     } else {
         Memory.write(insn.address(), insn.bytes(), insn.length());
         disassemble(insn.address(), 1);

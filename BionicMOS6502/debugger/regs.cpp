@@ -15,10 +15,8 @@ static constexpr bool debug_cycles = false;
 extern libcli::Cli &cli;
 extern Mc6850 Acia;
 
-libasm::mos6502::AsmMos6502 asm6502;
-libasm::mos6502::DisMos6502 dis6502;
-libasm::Assembler &assembler(asm6502);
-libasm::Disassembler &disassembler(dis6502);
+libasm::mos6502::AsmMos6502 assembler;
+libasm::mos6502::DisMos6502 disassembler;
 
 struct Regs Regs;
 struct Memory Memory;
@@ -209,8 +207,14 @@ static void setle16(uint8_t *p, const uint16_t v) {
 
 static constexpr uint8_t noop = 0xFF;
 
+static const char OPT_LONGA[] = "longa";
+static const char OPT_LONGX[] = "longx";
+static const char TEXT_TRUE[] = "true";
+static const char TEXT_FALSE[] = "false";
+
 void Regs::save(bool show) {
-    if (Signals::native65816()) {
+    e = Signals::native65816() ? 0 : 1;
+    if (e == 0) {
         save65816(show);
         return;
     }
@@ -241,11 +245,10 @@ void Regs::save(bool show) {
 
     pc = be16(buffer) - 2;  // pc on stack points the last byte of JSR.
     s = lo(sp) | 0x0100;
-    p = buffer[2];
+    setP(buffer[2]);
     a = buffer[3];
     x = buffer[4];
     y = buffer[5];
-    e = 1;
 }
 
 void Regs::save65816(bool show) {
@@ -273,14 +276,13 @@ void Regs::save65816(bool show) {
 
     pbr = buffer[0];
     pc = be16(buffer + 1) - 3;  // pc on stack points the last byte of JSL.
-    p = buffer[3];
+    setP(buffer[3]);
     b = buffer[4];
     a = buffer[5];
     dbr = buffer[6];
     x = be16(buffer + 7);
     y = be16(buffer + 9);
     d = be16(buffer + 11);
-    e = 0;
 }
 
 void Regs::restore(bool show) {
@@ -359,7 +361,7 @@ void Regs::restore65816(bool show) {
 
 void Regs::printRegList() const {
     if (is65816()) {
-        cli.println(F("?Reg: PC S X Y A P D K/PBR B/DBR"));
+        cli.println(F("?Reg: PC S X Y A C D P K/PBR B/DBR"));
     } else {
         cli.println(F("?Reg: PC S X Y A P"));
     }
@@ -404,6 +406,22 @@ char Regs::validUint16Reg(const char *word) const {
     return 0;
 }
 
+void Regs::setP(uint8_t value) {
+    const char *longa = TEXT_FALSE;
+    const char *longx = TEXT_FALSE;
+    if (e) {
+        p = value | 0x20;
+    } else {
+        p = value;
+        longa = (p & 0x20) == 0 ? TEXT_TRUE : TEXT_FALSE;
+        longx = (p & 0x10) == 0 ? TEXT_TRUE : TEXT_FALSE;
+    }
+    assembler.setOption(OPT_LONGA, longa);
+    assembler.setOption(OPT_LONGX, longx);
+    disassembler.setOption(OPT_LONGA, longa);
+    disassembler.setOption(OPT_LONGX, longx);
+}
+
 void Regs::setRegValue(char reg, uint32_t value) {
     switch (reg) {
     case 'p':
@@ -432,9 +450,7 @@ void Regs::setRegValue(char reg, uint32_t value) {
         setC(value);
         break;
     case 'P':
-        p = value;
-        dis6502.longAccumlator(longa());
-        dis6502.longIndex(longx());
+        setP(value);
         break;
     case 'B':
         dbr = value;
@@ -459,7 +475,7 @@ static void printInsn(const libasm::Insn &insn) {
 
 uint32_t Regs::disassemble(uint32_t addr, uint16_t numInsn) const {
     disassembler.setCpu(cpu());
-    disassembler.setUppercase(true);
+    disassembler.setOption("uppercase", TEXT_TRUE);
     uint16_t num = 0;
     while (num < numInsn) {
         char operands[20];
@@ -471,7 +487,7 @@ uint32_t Regs::disassemble(uint32_t addr, uint16_t numInsn) const {
         printInsn(insn);
         if (disassembler.getError()) {
             cli.print(F("Error: "));
-            cli.println(disassembler.errorText(disassembler.getError()));
+            cli.println(disassembler.errorText_P(disassembler.getError()));
             continue;
         }
         cli.printStr(insn.name(), -6);
@@ -485,7 +501,7 @@ uint32_t Regs::assemble(uint32_t addr, const char *line) const {
     libasm::Insn insn(addr);
     if (assembler.encode(line, insn)) {
         cli.print(F("Error: "));
-        cli.println(assembler.errorText(assembler.getError()));
+        cli.println(assembler.errorText_P(assembler.getError()));
     } else {
         Memory.write(insn.address(), insn.bytes(), insn.length());
         disassemble(insn.address(), 1);

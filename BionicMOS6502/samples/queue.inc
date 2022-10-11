@@ -53,7 +53,7 @@ queue_add:
         iny
         sty     queue_put,x
         tya
-        cmp     queue_size,x    
+        cmp     queue_size,x
         bcc     queue_add_return ; queue_put < queue_size
         lda     #0
         sta     queue_put,x

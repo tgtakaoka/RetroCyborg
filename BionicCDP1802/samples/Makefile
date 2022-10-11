@@ -1,4 +1,4 @@
-ASM=asm -u
+ASM=asm
 
 .PHONY: clean
 

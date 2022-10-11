@@ -13,10 +13,8 @@
 extern libcli::Cli &cli;
 extern Mc6850 Acia;
 
-libasm::mc6809::AsmMc6809 asm6809;
-libasm::mc6809::DisMc6809 dis6809;
-libasm::Assembler &assembler(asm6809);
-libasm::Disassembler &disassembler(dis6809);
+libasm::mc6809::AsmMc6809 assembler;
+libasm::mc6809::DisMc6809 disassembler;
 
 struct Regs Regs;
 struct Memory Memory;
@@ -398,7 +396,7 @@ static void printInsn(const libasm::Insn &insn) {
 
 uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
     disassembler.setCpu(cpu());
-    disassembler.setUppercase(true);
+    disassembler.setOption("uppercase", "true");
     uint16_t num = 0;
     while (num < numInsn) {
         char operands[20];
@@ -410,7 +408,7 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
         printInsn(insn);
         if (disassembler.getError()) {
             cli.print(F("Error: "));
-            cli.println(disassembler.errorText(disassembler.getError()));
+            cli.println(disassembler.errorText_P(disassembler.getError()));
             continue;
         }
         cli.printStr(insn.name(), -6);
@@ -424,7 +422,7 @@ uint16_t Regs::assemble(uint16_t addr, const char *line) const {
     libasm::Insn insn(addr);
     if (assembler.encode(line, insn)) {
         cli.print(F("Error: "));
-        cli.println(assembler.errorText(assembler.getError()));
+        cli.println(assembler.errorText_P(assembler.getError()));
     } else {
         Memory.write(insn.address(), insn.bytes(), insn.length());
         disassemble(insn.address(), 1);

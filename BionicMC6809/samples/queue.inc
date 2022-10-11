@@ -67,4 +67,3 @@ queue_remove_elem:
         orcc    #CC_CARRY       ; set carry
 queue_remove_return:
         puls    b,x,u,pc
-        

@@ -36,7 +36,7 @@ scrt_init:
         ldi     lo(scrt_start)
         plo     R3
         sep     R3              ; P=3
-scrt_start:     
+scrt_start:
         ldi     hi(scrt_init_tab)
         phi     R15
         ldi     lo(scrt_init_tab)
@@ -64,7 +64,7 @@ scrt_init_tab:
         dw      stack           ; R2
         dw      scrt_call       ; R4
         dw      scrt_return     ; R5
-        
+
 ;;; Call subroutine, P=4
 ;;; @param M(R3):M(R3+1) subroutine address
 ;;; @param M(R3+2) optional arguments, depending on a subroutine called.
@@ -72,7 +72,7 @@ scrt_init_tab:
 ;;; @return M(R2) R6.1, R6.0
 ;;; @clobber R15.1, X
 ;;; @unchanged D, IE, R0, R1, R7-R14, R15.0
-scrt_call_exit: 
+scrt_call_exit:
         sep     R3              ; go to subroutine
 scrt_call:
         phi     R15             ; save D to R15.1

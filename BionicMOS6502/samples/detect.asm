@@ -1,7 +1,7 @@
-;;; 
+;;;
 ;;; A new way to distinguish 6502 variants in software
 ;;; http://forum.6502.org/viewtopic.php?f=2&t=5931
-;;; 
+;;;
         cpu     65c02
         include "mos6502.inc"
 
