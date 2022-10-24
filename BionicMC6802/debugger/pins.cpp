@@ -312,8 +312,8 @@ void Pins::execInst(const uint8_t *inst, uint8_t len) {
 }
 
 uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
-        uint8_t *buf, uint8_t max) {
-    return execute(inst, len, addr, buf, max);
+        void *buf, uint8_t max) {
+    return execute(inst, len, addr, (uint8_t *)buf, max);
 }
 
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
@@ -364,6 +364,7 @@ void Pins::reset(bool show) {
         Signals::printCycles();
     // The first instruction will be saving registers, and certainly can be
     // injected.
+    Regs.reset();
     Regs.save(show);
     if (Memory::is_internal(reset_vec)) {
         Memory.raw_write_uint16(Memory::reset_vector, reset_vec);

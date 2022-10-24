@@ -6,9 +6,9 @@
 #include <dis_mc6800.h>
 #include "config.h"
 #include "digital_fast.h"
+#include "mc6850.h"
 #include "pins.h"
 #include "string_util.h"
-#include "mc6850.h"
 
 extern libcli::Cli &cli;
 extern Mc6850 Acia;
@@ -39,13 +39,36 @@ struct Memory Memory;
  *   LDX  #$FFFF
  *   FCB  $EC, $01
  *        ; CPX 1,X ($AC $01) on MC6800
- *        ; ADX 1   ($EC $01) on MB8861
+ *        ; ADX #1  ($EC $01) on MB8861
  * X=$FFFF: MC6800
  * X=$0000: MB8861
  */
 
+static const char MC6800[] = "MC6800";
+static const char MB8861[] = "MB8861";
+
+static const char *softwareType(uint16_t x) {
+    return x == 0 ? MB8861 : MC6800;
+}
+
+void Regs::reset() {
+    _cpuType = nullptr;
+}
+
+void Regs::setCpuType() {
+    static const uint8_t LDX[] = {0xCE, 0xFF, 0xFF};  // LDX #$FFFF
+    static const uint8_t ADX[] = {
+            0xEC, 0x01, 0x01, 0x01, 0x01, 0x01};  // ADX #1/CPX 1,X, NOP*4
+    static const uint8_t STX[] = {0xEF, 0x01, 0x00, 0x00, 0x00};  // STX $0100
+    Pins.execInst(LDX, sizeof(LDX));
+    Pins.execInst(ADX, sizeof(ADX));
+    uint16_t reg_x;
+    Pins.captureWrites(STX, sizeof(STX), nullptr, &reg_x, sizeof(reg_x));
+    _cpuType = softwareType(reg_x);
+}
+
 const char *Regs::cpu() const {
-    return "MC6800";
+    return _cpuType ? _cpuType : MC6800;
 }
 
 const char *Regs::cpuName() const {
@@ -114,6 +137,8 @@ void Regs::save(bool show) {
     bytes[8] = hi(pc);
     bytes[9] = lo(pc);
     Pins.execInst(bytes + 7, 3);
+    if (_cpuType == nullptr)
+        setCpuType();
     if (show)
         Signals::printCycles();
 

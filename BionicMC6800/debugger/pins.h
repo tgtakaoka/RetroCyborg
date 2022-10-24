@@ -21,7 +21,7 @@ public:
 
     void execInst(const uint8_t *inst, uint8_t len);
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
-            uint8_t *buf, uint8_t max);
+            void *buf, uint8_t max);
 
     uint8_t allocateIrq();
     void assertIrq(const uint8_t irq);
