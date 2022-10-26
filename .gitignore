@@ -1,6 +1,7 @@
 *.bak
 *.bck
 *-bak
+*-backups
 fp-info-cache
 *~
 .pio
