@@ -190,8 +190,8 @@ static void setupPORTMUX() {
     Q_OSC_DIRSET = Q_OSC_bm;                    // Q_OSC: output
     E_OSC_PINCTRL = PORT_ISC_INTDISABLE_gc;     // E_OSC: enable input buffer
     E_OSC_DIRSET = E_OSC_bm;                    // E_OSC: output
-    PORTMUX.EVSYSROUTEA &= ~PORTMUX_EVOUTC_bm;  // EVOUTC on PC2(Q_CLK)
-    PORTMUX.EVSYSROUTEA &= ~PORTMUX_EVOUTF_bm;  // EVOUTF on PF2(E_CLK)
+    PORTMUX.EVSYSROUTEA &= ~PORTMUX_EVOUT2_bm;  // EVOUTC on PC2(Q_CLK)
+    PORTMUX.EVSYSROUTEA &= ~PORTMUX_EVOUT5_bm;  // EVOUTF on PF2(E_CLK)
 }
 
 static void setupEVSYS() {
