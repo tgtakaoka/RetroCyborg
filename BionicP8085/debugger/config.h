@@ -7,7 +7,7 @@
 #define VERSION_TEXT "0.1"
 #define Console Serial
 
-#define UART_BASE_ADDR 0x00
+#define USART_BASE_ADDR 0x00
 
 #if defined(ARDUINO_TEENSY41)
 #define PORT_AD 6     /* GPIO6 */

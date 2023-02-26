@@ -6,6 +6,21 @@
 #include "config.h"
 #include "signals.h"
 
+enum IntrName : uint8_t {
+    INTR_NONE = 0,
+    INTR_RST1 = 0x08,   // RST 1: 0008H
+    INTR_RST2 = 0x10,   // RST 2: 0010H
+    INTR_RST3 = 0x18,   // RST 3: 0018H
+    INTR_RST4 = 0x20,   // RST 4: 0020H
+    INTR_RST5 = 0x28,   // RST 5: 0028H
+    INTR_RST6 = 0x30,   // RST 6: 0030H
+    INTR_RST7 = 0x38,   // RST 7: 0038H
+    INTR_RST55 = 0x2C,  // RST 5.5: 002CH
+    INTR_RST65 = 0x34,  // RST 6.5: 0034H
+    INTR_RST75 = 0x3C,  // RST 7.5: 003CH
+    INTR_TRAP = 0x24,   // TRAP: 0024H
+};
+
 class Pins {
 public:
     void begin();
@@ -23,14 +38,13 @@ public:
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
-    uint8_t allocateIntr();
-    void assertIntr(const uint8_t intr);
-    void negateIntr(const uint8_t intr);
+    void assertIntr(IntrName intr);
+    void negateIntr(IntrName intr);
 
     enum Device : uint8_t {
         NONE = 0,
-        UART = 1,  // P8251 UART
-        SCI = 2,   // P8085 SOD/SID software UART
+        USART = 1,  // i8251 UART
+        SIO = 2,    // i8085 SOD/SID software UART
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
@@ -42,7 +56,7 @@ public:
 
 private:
     bool _freeRunning;
-    uint8_t _intr;
+    uint8_t _inta;
 
     friend class Regs;
     Signals &cycleT1();
@@ -58,6 +72,8 @@ private:
     void setDeviceBase(Device dev, bool hasValue, uint16_t base);
     Device getSerialDevice(uint16_t &baseAddr) const;
     void setSerialDevice(Device dev, uint16_t addr);
+
+    static uint8_t intrToInta(IntrName intr);
 };
 
 extern Pins Pins;

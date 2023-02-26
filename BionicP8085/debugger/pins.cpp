@@ -5,11 +5,13 @@
 #include "commands.h"
 #include "config.h"
 #include "digital_fast.h"
+#include "i8251.h"
 #include "regs.h"
 #include "string_util.h"
 
 extern libcli::Cli cli;
 class Pins Pins;
+I8251 Usart(Console);
 
 static constexpr bool debug_cycles = false;
 
@@ -212,8 +214,9 @@ void Pins::begin() {
         x1_cycle();
     // Now CLK=L and X1=L
     _freeRunning = false;
+    _inta = Regs::NOP;
 
-    setDeviceBase(Device::UART);
+    setDeviceBase(Device::USART);
 }
 
 Signals &Pins::cycleT1() {
@@ -269,12 +272,27 @@ Signals &Pins::cycleT3(Signals &signals) {
             }
         }
     } else {  // I/O access
+        const uint8_t ioaddr = signals.addr;
         if (signals.rd == LOW) {
-            // TODO
+            if (Usart.isSelected(ioaddr)) {
+                signals.debug('u').data = Usart.read(ioaddr);
+            } else {
+                signals.debug('U').data = 0;
+            }
+            busWrite(AD, signals.data);
+            busMode(AD, OUTPUT);
         } else if (signals.wr == LOW) {
-            // TODO
+            signals.getData();
+            if (Usart.isSelected(ioaddr)) {
+                Usart.write(signals.debug('u').data, ioaddr);
+            } else {
+                signals.debug('U');
+            }
         } else if (signals.inta == LOW) {
-            // TODO
+            signals.debug('a').data = _inta;
+            busWrite(AD, signals.data);
+            busMode(AD, OUTPUT);
+            _inta = Regs::NOP;
         }
     }
     // T3H
@@ -332,6 +350,10 @@ void Pins::reset(bool show) {
     // #periods to ensure proper synchronization of the CPU.
     for (auto i = 0; i < 3; i++)
         clk_cycle();
+
+    _freeRunning = false;
+    _inta = Regs::NOP;
+
     negate_reset();
     // #RESET_IN is sampled here falling transition of next CLK.
     clk_cycle();
@@ -340,7 +362,7 @@ void Pins::reset(bool show) {
 
     Regs.save(show);
 
-    // Uart.reset();
+    Usart.reset();
     // SciH.reset();
 }
 
@@ -350,7 +372,7 @@ void Pins::idle() {
 
 void Pins::loop() {
     if (_freeRunning) {
-        // Uart.loop();
+        Usart.loop();
         cycleT1();
         cycleT3(cycleT2());
         if (user_sw() == LOW) {
@@ -414,49 +436,89 @@ void Pins::step(bool show) {
     Regs.save(debug_cycles);
 }
 
-uint8_t Pins::allocateIntr() {
-    static uint8_t intr = 0;
-    return intr++;
+uint8_t Pins::intrToInta(IntrName intr) {
+    switch (intr) {
+    default:
+        return Regs::RST_0 | (uint8_t(intr) & 0x38);
+    case INTR_RST55:
+    case INTR_RST65:
+    case INTR_RST75:
+    case INTR_TRAP:
+        return Regs::NOP;
+    }
 }
 
-void Pins::assertIntr(uint8_t intr) {
-    _intr |= (1 << intr);
-    if (_intr)
+void Pins::assertIntr(IntrName intr) {
+    switch (intr) {
+    default:
         assert_intr();
+        break;
+    case INTR_RST55:
+        digitalWriteFast(PIN_RST55, HIGH);
+        break;
+    case INTR_RST65:
+        digitalWriteFast(PIN_RST65, HIGH);
+        break;
+    case INTR_RST75:
+        digitalWriteFast(PIN_RST75, HIGH);
+        break;
+    case INTR_TRAP:
+        assert_trap();
+        break;
+    case INTR_NONE:
+        break;
+    }
+    _inta = intrToInta(intr);
 }
 
-void Pins::negateIntr(uint8_t intr) {
-    _intr &= ~(1 << intr);
-    if (_intr == 0)
+void Pins::negateIntr(IntrName intr) {
+    switch (intr) {
+    default:
         negate_intr();
+        break;
+    case INTR_RST55:
+        digitalWriteFast(PIN_RST55, LOW);
+        break;
+    case INTR_RST65:
+        digitalWriteFast(PIN_RST65, LOW);
+        break;
+    case INTR_RST75:
+        digitalWriteFast(PIN_RST75, LOW);
+        break;
+    case INTR_TRAP:
+        negate_trap();
+        break;
+    case INTR_NONE:
+        break;
+    }
 }
 
-static const char TEXT_UART[] PROGMEM = "UART";
-static const char TEXT_SCI[] PROGMEM = "SCI";
+static const char TEXT_USART[] PROGMEM = "USART";
+static const char TEXT_SIO[] PROGMEM = "SIO";
 
 Pins::Device Pins::parseDevice(const char *name) const {
-    if (strcasecmp_P(name, TEXT_UART) == 0)
-        return Device::UART;
-    if (strcasecmp_P(name, TEXT_SCI) == 0)
-        return Device::SCI;
+    if (strcasecmp_P(name, TEXT_USART) == 0)
+        return Device::USART;
+    if (strcasecmp_P(name, TEXT_SIO) == 0)
+        return Device::SIO;
     return Device::NONE;
 }
 
 void Pins::getDeviceName(Pins::Device dev, char *name) const {
     *name = 0;
-    if (dev == Device::UART)
-        strcpy_P(name, TEXT_UART);
-    if (dev == Device::SCI)
-        strcpy_P(name, TEXT_SCI);
+    if (dev == Device::USART)
+        strcpy_P(name, TEXT_USART);
+    if (dev == Device::SIO)
+        strcpy_P(name, TEXT_SIO);
 }
 
 void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
     switch (dev) {
-    case Device::UART:
-        setSerialDevice(Device::UART, hasValue ? base : UART_BASE_ADDR);
+    case Device::USART:
+        setSerialDevice(Device::USART, hasValue ? base : USART_BASE_ADDR);
         break;
-    case Device::SCI:
-        setSerialDevice(Device::SCI, hasValue ? base : 0);
+    case Device::SIO:
+        setSerialDevice(Device::SIO, hasValue ? base : 0);
         break;
     default:
         break;
@@ -467,15 +529,16 @@ void Pins::printDevices() const {
     cli.println();
     uint16_t baseAddr;
     const auto serial = getSerialDevice(baseAddr);
-    cli.print(F("UART (P8251) "));
-    if (serial == Device::UART) {
-        cli.print(F("at $"));
-        cli.printlnHex(baseAddr, 2);
+    cli.print(F("USART (i8251) "));
+    if (serial == Device::USART) {
+        cli.print(F("at 0"));
+        cli.printHex(baseAddr, 2);
+        cli.println('H');
     } else {
         cli.println(F("disabled"));
     }
-    cli.print(F("SCI (P8085) "));
-    if (serial == Device::SCI) {
+    cli.print(F("SIO (i8085) "));
+    if (serial == Device::SIO) {
         cli.print(F("at "));
         cli.printDec(baseAddr);
         cli.println(F(" bps"));
@@ -485,29 +548,25 @@ void Pins::printDevices() const {
 }
 
 Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
-#if 0
-    if (_serialDevice == Device::UART) {
-        baseAddr = Uart.baseAddr();
+    if (_serialDevice == Device::USART) {
+        baseAddr = Usart.baseAddr();
     }
-    if (_serialDevice == Device::SCI) {
-        baseAddr = SciH.baudrate();
-    }
-#endif
+    //if (_serialDevice == Device::SIO) {
+    //baseAddr = SciH.baudrate();
+    //}
     return _serialDevice;
 }
 
 void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
     _serialDevice = device;
-#if 0
-    if (device == Device::UART) {
-        Uart.enable(true, baseAddr);
-        SciH.enable(false, 0);
+    if (device == Device::USART) {
+        Usart.enable(true, baseAddr);
+        //SciH.enable(false, 0);
     }
-    if (device == Device::SCI) {
-        Uart.enable(false, 0);
-        SciH.enable(true, baseAddr);
+    if (device == Device::SIO) {
+        Usart.enable(false, 0);
+        //SciH.enable(true, baseAddr);
     }
-#endif
 }
 
 // Local Variables:

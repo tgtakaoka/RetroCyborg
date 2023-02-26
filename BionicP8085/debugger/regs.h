@@ -53,6 +53,9 @@ struct Regs {
     uint16_t disassemble(uint16_t addr, uint16_t numInsn) const;
     uint16_t assemble(uint16_t addr, const char *line) const;
 
+    static constexpr uint8_t NOP = 0x00;
+    static constexpr uint8_t RST_0 = 0xC7;
+
 private:
     uint16_t selectBase(uint8_t insn) const;
 };
