@@ -9,7 +9,7 @@ stack:  equ     $01ff
 
         org     $1000
 initialize:
-        ldx     #stack
+        ldx     #stack & 0xFF
         txs
         cld                     ; clear decimal flag
         lda     #CDS_RESET_gc   ; Master reset

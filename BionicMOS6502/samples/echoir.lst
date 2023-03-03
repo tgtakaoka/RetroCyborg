@@ -98,7 +98,7 @@
           8 :
        1000 :                            org     $1000
        1000 :                    initialize:
-       1000 : A2 FF                      ldx     #stack
+       1000 : A2 FF                      ldx     #stack & $FF
        1002 : 9A                         txs
        1003 : D8                         cld                     ; clear decimal flag
        1004 : A2 02                      ldx     #rx_queue

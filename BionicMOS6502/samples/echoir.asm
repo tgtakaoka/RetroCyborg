@@ -18,7 +18,7 @@ stack:  equ     $01ff
 
         org     $1000
 initialize:
-        ldx     #stack
+        ldx     #stack & $FF
         txs
         cld                     ; clear decimal flag
         ldx     #rx_queue
