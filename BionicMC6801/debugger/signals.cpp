@@ -7,7 +7,7 @@
 #include "regs.h"
 #include "string_util.h"
 
-extern libcli::Cli &cli;
+extern libcli::Cli cli;
 
 uint8_t Signals::_cycles;
 Signals Signals::_signals[MAX_CYCLES + 1];

@@ -9,7 +9,7 @@
 #include "pins.h"
 #include "string_util.h"
 
-extern libcli::Cli &cli;
+extern libcli::Cli cli;
 extern Mc6850 Acia;
 
 libasm::mc6800::AsmMc6800 assembler;

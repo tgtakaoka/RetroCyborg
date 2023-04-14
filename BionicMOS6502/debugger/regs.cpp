@@ -12,7 +12,7 @@
 
 static constexpr bool debug_cycles = false;
 
-extern libcli::Cli &cli;
+extern libcli::Cli cli;
 extern Mc6850 Acia;
 
 libasm::mos6502::AsmMos6502 assembler;

@@ -8,7 +8,7 @@
 #include "pins.h"
 #include "string_util.h"
 
-extern libcli::Cli &cli;
+extern libcli::Cli cli;
 extern Mc6850 Acia;
 
 libasm::mc6805::AsmMc6805 assembler;

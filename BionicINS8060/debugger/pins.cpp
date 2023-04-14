@@ -11,7 +11,7 @@
 #include "signals.h"
 #include "string_util.h"
 
-extern libcli::Cli &cli;
+extern libcli::Cli cli;
 
 class Pins Pins;
 Mc6850 Acia(Console);

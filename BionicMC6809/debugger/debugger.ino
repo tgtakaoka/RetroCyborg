@@ -9,7 +9,7 @@
 #include "commands.h"
 #include "pins.h"
 
-libcli::Cli &cli = libcli::Cli::instance();
+libcli::Cli cli;
 
 void setup() {
     Console.begin(115200);

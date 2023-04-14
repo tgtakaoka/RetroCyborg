@@ -12,7 +12,7 @@
 
 #include <ctype.h>
 
-extern libcli::Cli &cli;
+extern libcli::Cli cli;
 extern Mc6850 Acia;
 
 static constexpr bool debug_cycles = false;

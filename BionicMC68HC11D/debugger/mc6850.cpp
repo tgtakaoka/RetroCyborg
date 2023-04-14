@@ -10,7 +10,7 @@
 //#define DEBUG_READ
 //#define DEBUG_WRITE
 
-extern libcli::Cli &cli;
+extern libcli::Cli cli;
 
 Mc6850::Mc6850(Stream &stream)
     : _stream(stream),

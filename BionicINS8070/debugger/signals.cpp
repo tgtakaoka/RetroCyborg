@@ -7,7 +7,7 @@
 #include "regs.h"
 #include "string_util.h"
 
-extern libcli::Cli &cli;
+extern libcli::Cli cli;
 
 static constexpr bool debug_cycles = false;
 

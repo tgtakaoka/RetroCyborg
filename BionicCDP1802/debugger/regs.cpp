@@ -10,7 +10,7 @@
 
 #include <ctype.h>
 
-extern libcli::Cli &cli;
+extern libcli::Cli cli;
 extern Mc6850 Acia;
 
 libasm::cdp1802::AsmCdp1802 assembler;

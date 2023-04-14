@@ -30,8 +30,8 @@
 
 #include <string.h>
 
-typedef libcli::Cli::State State;
-extern libcli::Cli &cli;
+using State = libcli::State;
+extern libcli::Cli cli;
 
 #define USAGE                                                              \
     F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep c/C:ont G:o " \
