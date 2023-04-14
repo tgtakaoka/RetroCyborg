@@ -154,9 +154,9 @@
        1056 : 31                         xpal    P1
        1057 : C4 11                      ldi     h(addr(putchar))
        1059 : 35                         xpah    P1
-       105A : C4 0D                      ldi     '\r'
+       105A : C4 0D                      ldi     x'0d
        105C : 3D                         xppc    P1              ; call putchar
-       105D : C4 0A                      ldi     '\n'
+       105D : C4 0A                      ldi     x'0a
        105F : 3D                         xppc    P1              ; call putchar
        1060 : 90 C7                      jmp     loop
        1062 :

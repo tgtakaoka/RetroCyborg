@@ -141,10 +141,10 @@
         13B : 87                         glo     R7
         13C : D4                         sep     R4              ; call put_bin8
         13D : 01 7C                      dw      put_bin8
-        13F : F8 0D                      ldi     '\r'
+        13F : F8 0D                      ldi     x'0d'
         141 : D4                         sep     R4              ; call putchar
         142 : 01 AB                      dw      putchar
-        144 : F8 0A                      ldi     '\n'
+        144 : F8 0A                      ldi     x'0a'
         146 : D4                         sep     R4              ; call putchar
         147 : 01 AB                      dw      putchar
         149 : C0 01 24                   lbr     loop

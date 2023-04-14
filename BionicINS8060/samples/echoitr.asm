@@ -90,9 +90,9 @@ wait_char:
         xpal    P1
         ldi     h(addr(putchar))
         xpah    P1
-        ldi     '\r'
+        ldi     x'0d
         xppc    P1              ; call putchar
-        ldi     '\n'
+        ldi     x'0a
         xppc    P1              ; call putchar
         jmp     loop
 

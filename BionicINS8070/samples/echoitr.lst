@@ -147,9 +147,9 @@
        1044 :                    ;;; Put newline
        1044 :                    ;;; @clobber A
        1044 :                    newline:
-       1044 : C4 0D                      ld      a, =0x0D
+       1044 : C4 0D                      ld      a, =X'0D
        1046 : 20 AF 10                   jsr     putchar
-       1049 : C4 0A                      ld      a, =0x0A
+       1049 : C4 0A                      ld      a, =X'0A
        104B : 24 AF 10                   jmp     putchar
        104E :
        104E :                    ;;; Print uint8_t in hex

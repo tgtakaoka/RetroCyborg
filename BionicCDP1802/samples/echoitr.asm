@@ -70,10 +70,10 @@ loop:
         glo     R7
         sep     R4              ; call put_bin8
         dw      put_bin8
-        ldi     '\r'
+        ldi     x'0d'
         sep     R4              ; call putchar
         dw      putchar
-        ldi     '\n'
+        ldi     x'0a'
         sep     R4              ; call putchar
         dw      putchar
         lbr     loop

@@ -64,9 +64,9 @@ loop:
 ;;; Put newline
 ;;; @clobber A
 newline:
-        ld      a, =0x0D
+        ld      a, =X'0D
         jsr     putchar
-        ld      a, =0x0A
+        ld      a, =X'0A
         jmp     putchar
 
 ;;; Print uint8_t in hex
