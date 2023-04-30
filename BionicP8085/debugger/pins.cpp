@@ -5,6 +5,7 @@
 #include "commands.h"
 #include "config.h"
 #include "digital_fast.h"
+#include "i8085_sio_handler.h"
 #include "i8251.h"
 #include "regs.h"
 #include "string_util.h"
@@ -12,6 +13,7 @@
 extern libcli::Cli cli;
 class Pins Pins;
 I8251 Usart(Console);
+I8085SioHandler Sio(Console);
 
 static constexpr bool debug_cycles = false;
 
@@ -55,19 +57,21 @@ static inline auto signal_clk() {
     return digitalReadFast(PIN_CLK);
 }
 
-static inline void clk_hi() {
+void Pins::clk_hi() const {
     x1_hi();
     delayNanoseconds(clk_hi_x1_ns);
+    if (_freeRunning)
+        Sio.loop();
     x1_lo();
 }
 
-static inline void clk_lo() {
+void Pins::clk_lo() const {
     x1_hi();
     delayNanoseconds(clk_lo_x1_ns);
     x1_lo();
 }
 
-static inline void clk_cycle() {
+void Pins::clk_cycle() const {
     clk_hi();
     delayNanoseconds(clk_hi_ns);
     clk_lo();
@@ -363,7 +367,7 @@ void Pins::reset(bool show) {
     Regs.save(show);
 
     Usart.reset();
-    // SciH.reset();
+    Sio.reset();
 }
 
 void Pins::idle() {
@@ -551,9 +555,9 @@ Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
     if (_serialDevice == Device::USART) {
         baseAddr = Usart.baseAddr();
     }
-    //if (_serialDevice == Device::SIO) {
-    //baseAddr = SciH.baudrate();
-    //}
+    if (_serialDevice == Device::SIO) {
+        baseAddr = Sio.baudrate();
+    }
     return _serialDevice;
 }
 
@@ -561,11 +565,11 @@ void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
     _serialDevice = device;
     if (device == Device::USART) {
         Usart.enable(true, baseAddr);
-        //SciH.enable(false, 0);
+        Sio.enable(false);
     }
     if (device == Device::SIO) {
         Usart.enable(false, 0);
-        //SciH.enable(true, baseAddr);
+        Sio.enable(true);
     }
 }
 

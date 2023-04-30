@@ -59,6 +59,9 @@ private:
     uint8_t _inta;
 
     friend class Regs;
+    void clk_hi() const;
+    void clk_lo() const;
+    void clk_cycle() const;
     Signals &cycleT1();
     Signals &cycleT2();
     Signals &cycleT2Ready();
