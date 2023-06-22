@@ -3,38 +3,39 @@
 
 #include <stdint.h>
 
+#include "config.h"
+
 struct Signals {
-    bool getAddr();
-    bool read() const { return (flags & F_READ) != 0; }
-    bool write() const { return (flags & F_READ) == 0; }
-    bool fetchInsn() const { return (flags & F_INSN) != 0; }
-    bool delay() const { return (flags & F_DELAY) != 0; }
-    bool halt() const { return (flags & F_HALT) != 0; }
+    void getAddr();
+    bool read() const { return rw != 0; }
+    bool write() const { return rw == 0; }
     void getData();
+    void outData();
     void clear();
-    static void inject(uint8_t data);
-    static void capture();
+    Signals &inject(uint8_t data);
+    void capture();
     void print() const;
     Signals &debug(char c);
 
     uint16_t addr;
-    uint8_t flags;
     uint8_t data;
+    uint8_t rw;
+#if Z8_DATA_MEMORY == 1
+    uint8_t dm;
+#endif
 
-    enum Flags : uint8_t {
-        F_READ = 0x10,
-        F_INSN = 0x20,
-        F_DELAY = 0x40,
-        F_HALT = 0x80,
-    };
-
-    bool readRam() const { return _inject == false; }
-    bool writeRam() const { return _capture == false; }
+    bool readRam() const {
+        return _inject == false;
+    }
+    bool writeRam() const {
+        return _capture == false;
+    }
 
     static void printCycles();
     static void disassembleCycles();
     static Signals &currCycle();
     static void resetCycles();
+    static void resetTo(const Signals &);
     static void nextCycle();
 
 private:
@@ -42,7 +43,7 @@ private:
     bool _capture;
     char _debug;
 
-    static constexpr uint8_t MAX_CYCLES = 64;
+    static constexpr uint8_t MAX_CYCLES = 92;
     static uint8_t _put;
     static uint8_t _get;
     static uint8_t _cycles;

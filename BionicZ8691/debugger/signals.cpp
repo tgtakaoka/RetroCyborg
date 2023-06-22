@@ -20,30 +20,34 @@ void Signals::clear() {
 }
 
 void Signals::printCycles() {
-    for (auto i = 0; i < _cycles; i++) {
-        _signals[(i + _get) % MAX_CYCLES].print();
+    const auto n = _cycles;
+    const auto g = _get;
+    for (auto i = 0; i < n; i++) {
+        const auto x = (i + g) % MAX_CYCLES;
+        _signals[x].print();
         Pins.idle();
     }
 }
 
 void Signals::disassembleCycles() {
-    uint16_t lasti = 0;
-    uint16_t nexti = 0;
-    for (auto i = 0; i < _cycles; i++) {
-        const auto x = (i + _get) % MAX_CYCLES;
-        const Signals &signals = _signals[x];
-        if (signals.fetchInsn()) {
-            nexti = Regs.disassemble(lasti = signals.addr, 1);
-        } else if (signals.write()) {
-            cli.printHex(signals.addr, 4);
-            cli.print(F(": W "));
-            cli.printlnHex(signals.data, 2);
-        } else if (signals.read()) {
-            if (signals.addr < lasti || signals.addr >= nexti) {
-                cli.printHex(signals.addr, 4);
-                cli.print(F(": R "));
-                cli.printlnHex(signals.data, 2);
+    const auto n = _cycles;
+    const auto g = _get;
+    for (auto i = 0; i < n;) {
+        const auto x = (i + g) % MAX_CYCLES;
+        const auto &signals = _signals[x];
+        const auto len = Regs::insnLen(signals.data);
+        if (len) {
+            Regs.disassemble(signals.addr, 1);
+            i += len;
+            const auto b = Regs::busCycles(signals.data) - len;
+            for (auto j = 0; j < b; j++) {
+                const auto &s = _signals[(i + g + j) % MAX_CYCLES];
+                s.print();
             }
+            i += b;
+        } else {
+            signals.print();
+            i++;
         }
         Pins.idle();
     }
@@ -55,6 +59,12 @@ Signals &Signals::currCycle() {
 
 void Signals::resetCycles() {
     _cycles = 0;
+    _signals[_get = _put].clear();
+}
+
+void Signals::resetTo(const Signals &signals) {
+    _cycles = 0;
+    _put = &signals - &_signals[0];
     _signals[_get = _put].clear();
 }
 
@@ -70,41 +80,40 @@ void Signals::nextCycle() {
     _signals[_put].clear();
 }
 
-bool Signals::getAddr() {
-    if (digitalReadFast(PIN_ADS) == LOW) {
-        flags = busRead(DB);
-        addr = (static_cast<uint16_t>(flags & 0xF) << 12)
-#if defined(ADM_vp)
-            | busRead(ADM)
+void Signals::getAddr() {
+    addr = busRead(ADDR);
+    rw = digitalReadFast(PIN_RW);
+#if Z8_DATA_MEMORY == 1
+    dm = digitalReadFast(PIN_DM);
 #endif
-            | busRead(ADL);
-        return true;
-    }
-    return false;
 }
 
 void Signals::getData() {
-    data = busRead(DB);
+    data = busRead(DATA);
 }
 
-void Signals::inject(uint8_t val) {
-    Signals &curr = currCycle();
-    curr._inject = true;
-    curr.data = val;
-    curr.debug('i');
+void Signals::outData() {
+    busWrite(DATA, data);
+    busMode(DATA, OUTPUT);
+}
+
+Signals &Signals::inject(uint8_t val) {
+    _inject = true;
+    data = val;
+    return *this;
 }
 
 void Signals::capture() {
-    Signals &curr = currCycle();
-    curr._capture = true;
-    curr.debug('c');
+    _capture = true;
 }
 
 void Signals::print() const {
     // clang-format off
     static char buffer[] = {
         ' ', ' ',                  // _debug=0
-        ' ',                       // I/D/H=2
+#if Z8_DATA_MEMORY == 1
+        ' ',                       // P/D=2
+#endif
         'R',                       // R/W=3
         ' ', 'A', '=', 0, 0, 0, 0, // addr=7
         ' ', 'D', '=', 0, 0,       // data=14
@@ -112,10 +121,12 @@ void Signals::print() const {
     };
     // clang-format off
     buffer[0] = _debug;
-    buffer[2] = fetchInsn() ? 'I' : (delay() ? 'D' : (halt() ? 'H' : ' '));
-    buffer[3] = read() ? 'R' : 'W';
-    outHex16(buffer + 7, addr);
-    outHex8(buffer + 14, data);
+#if Z8_DATA_MEMORY == 1
+    buffer[2] = dm ? 'P' : 'D';
+#endif
+    buffer[2 + Z8_DATA_MEMORY] = read() ? 'R' : 'W';
+    outHex16(buffer + 6 + Z8_DATA_MEMORY, addr);
+    outHex8(buffer + 13 + Z8_DATA_MEMORY, data);
     cli.println(buffer);
 }
 

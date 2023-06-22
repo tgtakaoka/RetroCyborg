@@ -1,297 +1,328 @@
+
 #include "regs.h"
 
 #include <libcli.h>
 
-#include <asm_ins8060.h>
-#include <dis_ins8060.h>
+#include <asm_z8.h>
+#include <dis_z8.h>
 #include "config.h"
 #include "digital_fast.h"
 #include "pins.h"
 #include "string_util.h"
-#include "mc6850.h"
 
 #include <ctype.h>
 
 extern libcli::Cli cli;
-extern Mc6850 Acia;
 
 static constexpr bool debug_cycles = false;
 
-libasm::ins8060::AsmIns8060 assembler;
-libasm::ins8060::DisIns8060 disassembler;
+libasm::z8::AsmZ8 assembler;
+libasm::z8::DisZ8 disassembler;
 
 struct Regs Regs;
 struct Memory Memory;
 
-static constexpr uint8_t cycles[] = {
-        2,  // RR  : 00: HALT 1:8
-        1,  // R   : 01: XAE  1:7
-        1,  // R   : 02: CCL  1:5
-        1,  // R   : 03: SCL  1:5
-        1,  // R   : 04: DINT 1:6
-        1,  // R   : 05: IEN  1:6
-        1,  // R   : 06: CSA  1:5
-        1,  // R   : 07: CAS  1:6
-        1,  // R   : 08: NOP  1:5
-        0,  // -   : 09: -    -:-
-        0,  // -   : 0A: -    -:-
-        0,  // -   : 0B: -    -:-
-        0,  // -   : 0C: -    -:-
-        0,  // -   : 0D: -    -:-
-        0,  // -   : 0E: -    -:-
-        0,  // -   : 0F: -    -:-
-        0,  // -   : 10: -    -:-
-        0,  // -   : 11: -    -:-
-        0,  // -   : 12: -    -:-
-        0,  // -   : 13: -    -:-
-        0,  // -   : 14: -    -:-
-        0,  // -   : 15: -    -:-
-        0,  // -   : 16: -    -:-
-        0,  // -   : 17: -    -:-
-        0,  // -   : 18: -    -:-
-        1,  // R   : 19: SIO  1:5
-        0,  // -   : 1A: -    -:-
-        0,  // -   : 1B: -    -:-
-        1,  // R   : 1C: SR   1:5
-        1,  // R   : 1D: SRL  1:5
-        1,  // R   : 1E: RR   1:5
-        1,  // R   : 1F: RRL  1:5
-        0,  // -   : 20: -    -:-
-        0,  // -   : 21: -    -:-
-        0,  // -   : 22: -    -:-
-        0,  // -   : 23: -    -:-
-        0,  // -   : 24: -    -:-
-        0,  // -   : 25: -    -:-
-        0,  // -   : 26: -    -:-
-        0,  // -   : 27: -    -:-
-        0,  // -   : 28: -    -:-
-        0,  // -   : 29: -    -:-
-        0,  // -   : 2A: -    -:-
-        0,  // -   : 2B: -    -:-
-        0,  // -   : 2C: -    -:-
-        0,  // -   : 2D: -    -:-
-        0,  // -   : 2E: -    -:-
-        0,  // -   : 2F: -    -:-
-        1,  // R   : 30: XPAL 1:8
-        1,  // R   : 31: XPAL 1:8
-        1,  // R   : 32: XPAL 1:8
-        1,  // R   : 33: XPAL 1:8
-        1,  // R   : 34: XPAH 1:8
-        1,  // R   : 35: XPAH 1:8
-        1,  // R   : 36: XPAH 1:8
-        1,  // R   : 37: XPAH 1:8
-        0,  // -   : 38: -    -:-
-        0,  // -   : 39: -    -:-
-        0,  // -   : 3A: -    -:-
-        0,  // -   : 3B: -    -:-
-        1,  // R   : 3C: XPPC 1:7
-        1,  // R   : 3D: XPPC 1:7
-        1,  // R   : 3E: XPPC 1:7
-        1,  // R   : 3F: XPPC 1:7
-        1,  // R   : 40: LDE  1:6
-        0,  // -   : 41: -    -:-
-        0,  // -   : 42: -    -:-
-        0,  // -   : 43: -    -:-
-        0,  // -   : 44: -    -:-
-        0,  // -   : 45: -    -:-
-        0,  // -   : 46: -    -:-
-        0,  // -   : 47: -    -:-
-        0,  // -   : 48: -    -:-
-        0,  // -   : 49: -    -:-
-        0,  // -   : 4A: -    -:-
-        0,  // -   : 4B: -    -:-
-        0,  // -   : 4C: -    -:-
-        0,  // -   : 4D: -    -:-
-        0,  // -   : 4E: -    -:-
-        0,  // -   : 4F: -    -:-
-        1,  // R   : 50: ANE  1:7
-        0,  // -   : 51: -    -:-
-        0,  // -   : 52: -    -:-
-        0,  // -   : 53: -    -:-
-        0,  // -   : 54: -    -:-
-        0,  // -   : 55: -    -:-
-        0,  // -   : 56: -    -:-
-        0,  // -   : 57: -    -:-
-        1,  // R   : 58: ORE  1:6
-        0,  // -   : 59: -    -:-
-        0,  // -   : 5A: -    -:-
-        0,  // -   : 5B: -    -:-
-        0,  // -   : 5C: -    -:-
-        0,  // -   : 5D: -    -:-
-        0,  // -   : 5E: -    -:-
-        0,  // -   : 5F: -    -:-
-        1,  // R   : 60: XRE  1:6
-        0,  // -   : 61: -    -:-
-        0,  // -   : 62: -    -:-
-        0,  // -   : 63: -    -:-
-        0,  // -   : 64: -    -:-
-        0,  // -   : 65: -    -:-
-        0,  // -   : 66: -    -:-
-        0,  // -   : 67: -    -:-
-        1,  // R   : 68: DAE  1:11
-        0,  // -   : 69: -    -:-
-        0,  // -   : 6A: -    -:-
-        0,  // -   : 6B: -    -:-
-        0,  // -   : 6C: -    -:-
-        0,  // -   : 6D: -    -:-
-        0,  // -   : 6E: -    -:-
-        0,  // -   : 6F: -    -:-
-        1,  // R   : 70: ADE  1:7
-        0,  // -   : 71: -    -:-
-        0,  // -   : 72: -    -:-
-        0,  // -   : 73: -    -:-
-        0,  // -   : 74: -    -:-
-        0,  // -   : 75: -    -:-
-        0,  // -   : 76: -    -:-
-        0,  // -   : 77: -    -:-
-        1,  // R   : 78: CAE  1:8
-        0,  // -   : 79: -    -:-
-        0,  // -   : 7A: -    -:-
-        0,  // -   : 7B: -    -:-
-        0,  // -   : 7C: -    -:-
-        0,  // -   : 7D: -    -:-
-        0,  // -   : 7E: -    -:-
-        0,  // -   : 7F: -    -:-
-        0,  // -   : 80: -    -:-
-        0,  // -   : 81: -    -:-
-        0,  // -   : 82: -    -:-
-        0,  // -   : 83: -    -:-
-        0,  // -   : 84: -    -:-
-        0,  // -   : 85: -    -:-
-        0,  // -   : 86: -    -:-
-        0,  // -   : 87: -    -:-
-        0,  // -   : 88: -    -:-
-        0,  // -   : 89: -    -:-
-        0,  // -   : 8A: -    -:-
-        0,  // -   : 8B: -    -:-
-        0,  // -   : 8C: -    -:-
-        0,  // -   : 8D: -    -:-
-        0,  // -   : 8E: -    -:-
-        2,  // RR  : 8F: DLY  2:13-131593
-        2,  // RR  : 90: JMP  2:11
-        2,  // RR  : 91: JMP  2:11
-        2,  // RR  : 92: JMP  2:11
-        2,  // RR  : 93: JMP  2:11
-        2,  // RR  : 94: JP   2:9/11
-        2,  // RR  : 95: JP   2:9/11
-        2,  // RR  : 96: JP   2:9/11
-        2,  // RR  : 97: JP   2:9/11
-        2,  // RR  : 98: JZ   2:9/11
-        2,  // RR  : 99: JZ   2:9/11
-        2,  // RR  : 9A: JZ   2:9/11
-        2,  // RR  : 9B: JZ   2:9/11
-        2,  // RR  : 9C: JNZ  2:9/11
-        2,  // RR  : 9D: JNZ  2:9/11
-        2,  // RR  : 9E: JNZ  2:9/11
-        2,  // RR  : 9F: JNZ  2:9/11
-        0,  // -   : A0: -    -:-
-        0,  // -   : A1: -    -:-
-        0,  // -   : A2: -    -:-
-        0,  // -   : A3: -    -:-
-        0,  // -   : A4: -    -:-
-        0,  // -   : A5: -    -:-
-        0,  // -   : A6: -    -:-
-        0,  // -   : A7: -    -:-
-        4,  // RRRW: A8: ILD  2:22
-        4,  // RRRW: A9: ILD  2:22
-        4,  // RRRW: AA: ILD  2:22
-        4,  // RRRW: AB: ILD  2:22
-        0,  // -   : AC: -    -:-
-        0,  // -   : AD: -    -:-
-        0,  // -   : AE: -    -:-
-        0,  // -   : AF: -    -:-
-        0,  // -   : B0: -    -:-
-        0,  // -   : B1: -    -:-
-        0,  // -   : B2: -    -:-
-        0,  // -   : B3: -    -:-
-        0,  // -   : B4: -    -:-
-        0,  // -   : B5: -    -:-
-        0,  // -   : B6: -    -:-
-        0,  // -   : B7: -    -:-
-        4,  // RRRW: B8: DLD  2:22
-        4,  // RRRW: B9: DLD  2:22
-        4,  // RRRW: BA: DLD  2:22
-        4,  // RRRW: BB: DLD  2:22
-        0,  // -   : BC: -    -:-
-        0,  // -   : BD: -    -:-
-        0,  // -   : BE: -    -:-
-        0,  // -   : BF: -    -:-
-        3,  // RRR : C0: LD   2:18
-        3,  // RRR : C1: LD   2:18
-        3,  // RRR : C2: LD   2:18
-        3,  // RRR : C3: LD   2:18
-        2,  // RR  : C4: LDI  2:10
-        3,  // RRR : C5: LD   2:18
-        3,  // RRR : C6: LD   2:18
-        3,  // RRR : C7: LD   2:18
-        3,  // RRW : C8: ST   2:18
-        3,  // RRW : C9: ST   2:18
-        3,  // RRW : CA: ST   2:18
-        3,  // RRW : CB: ST   2:18
-        0,  // -   : CC: -    -:-
-        3,  // RRW : CD: ST   2:18
-        3,  // RRW : CE: ST   2:18
-        3,  // RRW : CF: ST   2:18
-        3,  // RRR : D0: AND  2:18
-        3,  // RRR : D1: AND  2:18
-        3,  // RRR : D2: AND  2:18
-        3,  // RRR : D3: AND  2:18
-        2,  // RR  : D4: ANI  2:11
-        3,  // RRR : D5: AND  2:18
-        3,  // RRR : D6: AND  2:18
-        3,  // RRR : D7: AND  2:18
-        3,  // RRR : D8: OR   2:18
-        3,  // RRR : D9: OR   2:18
-        3,  // RRR : DA: OR   2:18
-        3,  // RRR : DB: OR   2:18
-        2,  // RR  : DC: ORI  2:10
-        3,  // RRR : DD: OR   2:18
-        3,  // RRR : DE: OR   2:18
-        3,  // RRR : DF: OR   2:18
-        3,  // RRR : E0: XOR  2:18
-        3,  // RRR : E1: XOR  2:18
-        3,  // RRR : E2: XOR  2:18
-        3,  // RRR : E3: XOR  2:18
-        2,  // RR  : E4: XRI  2:10
-        3,  // RRR : E5: XOR  2:18
-        3,  // RRR : E6: XOR  2:18
-        3,  // RRR : E7: XOR  2:18
-        3,  // RRR : E8: DAD  2:23
-        3,  // RRR : E9: DAD  2:23
-        3,  // RRR : EA: DAD  2:23
-        3,  // RRR : EB: DAD  2:23
-        2,  // RR  : EC: DAI  2:15
-        3,  // RRR : ED: DAD  2:23
-        3,  // RRR : EE: DAD  2:23
-        3,  // RRR : EF: DAD  2:23
-        3,  // RRR : F0: ADD  2:19
-        3,  // RRR : F1: ADD  2:19
-        3,  // RRR : F2: ADD  2:19
-        3,  // RRR : F3: ADD  2:19
-        2,  // RR  : F4: ADI  2:11
-        3,  // RRR : F5: ADD  2:19
-        3,  // RRR : F6: ADD  2:19
-        3,  // RRR : F7: ADD  2:19
-        3,  // RRR : F8: CAD  2:20
-        3,  // RRR : F9: CAD  2:20
-        3,  // RRR : FA: CAD  2:20
-        3,  // RRR : FB: CAD  2:20
-        2,  // RR  : FC: CAI  2:12
-        3,  // RRR : FD: CAD  2:20
-        3,  // RRR : FE: CAD  2:20
-        3,  // RRR : FF: CAD  2:20
-};
+static constexpr uint8_t E(
+        uint8_t insn_len, uint8_t external_cycles, uint8_t stack_cycles) {
+    return static_cast<uint8_t>(
+            insn_len | (external_cycles << 4) | (stack_cycles << 6));
+}
 
-uint8_t Regs::bus_cycles(uint8_t insn) {
-    return cycles[insn];
+static constexpr uint8_t insn_len(uint8_t e) {
+    return e & 7;
+}
+
+static constexpr uint8_t external_cycles(uint8_t e) {
+    return (e >> 4) & 3;
+}
+
+static constexpr uint8_t stack_cycles(uint8_t e) {
+    return (e >> 6) & 3;
+}
+
+static constexpr uint8_t bus_cycles(uint8_t e) {
+    return insn_len(e) + external_cycles(e)
+#if !Z8_INTERNAL_STACK
+           + stack_cycles(e)
+#endif
+            ;
+}
+
+// clang-format: off
+static constexpr uint8_t insn_table[256] = {
+        E(2, 0, 0),  // 00:DEC  R
+        E(2, 0, 0),  // 01:DEC  IR
+        E(2, 0, 0),  // 02:ADD  r,r
+        E(2, 0, 0),  // 03:ADD  r,Ir
+        E(3, 0, 0),  // 04:ADD  R,R
+        E(3, 0, 0),  // 05:ADD  R.IR
+        E(3, 0, 0),  // 06:ADD  R,IM
+        E(3, 0, 0),  // 07:ADD  IR,IM
+        E(2, 0, 0),  // 08:LD   r0,R
+        E(2, 0, 0),  // 09:LD   R,r0
+        E(2, 0, 0),  // 0A:DJNZ r0,RA
+        E(2, 0, 0),  // 0B:JR   F,RA
+        E(2, 0, 0),  // 0C:LD   r0,IM
+        E(3, 0, 0),  // 0D:JP   F,DA
+        E(1, 0, 0),  // 0E:INC  r0
+        E(0, 0, 0),  // 0F:-    -
+        E(2, 0, 0),  // 10:RLC  R
+        E(2, 0, 0),  // 11:RLC  IR
+        E(2, 0, 0),  // 12:ADC  r,r
+        E(2, 0, 0),  // 13:ADC  r,Ir
+        E(3, 0, 0),  // 14:ADC  R,R
+        E(3, 0, 0),  // 15:ADC  R.IR
+        E(3, 0, 0),  // 16:ADC  R,IM
+        E(3, 0, 0),  // 17:ADC  IR,IM
+        E(2, 0, 0),  // 18:LD   r1,R
+        E(2, 0, 0),  // 19:LD   R,r1
+        E(2, 0, 0),  // 1A:DJNZ r1,RA
+        E(2, 0, 0),  // 1B:JR   LT,RA
+        E(2, 0, 0),  // 1C:LD   r1,IM
+        E(3, 0, 0),  // 1D:JP   LT,DA
+        E(1, 0, 0),  // 1E:INC  r1
+        E(0, 0, 0),  // 1F:-    -
+        E(2, 0, 0),  // 20:INC  R
+        E(2, 0, 0),  // 21:INC  IR
+        E(2, 0, 0),  // 22:SUB  r,r
+        E(2, 0, 0),  // 23:SUB  r,Ir
+        E(3, 0, 0),  // 24:SUB  R,R
+        E(3, 0, 0),  // 25:SUB  R.IR
+        E(3, 0, 0),  // 26:SUB  R,IM
+        E(3, 0, 0),  // 27:SUB  IR,IM
+        E(2, 0, 0),  // 28:LD   r2,R
+        E(2, 0, 0),  // 29:LD   R,r2
+        E(2, 0, 0),  // 2A:DJNZ r2,RA
+        E(2, 0, 0),  // 2B:JR   LE,RA
+        E(2, 0, 0),  // 2C:LD   r2,IM
+        E(3, 0, 0),  // 2D:JP   LE,DA
+        E(1, 0, 0),  // 2E:INC  r2
+        E(0, 0, 0),  // 2F:-    -
+        E(2, 0, 0),  // 30:JP   IRR
+        E(2, 0, 0),  // 31:SRP  IM
+        E(2, 0, 0),  // 32:SBC  r,r
+        E(2, 0, 0),  // 33:SBC  r,Ir
+        E(3, 0, 0),  // 34:SBC  R,R
+        E(3, 0, 0),  // 35:SBC  R.IR
+        E(3, 0, 0),  // 36:SBC  R,IM
+        E(3, 0, 0),  // 37:SBC  IR,IM
+        E(2, 0, 0),  // 38:LD   r3,R
+        E(2, 0, 0),  // 39:LD   R,r3
+        E(2, 0, 0),  // 3A:DJNZ r3,RA
+        E(2, 0, 0),  // 3B:JR   ULE,RA
+        E(2, 0, 0),  // 3C:LD   r3,IM
+        E(3, 0, 0),  // 3D:JP   ULE,DA
+        E(1, 0, 0),  // 3E:INC  r3
+        E(0, 0, 0),  // 3F:-    -
+        E(2, 0, 0),  // 40:DAA  R
+        E(2, 0, 0),  // 41:DAA  IR
+        E(2, 0, 0),  // 42:OR   r,r
+        E(2, 0, 0),  // 43:OR   r,Ir
+        E(3, 0, 0),  // 44:OR   R,R
+        E(3, 0, 0),  // 45:OR   R.IR
+        E(3, 0, 0),  // 46:OR   R,IM
+        E(3, 0, 0),  // 47:OR   IR,IM
+        E(2, 0, 0),  // 48:LD   r4,R
+        E(2, 0, 0),  // 49:LD   R,r4
+        E(2, 0, 0),  // 4A:DJNZ r4,RA
+        E(2, 0, 0),  // 4B:JR   OV,RA
+        E(2, 0, 0),  // 4C:LD   r4,IM
+        E(3, 0, 0),  // 4D:JP   OV,DA
+        E(1, 0, 0),  // 4E:INC  r4
+        E(0, 0, 0),  // 4F:-    -
+        E(2, 0, 1),  // 50:POP  R
+        E(2, 0, 1),  // 51:POP  IR
+        E(2, 0, 0),  // 52:AND  r,r
+        E(2, 0, 0),  // 53:AND  r,Ir
+        E(3, 0, 0),  // 54:AND  R,R
+        E(3, 0, 0),  // 55:AND  R.IR
+        E(3, 0, 0),  // 56:AND  R,IM
+        E(3, 0, 0),  // 57:AND  IR,IM
+        E(2, 0, 0),  // 58:LD   r5,R
+        E(2, 0, 0),  // 59:LD   R,r5
+        E(2, 0, 0),  // 5A:DJNZ r5,RA
+        E(2, 0, 0),  // 5B:JR   MI,RA
+        E(2, 0, 0),  // 5C:LD   r5,IM
+        E(3, 0, 0),  // 5D:JP   MI,DA
+        E(1, 0, 0),  // 5E:INC  r5
+        E(0, 0, 0),  // 5F:-    -
+        E(2, 0, 0),  // 60:COM  R
+        E(2, 0, 0),  // 61:COM  IR
+        E(2, 0, 0),  // 62:TCM  r,r
+        E(2, 0, 0),  // 63:TCM  r,Ir
+        E(3, 0, 0),  // 64:TCM  R,R
+        E(3, 0, 0),  // 65:TCM  R.IR
+        E(3, 0, 0),  // 66:TCM  R,IM
+        E(3, 0, 0),  // 67:TCM  IR,IM
+        E(2, 0, 0),  // 68:LD   r6,R
+        E(2, 0, 0),  // 69:LD   R,r6
+        E(2, 0, 0),  // 6A:DJNZ r6,RA
+        E(2, 0, 0),  // 6B:JR   Z,RA
+        E(2, 0, 0),  // 6C:LD   r6,IM
+        E(3, 0, 0),  // 6D:JP   Z,DA
+        E(1, 0, 0),  // 6E:INC  r6
+        E(1, 0, 0),  // 6F:STOP -
+        E(2, 0, 1),  // 70:PUSH R
+        E(2, 0, 1),  // 71:PUSH IR
+        E(2, 0, 0),  // 72:TM   r,r
+        E(2, 0, 0),  // 73:TM   r,Ir
+        E(3, 0, 0),  // 74:TM   R,R
+        E(3, 0, 0),  // 75:TM   R.IR
+        E(3, 0, 0),  // 76:TM   R,IM
+        E(3, 0, 0),  // 77:TM   IR,IM
+        E(2, 0, 0),  // 78:LD   r7,R
+        E(2, 0, 0),  // 79:LD   R,r7
+        E(2, 0, 0),  // 7A:DJNZ r7,RA
+        E(2, 0, 0),  // 7B:JR   C,RA
+        E(2, 0, 0),  // 7C:LD   r7,IM
+        E(3, 0, 0),  // 7D:JP   C,DA
+        E(1, 0, 0),  // 7E:INC  r7
+        E(1, 0, 0),  // 7F:HALT -
+        E(2, 0, 0),  // 80:DECW RR
+        E(2, 0, 0),  // 81:DECW IR
+        E(2, 1, 0),  // 82:LDE  r,Irr
+        E(2, 1, 0),  // 83:LDEI Ir,Irr
+        E(0, 0, 0),  // 84:-    -
+        E(0, 0, 0),  // 85:-    -
+        E(0, 0, 0),  // 86:-    -
+        E(0, 0, 0),  // 87:-    -
+        E(2, 0, 0),  // 88:LD   r8,R
+        E(2, 0, 0),  // 89:LD   R,r8
+        E(2, 0, 0),  // 8A:DJNZ r8,RA
+        E(2, 0, 0),  // 8B:JR   RA
+        E(2, 0, 0),  // 8C:LD   r8,IM
+        E(3, 0, 0),  // 8D:JP   DA
+        E(1, 0, 0),  // 8E:INC  r8
+        E(1, 0, 0),  // 8F:DI   -
+        E(2, 0, 0),  // 90:RL   R
+        E(2, 0, 0),  // 91:RL   IR
+        E(2, 1, 0),  // 92:LDE  Irr,r
+        E(2, 1, 0),  // 93:LDEI Irr,Ir
+        E(0, 0, 0),  // 94:-    -
+        E(0, 0, 0),  // 95:-    -
+        E(0, 0, 0),  // 96:-    -
+        E(0, 0, 0),  // 97:-    -
+        E(2, 0, 0),  // 98:LD   r9,R
+        E(2, 0, 0),  // 99:LD   R,r9
+        E(2, 0, 0),  // 9A:DJNZ r9,RA
+        E(2, 0, 0),  // 9B:JR   GE,RA
+        E(2, 0, 0),  // 9C:LD   r9,IM
+        E(3, 0, 0),  // 9D:JP   GE,DA
+        E(1, 0, 0),  // 9E:INC  r9
+        E(1, 0, 0),  // 9F:EI   -
+        E(2, 0, 0),  // A0:INCW RR
+        E(2, 0, 0),  // A1:INCW IR
+        E(2, 0, 0),  // A2:CP   r,r
+        E(2, 0, 0),  // A3:CP   r,Ir
+        E(3, 0, 0),  // A4:CP   R,R
+        E(3, 0, 0),  // A5:CP   R.IR
+        E(3, 0, 0),  // A6:CP   R,IM
+        E(3, 0, 0),  // A7:CP   IR,IM
+        E(2, 0, 0),  // A8:LD   r10,R
+        E(2, 0, 0),  // A9:LD   R,r10
+        E(2, 0, 0),  // AA:DJNZ r10,RA
+        E(2, 0, 0),  // AB:JR   GT,RA
+        E(2, 0, 0),  // AC:LD   r10,IM
+        E(3, 0, 0),  // AD:JP   GT,DA
+        E(1, 0, 0),  // AE:INC  r10
+        E(1, 1, 2),  // AF:RET  -;  fetch as 2-byte instruction
+        E(2, 0, 0),  // B0:CLR  R
+        E(2, 0, 0),  // B1:CLR  IR
+        E(2, 0, 0),  // B2:XOR  r,r
+        E(2, 0, 0),  // B3:XOR  r,Ir
+        E(3, 0, 0),  // B4:XOR  R,R
+        E(3, 0, 0),  // B5:XOR  R.IR
+        E(3, 0, 0),  // B6:XOR  R,IM
+        E(3, 0, 0),  // B7:XOR  IR,IM
+        E(2, 0, 0),  // B8:LD   r11,R
+        E(2, 0, 0),  // B9:LD   R,r11
+        E(2, 0, 0),  // BA:DJNZ r11,RA
+        E(2, 0, 0),  // BB:JR   UGT,RA
+        E(2, 0, 0),  // BC:LD   r11,IM
+        E(3, 0, 0),  // BD:JP   UGT,DA
+        E(1, 0, 0),  // BE:INC  r11
+        E(1, 1, 3),  // BF:IRET -;  fetch as 2-byte instruction
+        E(2, 0, 0),  // C0:RRC  R
+        E(2, 0, 0),  // C1:RRC  IR
+        E(2, 1, 0),  // C2:LDC  r,Irr
+        E(2, 1, 0),  // C3:LDCI Ir,Irr
+        E(0, 0, 0),  // C4:-    -
+        E(0, 0, 0),  // C5:-    -
+        E(0, 0, 0),  // C6:-    -
+        E(3, 0, 0),  // C7:LD   r,X
+        E(2, 0, 0),  // C8:LD   r12,R
+        E(2, 0, 0),  // C9:LD   R,r12
+        E(2, 0, 0),  // CA:DJNZ r12,RA
+        E(2, 0, 0),  // CB:JR   NOV,RA
+        E(2, 0, 0),  // CC:LD   r12,IM
+        E(3, 0, 0),  // CD:JP   NOV,DA
+        E(1, 0, 0),  // CE:INC  r12
+        E(1, 0, 0),  // CF:RCF  -
+        E(2, 0, 0),  // D0:SRA  R
+        E(2, 0, 0),  // D1:SRA  IR
+        E(2, 1, 0),  // D2:LDC  Irr,r
+        E(2, 1, 0),  // D3:LDCI Irr,Ir
+        E(2, 1, 2),  // D4:CALL IRR;   fetch cycle appears as 3-byte instruction
+        E(0, 0, 0),  // D5:-    -
+        E(3, 0, 2),  // D6:CALL DA
+        E(3, 0, 0),  // D7:LD   X,r
+        E(2, 0, 0),  // D8:LD   r13,R
+        E(2, 0, 0),  // D9:LD   R,r13
+        E(2, 0, 0),  // DA:DJNZ r13,RA
+        E(2, 0, 0),  // DB:JR   PL,RA
+        E(2, 0, 0),  // DC:LD   r13,IM
+        E(3, 0, 0),  // DD:JP   PL,DA
+        E(1, 0, 0),  // DE:INC  r13
+        E(1, 0, 0),  // DF:SCF  -
+        E(2, 0, 0),  // E0:RR   R
+        E(2, 0, 0),  // E1:RR   IR
+        E(0, 0, 0),  // E2:-    -
+        E(2, 0, 0),  // E3:LD   r,Ir
+        E(3, 0, 0),  // E4:LD   R,R
+        E(3, 0, 0),  // E5:LD   R,IR
+        E(3, 0, 0),  // E6:LD   R,IM
+        E(3, 0, 0),  // E7:LD   IR,IM
+        E(2, 0, 0),  // E8:LD   r14,R
+        E(2, 0, 0),  // E9:LD   R,r14
+        E(2, 0, 0),  // EA:DJNZ r14,RA
+        E(2, 0, 0),  // EB:JR   NE,RA
+        E(2, 0, 0),  // EC:LD   r14,IM
+        E(3, 0, 0),  // ED:JP   NE,DA
+        E(1, 0, 0),  // EE:INC  r14
+        E(1, 0, 0),  // EF:CCF  -
+        E(2, 0, 0),  // F0:SWAP R
+        E(2, 0, 0),  // F1:SWAP IR
+        E(0, 0, 0),  // F2:-    -
+        E(2, 0, 0),  // F3:LD   Ir,r
+        E(0, 0, 0),  // F4:-    -
+        E(3, 0, 0),  // F5:LD   IR,R
+        E(0, 0, 0),  // F6:-    -
+        E(0, 0, 0),  // F7:-    -
+        E(2, 0, 0),  // F8:LD   r15,R
+        E(2, 0, 0),  // F9:LD   R,rr5
+        E(2, 0, 0),  // FA:DJNZ r15,RA
+        E(2, 0, 0),  // FB:JR   NC,RA
+        E(2, 0, 0),  // FC:LD   r15,IM
+        E(3, 0, 0),  // FD:JP   NC,DA
+        E(1, 0, 0),  // FE:INC  r15
+        E(1, 0, 0),  // FF:NOP  -
+};
+// clang-format: on
+
+uint8_t Regs::insnLen(uint8_t insn) {
+    return insn_len(insn_table[insn]);
+}
+
+uint8_t Regs::busCycles(uint8_t insn) {
+    return bus_cycles(insn_table[insn]);
 }
 
 const char *Regs::cpu() const {
-    return "INS8060";
+    return "Z86C";
 }
 
 const char *Regs::cpuName() const {
-    return cpu();
+    return "Z86C91";
 }
 
 static char bit1(uint8_t v, char name) {
@@ -302,32 +333,83 @@ void Regs::print() const {
     // clang-format off
     static char buffer[] = {
         'P', 'C', '=', 0, 0, 0, 0, ' ',  // PC=3
-        'P', '1', '=', 0, 0, 0, 0, ' ',  // P1=11
-        'P', '2', '=', 0, 0, 0, 0, ' ',  // P2=19
-        'P', '3', '=', 0, 0, 0, 0, ' ',  // P3=27
-        'E', '=', 0, 0, ' ',             // E=34
-        'A', '=', 0, 0, ' ',             // A=39
-        'S', '=',
-        0, 0, 0, 0, 0, 0, 0, 0,          // S=44
+        'S', 'P', '=', 0, 0, 0, 0, ' ',  // SP=11
+        'R', 'P', '=', 0, 0, ' ',        // RP=19
+        'F', '=',                        // S=24
+        0, 0, 0, 0, 0, 0, 0, 0,
         0,
     };
-    constexpr char *s_bits = buffer + 44;
-    outHex16(buffer + 3, pc);
-    outHex16(buffer + 11, p1);
-    outHex16(buffer + 19, p2);
-    outHex16(buffer + 27, p3);
-    outHex8(buffer + 34, e);
-    outHex8(buffer + 39, a);
-    s_bits[0] = bit1(s & 0x80, 'C');
-    s_bits[1] = bit1(s & 0x40, 'V');
-    s_bits[2] = bit1(s & 0x20, 'B');
-    s_bits[3] = bit1(s & 0x10, 'A');
-    s_bits[4] = bit1(s & 0x08, 'I');
-    s_bits[5] = bit1(s & 0x04, '2');
-    s_bits[6] = bit1(s & 0x02, '1');
-    s_bits[7] = bit1(s & 0x01, '0');
+    // clang-format on
+    outHex16(buffer + 3, _pc);
+    outHex8(buffer + 11, get_sfr(sfr_sph));
+    outHex8(buffer + 13, get_sfr(sfr_spl));
+    outHex8(buffer + 19, get_sfr(sfr_rp));
+    const auto flags = get_sfr(sfr_flags);
+    constexpr char *flags_bits = buffer + 24;
+    flags_bits[0] = bit1(flags & 0x80, 'C');
+    flags_bits[1] = bit1(flags & 0x40, 'Z');
+    flags_bits[2] = bit1(flags & 0x20, 'S');
+    flags_bits[3] = bit1(flags & 0x10, 'V');
+    flags_bits[4] = bit1(flags & 0x08, 'D');
+    flags_bits[5] = bit1(flags & 0x04, 'H');
+    flags_bits[6] = bit1(flags & 0x02, '2');
+    flags_bits[7] = bit1(flags & 0x01, '1');
     cli.println(buffer);
     Pins.idle();
+    // clang-format off
+    static char line1[] = {
+        ' ', 'R', '0', '=', 0, 0, ' ', // Rn=4+7n
+        ' ', 'R', '1', '=', 0, 0, ' ',
+        ' ', 'R', '2', '=', 0, 0, ' ',
+        ' ', 'R', '3', '=', 0, 0, ' ',
+        ' ', 'R', '4', '=', 0, 0, ' ',
+        ' ', 'R', '5', '=', 0, 0, ' ',
+        ' ', 'R', '6', '=', 0, 0, ' ',
+        ' ', 'R', '7', '=', 0, 0,
+        0,
+    };
+    // clang-format on
+    for (auto i = 0; i < 8; i++)
+        outHex8(line1 + 4 + i * 7, _r[i]);
+    cli.println(line1);
+    Pins.idle();
+    // clang-format off
+    static char line2[] = {
+        ' ', 'R', '8', '=', 0, 0, ' ', // Rn=4+7(n-8)
+        ' ', 'R', '9', '=', 0, 0, ' ',
+        'R', '1', '0', '=', 0, 0, ' ',
+        'R', '1', '1', '=', 0, 0, ' ',
+        'R', '1', '2', '=', 0, 0, ' ',
+        'R', '1', '3', '=', 0, 0, ' ',
+        'R', '1', '4', '=', 0, 0, ' ',
+        'R', '1', '5', '=', 0, 0,
+        0,
+    };
+    // clang-format on
+    for (auto i = 8; i < 16; i++)
+        outHex8(line2 + 4 + (i - 8) * 7, _r[i]);
+    cli.println(line2);
+    Pins.idle();
+}
+
+void Regs::reset(bool show) {
+    constexpr auto P3M = 247;
+    constexpr auto P01M = 248;
+    static const uint8_t R247_R248[] = {
+            /* LD P3M,#Z8_DATA_MEMORY<<3 */
+            0xE6,
+            P3M,
+            Z8_DATA_MEMORY << 3,
+            /* LD P01M,#A2|(Z8_INTERNAL_STACK<<2) */
+            0xE6,
+            P01M,
+            0xA2 | (Z8_INTERNAL_STACK << 2),
+    };
+    if (show)
+        Signals::resetCycles();
+    Pins.execInst(R247_R248, sizeof(R247_R248));
+    if (show)
+        Signals::printCycles();
 }
 
 static constexpr uint16_t uint16(const uint8_t hi, const uint8_t lo) {
@@ -339,121 +421,161 @@ static constexpr uint16_t le16(const uint8_t *p) {
 static constexpr uint16_t be16(const uint8_t *p) {
     return uint16(p[0], p[1]);
 }
-static constexpr uint8_t hi(const uint16_t v) {
-    return static_cast<uint8_t>(v >> 8);
+
+void Regs::save_r(uint8_t num) {
+    static uint8_t SAVE_R[] = {
+            0x92, 0x0E,  // LDE @rr14, rn
+    };
+    SAVE_R[1] = (num << 4) | 14;  // LDE @rr14,ri
+    Pins.captureWrites(
+            SAVE_R, sizeof(SAVE_R), nullptr, &_r[num], sizeof(_r[0]));
 }
-static constexpr uint8_t lo(const uint16_t v) {
-    return static_cast<uint8_t>(v);
+
+void Regs::save_sfr(uint8_t name) {
+    static uint8_t SAVE_SFR[] = {
+            0xF8, 0,     // LD r15,R
+            0x92, 0xFE,  // LDE @rr14,r15
+    };
+    SAVE_SFR[1] = name;  // LD r15,i+252
+    Pins.captureWrites(SAVE_SFR, sizeof(SAVE_SFR), nullptr,
+            &_sfr[name - sfr_base], sizeof(_sfr[0]));
 }
 
 void Regs::save(bool show) {
-    // clang-format off
-    static const uint8_t ST_ALL[] = {
-        0xC8, 0xFE,                         // ST $-1
-        0x40, 0xC8, 0xFF,                   // LDE, ST $
-        0x06, 0xC8, 0xFF,                   // CSA, ST $
-        0x31, 0xC8, 0xFF, 0x35, 0xC8, 0xFF, // XPAL P1, ST $, XPAH P1, ST $
-        0x32, 0xC8, 0xFF, 0x36, 0xC8, 0xFF, // XPAL P1, ST $, XPAH P1, ST $
-        0x33, 0xC8, 0xFF, 0x37, 0xC8, 0xFF, // XPAL P1, ST $, XPAH P1, ST $
-    };
-    // clang-format on
-    static uint8_t buffer[9];
     if (debug_cycles)
         cli.println(F("@@ save"));
     if (show)
         Signals::resetCycles();
-    Pins.captureWrites(ST_ALL, sizeof(ST_ALL), &pc, buffer, sizeof(buffer));
+    const auto &signals = Pins.cycle(0xFF);  // NOP
+    _pc = signals.addr;
+
+    for (auto num = 0; num < 16; num++)
+        save_r(num);
+    for (auto num = 0; num < 4; num++)
+        save_sfr(sfr_base + num);
+    restore_r(15);
+
     if (show)
         Signals::printCycles();
-    a = buffer[0];
-    e = buffer[1];
-    s = buffer[2];
-    p1 = le16(buffer + 3);
-    p2 = le16(buffer + 5);
-    p3 = le16(buffer + 7);
+}
+
+void Regs::restore_r(uint8_t num) {
+    static uint8_t LOAD_R[] = {
+            0x0C, 0,  // LD r,IM
+    };
+    LOAD_R[0] = 0x0C | (num << 4);
+    LOAD_R[1] = _r[num];
+    Pins.execInst(LOAD_R, sizeof(LOAD_R));
+}
+
+void Regs::restore_sfr(uint8_t name) {
+    static uint8_t LOAD_SFR[] = {
+            0xE6, 0, 0,  // LD R,IM
+    };
+    LOAD_SFR[1] = name;
+    LOAD_SFR[2] = _sfr[name - sfr_base];
+    Pins.execInst(LOAD_SFR, sizeof(LOAD_SFR));
 }
 
 void Regs::restore(bool show) {
-    // clang-format off
-    static uint8_t LD_ALL[] = {
-        0xC4, 0, 0x07,                // LDI s, CAS; s=1
-        0xC4, 0, 0x01,                // LDI e, XAE; e=4
-        0xC4, 0, 0x33, 0xC4, 0, 0x37, // LDI lo(p3), XPAL P1, LDI hi(p3), XPAH P1
-        0xC4, 0, 0x32, 0xC4, 0, 0x36, // LDI lo(p2), XPAL P1, LDI hi(p2), XPAH P1
-        0xC4, 0, 0x31, 0xC4, 0, 0x35, // LDI lo(pc), XPAL P1, LDI hi(pc), XPAH P1
-        0x3D,                         // XPPC P1
-        0xC4, 0, 0x31, 0xC4, 0, 0x35, // LDI lo(p1), XPAL P1, LDI hi(p1), XPAH P1
-        0xC4, 0,                      // LDI a
+    static uint8_t JP[] = {
+            0x8D, 0, 0,  // JP DA
     };
-    // clang-format on
     if (debug_cycles)
         cli.println(F("@@ restore"));
-    LD_ALL[1] = s;
-    LD_ALL[4] = e;
-    LD_ALL[7] = lo(p3);
-    LD_ALL[10] = hi(p3);
-    LD_ALL[13] = lo(p2);
-    LD_ALL[16] = hi(p2);
-    const auto p = _pc(pc, pc - 8); // offset restore P1 and A
-    LD_ALL[19] = lo(p);
-    LD_ALL[22] = hi(p);
-    LD_ALL[26] = lo(p1);
-    LD_ALL[29] = hi(p1);
-    LD_ALL[32] = a;
     if (show)
         Signals::resetCycles();
-    Pins.execInst(LD_ALL, sizeof(LD_ALL));
+
+    for (auto num = 0; num < 4; num++)    
+        restore_sfr(sfr_base + num);
+    for (auto num = 0; num < 16; num++)
+        restore_r(num);
+
+    JP[1] = hi(_pc);
+    JP[2] = lo(_pc);
+    Pins.execInst(JP, sizeof(JP));
     if (show)
         Signals::printCycles();
 }
 
+void Regs::set_rp(uint8_t val) {
+    set_sfr(sfr_rp, val);
+    for (auto num = 0; num < 16; num++)
+        save_r(num);
+}
+
+void Regs::set_sfr(uint8_t name, uint8_t val) {
+    const auto num = name - sfr_base;
+    _sfr[num] = val;
+    restore_sfr(name);
+}
+
+void Regs::set_r(uint8_t num, uint8_t val) {
+    _r[num] = val;
+    restore_r(num);
+}
+
 void Regs::printRegList() const {
-    cli.println(F("?Reg: PC P1 P2 P3 A E S"));
+    cli.println(F("?Reg: PC SP RP FLAGS R0~R15 RR0~14"));
 }
 
 char Regs::validUint8Reg(const char *word) const {
-    if (word[1])
-        return 0;
-    const char reg = tolower(*word);
-    if (reg == 'a' || reg == 'e' || reg == 's')
-        return reg;
+    if (strcasecmp_P(word, PSTR("RP")) == 0)
+        return 'R';
+    if (strcasecmp_P(word, PSTR("FLAGS")) == 0)
+        return 'X';
+    if (toupper(*word++) == 'R' && isdigit(*word)) {
+        uint8_t num = *word++ - '0';
+        if (isdigit(*word)) {
+            num *= 10;
+            num += *word++ - '0';
+        }
+        if (*word == 0 && num < 16)
+            return num < 10 ? num + '0' : num - 10 + 'A';
+    }
     return 0;
 }
 
 char Regs::validUint16Reg(const char *word) const {
     if (strcasecmp_P(word, PSTR("PC")) == 0)
-        return '0';
-    if (strcasecmp_P(word, PSTR("P1")) == 0)
-        return '1';
-    if (strcasecmp_P(word, PSTR("P2")) == 0)
-        return '2';
-    if (strcasecmp_P(word, PSTR("P3")) == 0)
-        return '3';
+        return 'P';
+    if (strcasecmp_P(word, PSTR("SP")) == 0)
+        return 'S';
+    if (toupper(*word++) == 'R' && toupper(*word++) == 'R' && isdigit(*word)) {
+        uint8_t num = *word++ - '0';
+        if (isdigit(*word)) {
+            num *= 10;
+            num += *word++ - '0';
+        }
+        if (*word == 0 && num < 16 && num % 2 == 0)
+            return num + 'a';
+    }
     return 0;
 }
 
 void Regs::setRegValue(char reg, uint32_t value) {
     switch (reg) {
-    case '0':
-        pc = value;
+    case 'P':
+        _pc = value;
         break;
-    case '1':
-        p1 = value;
+    case 'S':
+        set_sph(hi(value));
+        set_spl(lo(value));
         break;
-    case '2':
-        p2 = value;
+    case 'R':
+        set_rp(value);
         break;
-    case '3':
-        p3 = value;
+    case 'X':
+        set_flags(value);
         break;
-    case 'a':
-        a = value;
-        break;
-    case 'e':
-        e = value;
-        break;
-    case 's':
-        s = value;
+    default:
+        if (islower(reg)) {
+            const auto num = reg - 'a';
+            set_rr(num, value);
+        } else if (isxdigit(reg)) {
+            const auto num = isdigit(reg) ? reg - '0' : reg - 'A' + 10;
+            set_r(num, value);
+        }
         break;
     }
 }
@@ -507,41 +629,18 @@ uint16_t Regs::assemble(uint16_t addr, const char *line) const {
     return addr;
 }
 
-uint8_t Memory::read(uint16_t addr) const {
-    if (Acia.isSelected(addr))
-        return Acia.read(addr);
-    return raw_read(addr);
-}
-
-void Memory::write(uint16_t addr, uint8_t data) {
-    if (Acia.isSelected(addr)) {
-        Acia.write(addr,  data);
-        return;
-    }
-    raw_write(addr, data);
-}
-
 void Memory::write(uint16_t addr, const uint8_t *data, uint8_t len) {
     for (auto i = 0; i < len; i++) {
         write(addr++, *data++);
     }
 }
 
-uint8_t Memory::raw_read(uint16_t addr) const {
+uint8_t Memory::read(uint16_t addr) const {
     return memory[addr];
 }
 
-void Memory::raw_write(uint16_t addr, uint8_t data) {
+void Memory::write(uint16_t addr, uint8_t data) {
     memory[addr] = data;
-}
-
-uint16_t Memory::raw_read_uint16(uint16_t addr) const {
-    return (static_cast<uint16_t>(raw_read(addr)) << 8) | raw_read(addr + 1);
-}
-
-void Memory::raw_write_uint16(uint16_t addr, uint16_t data) {
-    raw_write(addr, data >> 8);
-    raw_write(addr + 1, data);
 }
 
 // Local Variables:

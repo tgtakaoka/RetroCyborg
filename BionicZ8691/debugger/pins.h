@@ -6,6 +6,13 @@
 #include "config.h"
 #include "signals.h"
 
+enum IntrName : uint8_t {
+    INTR_NONE = 0,
+    INTR_IRQ0 = 1,
+    INTR_IRQ1 = 2,
+    INTR_IRQ2 = 3,
+};
+
 class Pins {
 public:
     void begin();
@@ -19,18 +26,19 @@ public:
     void run();
     void idle();
 
+    Signals &cycle();
+    Signals &cycle(uint8_t insn);
+
     void execInst(const uint8_t *inst, uint8_t len);
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
-    uint8_t allocateIrq();
-    void assertIrq(const uint8_t irq);
-    void negateIrq(const uint8_t irq);
+    void assertIntr(IntrName intr);
+    void negateIntr(IntrName intr);
 
     enum Device : uint8_t {
         NONE = 0,
-        ACIA = 1,     // MC6850 ACIA
-        BITBANG = 2,  // INS8060 FLAG0 & SENSEB bnit bang software UART
+        USART = 1,  // i8251
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
@@ -42,18 +50,12 @@ public:
 
 private:
     bool _freeRunning;
-    uint8_t _irq;
 
-    void clock_cycle() const;
     Signals &prepareCycle();
     Signals &completeCycle(Signals &signals);
-    Signals &cycle();
-    void rawStep(Signals &signals);
+    bool rawStep();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
-    static bool isInsnFetch(const Signals *c0, const Signals *c1,
-            const Signals *c2, const Signals *c3, const Signals *c4);
-
     Device _serialDevice;
 
     void setDeviceBase(Device dev, bool hasValue, uint16_t base);
