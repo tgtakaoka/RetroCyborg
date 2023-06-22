@@ -165,8 +165,8 @@
           4 :
           C :                            org     ORG_RESET
           C :                    init_config:
-          C : 31 F0                      srp     #P01M LAND %F0
-          E :                            setrp   P01M LAND %F0
+          C : 31 F0                      srp     #%F0
+          E :                            setrp   %F0
           E :                            ;; Stack is on external memory
           E : 8C 92                      ld      P01M, #P01M_P0ADDR LOR P01M_P1DATA
          10 : 6C FF                      ld      P2M, #%FF       ; Port 2 is input

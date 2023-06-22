@@ -4,33 +4,19 @@
 
         include "z8.inc"
 
-;;; i8251 Universal Synchronous/Asynchronous Receiver/Transmitter
-USART:          equ     %FF00
-USARTD:         equ     USART+0 ; Receive/Transmit data
-USARTS:         equ     USART+1 ; Srtatus register
-USARTC:         equ     USART+1 ; Control register
-USARTRI:        equ     USART+2 ; Receive interrupt name (IRQ0~2)
-USARTTI:        equ     USART+3 ; Transmit interrupt name (IRQ0~2)
-        include "i8251.inc"
-
-TXRX_ENABLE:    equ     CMD_RTS_bm LOR CMD_DTR_bm LOR CMD_RxEN_bm LOR CMD_TxEN_bm
-RXERR_RESET:    equ     TXRX_ENABLE LOR CMD_ER_bm
-
         org     %2000
 rx_queue_size:  equ     128
 rx_queue:       ds      rx_queue_size
 tx_queue_size:  equ     128
 tx_queue:       ds      tx_queue_size
 
-tx_intr_enable: equ     %20     ; R32
-
         org     %1000
 stack:  equ     $
 
-        org     VEC_IRQ0
+        org     VEC_IRQ3
         dw      isr_intr_rx
 
-        org     VEC_IRQ1
+        org     VEC_IRQ4
         dw      isr_intr_tx
 
         org     ORG_RESET
@@ -39,11 +25,10 @@ init_config:
         setrp   %F0
         ;; Stack is on external memory
         ld      P01M, #P01M_P0ADDR LOR P01M_P1DATA
-        ld      P2M, #%FF       ; Port 2 is input
-        srp     #%10
-        setrp   %10
         ld      SPH, #HIGH stack
         ld      SPL, #LOW stack
+        srp     #%10
+        setrp   %10
         ld      r2, #HIGH rx_queue
         ld      r3, #LOW rx_queue
         ld      r1, #rx_queue_size
@@ -53,38 +38,19 @@ init_config:
         ld      r1, #tx_queue_size
         call    queue_init
 
-init_usart:
-        ld      r12, #HIGH USARTC
-        ld      r13, #LOW USARTC
-        clr     r0
-        lde     @rr12, r0
-        lde     @rr12, r0
-        lde     @rr12, r0       ; safest way to sync mode
-        ld      r0, #CMD_IR_bm
-        lde     @rr12, r0       ; reset
-        nop
-        nop
-        ld      r0, # MODE_STOP1_gc LOR MODE_LEN8_gc LOR MODE_BAUD_X16
-        lde     @rr12, r0       ; async 1stop 8data x16
-        nop
-        nop
-        ld      r0, #TXRX_ENABLE
-        lde     @rr12, r0 ; RTS/DTR, error reset, Rx enable, Tx enable
-        ld      r0, #INTR_IRQ0
-        ld      r13, #LOW USARTRI
-        lde     @rr12, r0 ; enable RxRDY interrupt using IRQ0
-        ld      r0, #INTR_NONE
-        ld      r13, #LOW USARTTI
-        lde     @rr12, r0 ; disable TxRDY interrupt
-        ld      r13, #LOW USARTS
-        clr     tx_intr_enable
-        ld      r10, #HIGH USARTD
-        ld      r11, #LOW USARTD
+;;; XTAL=14.7546MHz
+;;; p=1 for PRE0, t=12 for T0
+;;; bit rate = 14754600 / (2 x 4 x p x t x 16) = 9600 bps
+init_sio:
+        ld      P3M, #P3M_SERIAL LOR P3M_P2PUSHPULL ; enable SIO I/O
+        ld      T0, #12
+        ld      PRE0, #(1 SHL PRE0_gp) LOR PRE0_MODULO ; modulo-N
+        or      TMR, #TMR_LOAD_T0 LOR TMR_ENABLE_T0
 
-        ld      IPR, #IPR_BCA LOR IPR_B02 LOR IPR_C14 LOR IPR_A35
-        ;; enable IRQ0 and IRQ1
-        ld      IMR, #IMR_IRQ0 LOR IMR_IRQ1
-        ei
+init_irq:
+        ld      IPR, #IPR_ACB LOR IPR_A35 LOR IPR_C41 LOR IPR_B02
+        ld      IMR, #IMR_IRQ3 ; enable IRQ3
+        ei                     ; clear IRQ and enable interrupt system
 
 receive_loop:
         call    getchar
@@ -190,17 +156,14 @@ putchar_retry:
         jr      nc, putchar_retry ; branch if queue is full
         pop     r2
         pop     r3
-        tm      tx_intr_enable, #1
-        jr      nz, putchar_exit ; already enabled
-        ld      r0, #INTR_IRQ1
-        push    r13
         di
-        ld      r13, #LOW USARTTI
-        lde     @rr12, r0
-        pop     r13
-        or      tx_intr_enable, #1
-        ei
+        tm      IMR, #IMR_IRQ4
+        jr      nz, putchar_exit ; already enabled
+        OR      PORT2, #4
+        or      IMR, #IMR_IRQ4   ; enable IRQ4
+        or      IRQ, #IRQ_IRQ4   ; software IRQ4
 putchar_exit:
+        ei
         pop     r0
         ret
 
@@ -209,17 +172,8 @@ putchar_exit:
         setrp   -1
 isr_intr_rx:
         push    r0
-        push    r1
-        lde     r0, @rr12       ; USARTS
-        ld      r1, r0
-        and     r0, #ST_FE_bm LOR ST_OE_bm LOR ST_PE_bm
-        jr      z, isr_intr_receive
-        ld      r0, #RXERR_RESET
-        lde     @rr12, r0       ; reset error flags
-isr_intr_receive:
-        and     r1, #ST_RxRDY_bm
-        jr      z, isr_intr_rx_exit
-        lde     r0, @rr10       ; USARTD
+        ld      r0, SIO             ; read received letter
+        and     IRQ, #LNOT IRQ_IRQ3 ; acknowledge IRQ3
         push    r3
         push    r2
         ld      r2, #HIGH rx_queue
@@ -227,16 +181,12 @@ isr_intr_receive:
         call    queue_add
         pop     r2
         pop     r3
-isr_intr_rx_exit:
-        pop     r1
         pop     r0
         iret
 
 isr_intr_tx:
+        and     IRQ, #LNOT IRQ_IRQ4 ; acknowledge IRQ4
         push    r0
-        lde     r0, @rr12       ; USARTS
-        and     r0, #ST_TxRDY_bm
-        jr      z, isr_intr_tx_exit
         push    r3
         push    r2
         ld      r2, #HIGH tx_queue
@@ -245,16 +195,10 @@ isr_intr_tx:
         pop     r2
         pop     r3
         jr      nc, isr_intr_send_empty
-        lde     @rr10, r0       ; USARTD
-isr_intr_tx_exit:
+        ld      SIO, r0         ; write sending letter
         pop     r0
         iret
 isr_intr_send_empty:
-        ld      r0, #INTR_NONE
-        push    r13
-        ld      r13, #LOW USARTTI
-        lde     @rr12, r0       ; disable Tx interrupt
-        pop     r13
-        clr     tx_intr_enable
+        and     IMR, #LNOT IMR_IRQ4 ; disable IRQ4
         pop     r0
         iret

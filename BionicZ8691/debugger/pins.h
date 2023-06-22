@@ -26,6 +26,7 @@ public:
     void run();
     void idle();
 
+    void xtal1_cycle() const;
     Signals &cycle();
     Signals &cycle(uint8_t insn);
 
@@ -39,6 +40,7 @@ public:
     enum Device : uint8_t {
         NONE = 0,
         USART = 1,  // i8251
+        SIO = 2,    // Z86C91 SIO
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;

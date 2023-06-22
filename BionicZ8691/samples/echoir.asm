@@ -25,8 +25,8 @@ stack:  equ     $
 
         org     ORG_RESET
 init_config:
-        srp     #P01M LAND %F0
-        setrp   P01M LAND %F0
+        srp     #%F0
+        setrp   %F0
         ;; Stack is on external memory
         ld      P01M, #P01M_P0ADDR LOR P01M_P1DATA
         ld      P2M, #%FF       ; Port 2 is input

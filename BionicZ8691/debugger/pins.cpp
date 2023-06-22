@@ -9,11 +9,13 @@
 #include "regs.h"
 #include "signals.h"
 #include "string_util.h"
+#include "z8_sio_handler.h"
 
 extern libcli::Cli cli;
 
 class Pins Pins;
 I8251 Usart(Console);
+Z8SioHandler SioH(Console);
 
 static constexpr bool debug_cycles = false;
 static constexpr bool debug_step = false;
@@ -53,12 +55,13 @@ static inline void xtal1_lo() {
     digitalWriteFast(PIN_XTAL1, HIGH);
 }
 
-static inline void xtal1_cycle() __attribute__((always_inline));
-static inline void xtal1_cycle() {
+void Pins::xtal1_cycle() const {
     xtal1_hi();
     delayNanoseconds(xtal1_hi_ns);
     xtal1_lo();
     delayNanoseconds(xtal1_lo_ns);
+    if (_freeRunning)
+        SioH.loop();
 }
 
 static inline uint8_t signal_as() __attribute__((always_inline));
@@ -293,6 +296,7 @@ void Pins::reset(bool show) {
     Regs.reset(show);
 
     Usart.reset();
+    SioH.reset();
 }
 
 void Pins::idle() {
@@ -422,10 +426,13 @@ void Pins::negateIntr(IntrName intr) {
 }
 
 static const char TEXT_USART[] PROGMEM = "USART";
+static const char TEXT_SIO[] PROGMEM = "SIO";
 
 Pins::Device Pins::parseDevice(const char *name) const {
     if (strcasecmp_P(name, TEXT_USART) == 0)
         return Device::USART;
+    if (strcasecmp_P(name, TEXT_SIO) == 0)
+        return Device::SIO;
     return Device::NONE;
 }
 
@@ -433,12 +440,17 @@ void Pins::getDeviceName(Pins::Device dev, char *name) const {
     *name = 0;
     if (dev == Device::USART)
         strcpy_P(name, TEXT_USART);
+    if (dev == Device::SIO)
+        strcpy_P(name, TEXT_SIO);
 }
 
 void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
     switch (dev) {
     case Device::USART:
         setSerialDevice(Device::USART, hasValue ? base : USART_BASE_ADDR);
+        break;
+    case Device::SIO:
+        setSerialDevice(Device::SIO, hasValue ? base : 0xF0);
         break;
     default:
         break;
@@ -457,20 +469,30 @@ void Pins::printDevices() const {
     } else {
         cli.println(F("disabled"));
     }
+    cli.print(F("SIO (Z86C91) "));
+    if (serial == Device::SIO) {
+        cli.print(F("at "));
+        cli.printDec(baseAddr);
+        cli.println(F(" bps"));
+    } else {
+        cli.println(F("disabled"));
+    }
 }
 
 Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
     if (_serialDevice == Device::USART) {
         baseAddr = Usart.baseAddr();
     }
+    if (_serialDevice == Device::SIO) {
+        baseAddr = SioH.baudrate();
+    }
     return _serialDevice;
 }
 
 void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
     _serialDevice = device;
-    if (device == Device::USART) {
-        Usart.enable(true, baseAddr);
-    }
+    Usart.enable(device == Device::USART, baseAddr);
+    SioH.enable(device == Device::SIO);
 }
 
 // Local Variables:
