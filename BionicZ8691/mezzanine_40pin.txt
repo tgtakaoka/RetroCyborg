@@ -6,14 +6,14 @@
   P12|     |P22                                     _________
   P13|  B  |P23                              VCC  1|*        |40
   P14|  i  |P24                        XTAL2      2|         |39 P50 #IRQ2
-  P15|  o  |P25                        XTAL1 P46  3|         |38          
-  P16|  n  |P26                          TxD P44  4|         |37          
-  P17|  i  |P27                          RxD P45  5|         |36          
-   E0|  c  |E1                        #RESET P53  6|         |35          
-  P30|     |P40                         R/#W P41  7|         |34          
-  P31|  C  |P41                          #DS P47  8|    Z    |33          
-  P32|  o  |P42                          #AS P40  9|    8    |32          
-  P33|  n  |P43          _____                   10|    6    |31          
+  P15|  o  |P25                        XTAL1 P46  3|         |38 P37 P27
+  P16|  n  |P26                          TxD P44  4|         |37 P36 P26
+  P17|  i  |P27                          RxD P45  5|         |36 P35 P25
+   E0|  c  |E1                        #RESET P53  6|         |35 P34 P24
+  P30|     |P40                         R/#W P41  7|         |34 P33 P23
+  P31|  C  |P41                          #DS P47  8|    Z    |33 P32 P22
+  P32|  o  |P42                          #AS P40  9|    8    |32 P31 P21
+  P33|  n  |P43          _____                   10|    6    |31 P30 P20
   P34|  n  |P44  #OE1  1|*    |20 Vcc        GND 11|    C    |30 P43 #IRQ1
   P35|  e  |P45    A0  2|     |19 #OE2 @IRQ0 P42 12|    9    |29 P30 #DM
   P36|  c  |P46    A1  3|  7  |18 Y0      A8 P20 13|    1    |28 P17 AD7

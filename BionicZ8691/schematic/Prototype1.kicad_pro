@@ -398,7 +398,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "specctra_dsn": "",
+      "specctra_dsn": "../../../Downloads/Prototype1.dsn",
       "step": "",
       "vrml": ""
     },
