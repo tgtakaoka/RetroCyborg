@@ -7,6 +7,8 @@
 #define VERSION_TEXT "0.1"
 #define Console Serial
 
+#define USART_BASE_ADDR 0xFF00
+
 /**
  * External memory operation
  * R248:D7; %F8 Write only

@@ -5,6 +5,7 @@
 #include "commands.h"
 #include "config.h"
 #include "digital_fast.h"
+#include "i8251.h"
 #include "regs.h"
 #include "signals.h"
 #include "string_util.h"
@@ -12,6 +13,7 @@
 extern libcli::Cli cli;
 
 class Pins Pins;
+I8251 Usart(Console);
 
 static constexpr bool debug_cycles = false;
 static constexpr bool debug_step = false;
@@ -172,6 +174,8 @@ void Pins::begin() {
     _freeRunning = false;
     xtal1_lo();
     reset();
+
+    setDeviceBase(Device::USART);
 }
 
 Signals &Pins::prepareCycle() {
@@ -199,14 +203,18 @@ Signals &Pins::completeCycle(Signals &signals) {
     if (signals.write()) {
         _writes++;
         signals.getData();
-        if (signals.writeRam()) {
+        if (Usart.isSelected(signals.addr)) {
+            Usart.write(signals.debug('u').data, signals.addr);
+        } else if (signals.writeRam()) {
             Memory.write(signals.addr, signals.debug('m').data);
         } else {
             ;  // capture data to signals.data
         }
     } else {
         _writes = 0;
-        if (signals.readRam()) {
+        if (Usart.isSelected(signals.addr)) {
+            signals.debug('u').data = Usart.read(signals.addr);
+        } else if (signals.readRam()) {
             signals.debug('m').data = Memory.read(signals.addr);
         } else {
             ;  // inject data from signals.data
@@ -283,6 +291,8 @@ void Pins::reset(bool show) {
 
     Regs.save(show);
     Regs.reset(show);
+
+    Usart.reset();
 }
 
 void Pins::idle() {
@@ -295,6 +305,7 @@ void Pins::idle() {
 
 void Pins::loop() {
     if (_freeRunning) {
+        Usart.loop();
         if (!rawStep() || user_sw() == LOW) {
             Commands.halt(true);
             return;
@@ -410,16 +421,25 @@ void Pins::negateIntr(IntrName intr) {
     }
 }
 
+static const char TEXT_USART[] PROGMEM = "USART";
+
 Pins::Device Pins::parseDevice(const char *name) const {
+    if (strcasecmp_P(name, TEXT_USART) == 0)
+        return Device::USART;
     return Device::NONE;
 }
 
 void Pins::getDeviceName(Pins::Device dev, char *name) const {
     *name = 0;
+    if (dev == Device::USART)
+        strcpy_P(name, TEXT_USART);
 }
 
 void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
     switch (dev) {
+    case Device::USART:
+        setSerialDevice(Device::USART, hasValue ? base : USART_BASE_ADDR);
+        break;
     default:
         break;
     }
@@ -427,14 +447,30 @@ void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
 
 void Pins::printDevices() const {
     cli.println();
+    uint16_t baseAddr;
+    const auto serial = getSerialDevice(baseAddr);
+    cli.print(F("USART (i8251) "));
+    if (serial == Device::USART) {
+        cli.print(F("at 0"));
+        cli.printHex(baseAddr, 2);
+        cli.println('H');
+    } else {
+        cli.println(F("disabled"));
+    }
 }
 
 Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
+    if (_serialDevice == Device::USART) {
+        baseAddr = Usart.baseAddr();
+    }
     return _serialDevice;
 }
 
 void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
     _serialDevice = device;
+    if (device == Device::USART) {
+        Usart.enable(true, baseAddr);
+    }
 }
 
 // Local Variables:
