@@ -50,8 +50,10 @@ static void printPrompt() {
 }
 
 static uint32_t last_addr;
+static uint16_t last_length;
 #define DUMP_ADDR 0
 #define DUMP_LENGTH 1
+#define DUMP_SPACE 2
 #define DIS_ADDR 0
 #define DIS_LENGTH 1
 
@@ -61,7 +63,7 @@ static uint8_t mem_buffer[16];
 
 static char str_buffer[40];
 
-static void memoryDump(uint32_t addr, uint16_t len) {
+static void memoryDump(uint32_t addr, uint16_t len, const char *space = nullptr) {
     const auto start = addr;
     const auto end = addr + len;
     for (addr &= ~0xF; addr < end; addr += 16) {
@@ -72,7 +74,7 @@ static void memoryDump(uint32_t addr, uint16_t len) {
             if (a < start || a >= end) {
                 cli.print(F("   "));
             } else {
-                const auto data = Memory.read(a);
+                const auto data = Memory.read(a, space);
                 cli.print(' ');
                 cli.printHex(data, 2);
             }
@@ -83,7 +85,7 @@ static void memoryDump(uint32_t addr, uint16_t len) {
             if (a < start || a >= end) {
                 cli.print(' ');
             } else {
-                const char data = Memory.read(a);
+                const char data = Memory.read(a, space);
                 if (isprint(data)) {
                     cli.print(data);
                 } else {
@@ -93,6 +95,21 @@ static void memoryDump(uint32_t addr, uint16_t len) {
         }
         cli.println();
     }
+}
+
+static void handleDump(uint32_t value, uintptr_t extra, State state);
+
+static void handleDumpSpace(char *word, uintptr_t extra, State state) {
+    if (state == State::CLI_CANCEL)
+        printPrompt();
+    if (state == State::CLI_DELETE) {
+        cli.backspace();
+        cli.readHex(handleDump, DUMP_LENGTH, UINT16_MAX, last_length);
+        return;
+    }
+    cli.println();
+    memoryDump(last_addr, last_length, word);
+    printPrompt();
 }
 
 static void handleDump(uint32_t value, uintptr_t extra, State state) {
@@ -105,17 +122,23 @@ static void handleDump(uint32_t value, uintptr_t extra, State state) {
         }
         return;
     }
-    if (extra == DUMP_ADDR) {
+    if (extra == DUMP_LENGTH) {
+        last_length = value;
+        if (state == State::CLI_SPACE) {
+            cli.readWord(handleDumpSpace, DUMP_SPACE, str_buffer, sizeof(str_buffer));
+            return;
+        }
+    } else if (extra == DUMP_ADDR) {
         last_addr = value;
         if (state == State::CLI_SPACE) {
             cli.readHex(handleDump, DUMP_LENGTH, UINT16_MAX);
             return;
         }
-        value = 16;
+        last_length = 16;
     }
     cli.println();
-    memoryDump(last_addr, value);
-    last_addr += value;
+    memoryDump(last_addr, last_length);
+    last_addr += last_length;
 cancel:
     printPrompt();
 }

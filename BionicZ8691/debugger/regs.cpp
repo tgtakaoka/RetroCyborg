@@ -392,22 +392,38 @@ void Regs::print() const {
     Pins.idle();
 }
 
-void Regs::reset(bool show) {
-    constexpr auto P3M = 247;
-    constexpr auto P01M = 248;
-    static const uint8_t R247_R248[] = {
-            /* LD P3M,#Z8_DATA_MEMORY<<3 */
-            0xE6,
-            P3M,
-            Z8_DATA_MEMORY << 3,
-            /* LD P01M,#A2|(Z8_INTERNAL_STACK<<2) */
-            0xE6,
-            P01M,
-            0xA2 | (Z8_INTERNAL_STACK << 2),
+uint8_t Regs::read_reg(uint8_t addr) {
+    static uint8_t READ_REG[] = {
+            0xF8, 0,     // LD r15,Rn
+            0x92, 0xFE,  // LDE @rr14,r15
     };
+    READ_REG[1] = addr;
+    uint8_t val;
+    Pins.captureWrites(READ_REG, sizeof(READ_REG), nullptr, &val, sizeof(val));
+    restore_r(15);
+    if (in_rp(addr))
+        _r[addr & 0xF] = val;
+    return val;
+}
+
+void Regs::write_reg(uint8_t addr, uint8_t val) {
+    static uint8_t WRITE_REG[] = {
+            0xE6, 0, 0,  // LD Rn,IM
+    };
+    WRITE_REG[1] = addr;
+    WRITE_REG[2] = val;
+    Pins.execInst(WRITE_REG, sizeof(WRITE_REG));
+    if (in_rp(addr))
+        _r[addr & 0xF] = val;
+}
+
+void Regs::reset(bool show) {
     if (show)
         Signals::resetCycles();
-    Pins.execInst(R247_R248, sizeof(R247_R248));
+    constexpr auto P3M = 247;
+    constexpr auto P01M = 248;
+    write_reg(P3M, Z8_DATA_MEMORY << 3);
+    write_reg(P01M, 0xA2 | (Z8_INTERNAL_STACK << 2));
     if (show)
         Signals::printCycles();
 }
@@ -431,16 +447,6 @@ void Regs::save_r(uint8_t num) {
             SAVE_R, sizeof(SAVE_R), nullptr, &_r[num], sizeof(_r[0]));
 }
 
-void Regs::save_sfr(uint8_t name) {
-    static uint8_t SAVE_SFR[] = {
-            0xF8, 0,     // LD r15,R
-            0x92, 0xFE,  // LDE @rr14,r15
-    };
-    SAVE_SFR[1] = name;  // LD r15,i+252
-    Pins.captureWrites(SAVE_SFR, sizeof(SAVE_SFR), nullptr,
-            &_sfr[name - sfr_base], sizeof(_sfr[0]));
-}
-
 void Regs::save(bool show) {
     if (debug_cycles)
         cli.println(F("@@ save"));
@@ -452,7 +458,7 @@ void Regs::save(bool show) {
     for (auto num = 0; num < 16; num++)
         save_r(num);
     for (auto num = 0; num < 4; num++)
-        save_sfr(sfr_base + num);
+        _sfr[num] = read_reg(sfr_base + num);
     restore_r(15);
 
     if (show)
@@ -468,15 +474,6 @@ void Regs::restore_r(uint8_t num) {
     Pins.execInst(LOAD_R, sizeof(LOAD_R));
 }
 
-void Regs::restore_sfr(uint8_t name) {
-    static uint8_t LOAD_SFR[] = {
-            0xE6, 0, 0,  // LD R,IM
-    };
-    LOAD_SFR[1] = name;
-    LOAD_SFR[2] = _sfr[name - sfr_base];
-    Pins.execInst(LOAD_SFR, sizeof(LOAD_SFR));
-}
-
 void Regs::restore(bool show) {
     static uint8_t JP[] = {
             0x8D, 0, 0,  // JP DA
@@ -487,7 +484,7 @@ void Regs::restore(bool show) {
         Signals::resetCycles();
 
     for (auto num = 0; num < 4; num++)    
-        restore_sfr(sfr_base + num);
+        write_reg(sfr_base + num, _sfr[num]);
     for (auto num = 0; num < 16; num++)
         restore_r(num);
 
@@ -507,7 +504,7 @@ void Regs::set_rp(uint8_t val) {
 void Regs::set_sfr(uint8_t name, uint8_t val) {
     const auto num = name - sfr_base;
     _sfr[num] = val;
-    restore_sfr(name);
+    write_reg(name, val);
 }
 
 void Regs::set_r(uint8_t num, uint8_t val) {
@@ -635,12 +632,20 @@ void Memory::write(uint16_t addr, const uint8_t *data, uint8_t len) {
     }
 }
 
-uint8_t Memory::read(uint16_t addr) const {
-    return memory[addr];
+uint8_t Memory::read(uint16_t addr, const char *space) const {
+    if (space == nullptr) {
+        return memory[addr];
+    } else {
+        return Regs.read_reg(addr);
+    }
 }
 
-void Memory::write(uint16_t addr, uint8_t data) {
-    memory[addr] = data;
+void Memory::write(uint16_t addr, uint8_t data, const char *space) {
+    if (space == nullptr) {
+        memory[addr] = data;
+    } else {
+        Regs.write_reg(addr, data);
+    }
 }
 
 // Local Variables:

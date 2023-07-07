@@ -6,6 +6,9 @@
 #include <dis_memory.h>
 
 struct Regs {
+    uint8_t read_reg(uint8_t addr);
+    void write_reg(uint8_t addr, uint8_t val);
+
     void print() const;
     void reset(bool show = false);
     void save(bool show = false);
@@ -40,13 +43,14 @@ private:
     void set_sph(uint8_t val) { set_sfr(sfr_sph, val); }
     void set_spl(uint8_t val) { set_sfr(sfr_spl, val); }
     void set_rp(uint8_t val);
-    void save_sfr(uint8_t name);
-    void restore_sfr(uint8_t name);
+    bool in_rp(uint8_t num) const {
+        const auto rp_base = get_sfr(sfr_rp) & 0xF0;
+        return num >= rp_base && num <= rp_base + 15;
+    }
     void set_sfr(uint8_t name, uint8_t val);
     uint8_t get_sfr(uint8_t name) const {
         const auto num = name - sfr_base;
         return _sfr[num];
-
     }
 
     void save_r(uint8_t num);
@@ -73,8 +77,8 @@ public:
     bool hasNext() const override { return address() < memory_size; }
     void setAddress(uint16_t addr) { resetAddress(addr); }
 
-    uint8_t read(uint16_t addr) const;
-    void write(uint16_t addr, uint8_t data);
+    uint8_t read(uint16_t addr, const char *space = nullptr) const;
+    void write(uint16_t addr, uint8_t data, const char *space = nullptr);
     void write(uint16_t addr, const uint8_t *data, uint8_t len);
 
     static constexpr auto memory_size = 0x10000;
