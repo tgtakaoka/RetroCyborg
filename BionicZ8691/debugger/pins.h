@@ -50,6 +50,7 @@ public:
 
 private:
     bool _freeRunning;
+    uint8_t _writes;
 
     Signals &prepareCycle();
     Signals &completeCycle(Signals &signals);

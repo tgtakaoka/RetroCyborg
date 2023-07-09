@@ -197,6 +197,7 @@ Signals &Pins::prepareCycle() {
 Signals &Pins::completeCycle(Signals &signals) {
     // #DS is low
     if (signals.write()) {
+        _writes++;
         signals.getData();
         if (signals.writeRam()) {
             Memory.write(signals.addr, signals.debug('m').data);
@@ -204,6 +205,7 @@ Signals &Pins::completeCycle(Signals &signals) {
             ;  // capture data to signals.data
         }
     } else {
+        _writes = 0;
         if (signals.readRam()) {
             signals.debug('m').data = Memory.read(signals.addr);
         } else {
@@ -322,6 +324,18 @@ void Pins::run() {
 
 bool Pins::rawStep() {
     auto &signals = prepareCycle();
+    if (signals.write()) {
+        // interrupt acknowledge is ongoing
+        // finsh saving PC and FLAGS
+        while (signals.write()) {
+            completeCycle(signals).debug('I');
+            signals = prepareCycle();
+        }
+        // fetch vector
+        completeCycle(signals).debug('v');
+        completeCycle(prepareCycle()).debug('v');
+        signals = prepareCycle();
+    }
     const auto insn = Memory.read(signals.addr);
     const auto cycles = Regs::busCycles(insn);
     if (debug_step) {
@@ -345,6 +359,12 @@ bool Pins::rawStep() {
     completeCycle(signals).debug('1');
     for (auto c = 1; c < cycles; c++) {
         cycle().debug(c + '1');
+        if (_writes == 3) {
+            // interrupt is acknowledged, fetch vector
+            cycle().debug('v');
+            cycle().debug('v');
+            return true;
+        }
     }
     return true;
 }
