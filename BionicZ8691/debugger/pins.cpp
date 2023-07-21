@@ -179,6 +179,9 @@ void Pins::begin() {
     reset();
 
     setDeviceBase(Device::USART);
+
+    _rom_begin = 1;
+    _rom_end = 0;  // no ROM area
 }
 
 Signals &Pins::prepareCycle() {
@@ -209,7 +212,11 @@ Signals &Pins::completeCycle(Signals &signals) {
         if (Usart.isSelected(signals.addr)) {
             Usart.write(signals.debug('u').data, signals.addr);
         } else if (signals.writeRam()) {
-            Memory.write(signals.addr, signals.debug('m').data);
+            if (signals.addr <= _rom_end && signals.addr >= _rom_begin) {
+                // ROM area, ignore write from CPU;
+            } else {
+                Memory.write(signals.addr, signals.debug('m').data);
+            }
         } else {
             ;  // capture data to signals.data
         }
@@ -493,6 +500,22 @@ void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
     _serialDevice = device;
     Usart.enable(device == Device::USART, baseAddr);
     SioH.enable(device == Device::SIO);
+}
+
+void Pins::setRomArea(uint16_t begin, uint16_t end) {
+    _rom_begin = begin;
+    _rom_end = end;
+}
+
+void Pins::printRomArea() const {
+    cli.print(F("ROM area: "));
+    if (_rom_begin <= _rom_end) {
+        cli.printHex(_rom_begin, 4);
+        cli.print('-');
+        cli.printlnHex(_rom_end, 4);
+    } else {
+        cli.println(F("none"));
+    }
 }
 
 // Local Variables:
