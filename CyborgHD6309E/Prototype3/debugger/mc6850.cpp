@@ -11,15 +11,16 @@
 //#define DEBUG_CONTROL
 //#define DEBUG_READ
 //#define DEBUG_WRITE
+extern libcli::Cli cli;
 
 void Mc6850::assertIrq(uint8_t intMask) {
     _status |= IRQF_bm;
     Pins.assertIrq(intMask);
 #ifdef DEBUG_IRQ
     if (intMask & _rxInt)
-        Cli.println(F("@@ Assert RX INT"));
+        cli.println(F("@@ Assert RX INT"));
     if (intMask & _txInt)
-        Cli.println(F("@@ Assert TX INT"));
+        cli.println(F("@@ Assert TX INT"));
 #endif
 }
 
@@ -28,9 +29,9 @@ void Mc6850::negateIrq(uint8_t intMask) {
     _status &= ~IRQF_bm;
 #ifdef DEBUG_IRQ
     if (intMask & _rxInt)
-        Cli.println(F("@@ Negate RX IRQ"));
+        cli.println(F("@@ Negate RX IRQ"));
     if (intMask & _txInt)
-        Cli.println(F("@@ Negate TX IRQ"));
+        cli.println(F("@@ Negate TX IRQ"));
 #endif
 }
 
@@ -57,8 +58,8 @@ void Mc6850::loop() {
 void Mc6850::write(uint8_t data, uint16_t addr) {
     if (addr == _baseAddr) {
 #ifdef DEBUG_CONTROL
-        Cli.print(F("@@ Control 0x"));
-        Cli.println(data, HEX);
+        cli.print(F("@@ Control 0x"));
+        cli.println(data, HEX);
 #endif
         const uint8_t delta = _control ^ data;
         _control = data;
@@ -88,10 +89,10 @@ void Mc6850::write(uint8_t data, uint16_t addr) {
         if (txIntEnabled())
             negateIrq(_txInt);
 #ifdef DEBUG_WRITE
-        Cli.print(F("@@ Write 0x"));
-        Cli.print(data, HEX);
-        Cli.print(F(" 0x"));
-        Cli.println(_status, HEX);
+        cli.print(F("@@ Write 0x"));
+        cli.print(data, HEX);
+        cli.print(F(" 0x"));
+        cli.println(_status, HEX);
 #endif
     }
 }
@@ -101,8 +102,8 @@ uint8_t Mc6850::read(uint16_t addr) {
         _readFlags = _status & (DCD_bm | OVRN_bm);
 #ifdef DEBUG_STATUS
         if (_readFlags) {
-            Cli.print(F("@@ Status 0x"));
-            Cli.println(_status, HEX);
+            cli.print(F("@@ Status 0x"));
+            cli.println(_status, HEX);
         }
 #endif
         return _status;
@@ -114,12 +115,12 @@ uint8_t Mc6850::read(uint16_t addr) {
         _status |= _nextFlags;
         _readFlags = _nextFlags = 0;
 #ifdef DEBUG_READ
-        Cli.print(F("@@ Read 0x"));
-        Cli.print(_rxData, HEX);
-        Cli.print(F(" 0x"));
-        Cli.print(prev_status, HEX);
-        Cli.print(F("->0x"));
-        Cli.println(_status, HEX);
+        cli.print(F("@@ Read 0x"));
+        cli.print(_rxData, HEX);
+        cli.print(F(" 0x"));
+        cli.print(prev_status, HEX);
+        cli.print(F("->0x"));
+        cli.println(_status, HEX);
 #endif
         if (rxIntEnabled()) {
             if (_status & (RDRF_bm | OVRN_bm)) {

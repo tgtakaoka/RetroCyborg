@@ -7,7 +7,8 @@
 #if defined(ARDUINO_AVR_ATmega1284) && defined(STANDARD_PINOUT)
 /**
  * Arduino IDE settings
- * FQBN: MightyCore:avr:1284:clock=16MHz_external,LTO=Os_flto,variant=modelP,pinout=standard,bootloader=uart0
+ * FQBN:
+ * MightyCore:avr:1284:clock=16MHz_external,LTO=Os_flto,variant=modelP,pinout=standard,bootloader=uart0
  * Core: https://github.com/MCUdude/MightyCore
  * Board: ATmega1284
  * Clock: External 16 MHz

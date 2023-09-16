@@ -14,7 +14,7 @@
 #include <SPI.h>
 #endif
 
-extern libcli::Cli Cli;
+extern libcli::Cli cli;
 
 static inline void assertReset() {
     digitalWrite(RESET, LOW);
@@ -157,7 +157,7 @@ void Pins::Dbus::begin() {
 
 void Pins::Dbus::setDbus(uint8_t dir, uint8_t data) {
     if (dir == OUTPUT && isWriteDirection()) {
-        Cli.println(F("!! R/W is LOW"));
+        cli.println(F("!! R/W is LOW"));
         return;
     }
     if (dir == OUTPUT || _capture) {
@@ -269,7 +269,7 @@ void Signals::print(const Signals *prev) const {
         }
     }
     *p = 0;
-    Cli.println(buffer);
+    cli.println(buffer);
 }
 
 void Pins::print() {
@@ -578,7 +578,7 @@ void Pins::begin() {
     turnOffUserLed();
 
     Console.begin(CONSOLE_BAUD);
-    Cli.begin(Console);
+    cli.begin(Console);
 
 #ifdef SPI_MAPPING
     SPI.swap(SPI_MAPPING);
