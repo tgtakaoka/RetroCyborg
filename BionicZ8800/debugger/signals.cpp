@@ -16,7 +16,12 @@ Signals Signals::_signals[MAX_CYCLES];
 
 void Signals::clear() {
     // fields including _debug will be written in Pins::cycle().
-    _inject = _capture = false;
+    _inject = _capture = _fetch = false;
+}
+
+Signals &Signals::fetch(bool fetch) {
+    _fetch = fetch;
+    return *this;
 }
 
 void Signals::printCycles() {
@@ -25,31 +30,37 @@ void Signals::printCycles() {
     for (auto i = 0; i < n; i++) {
         const auto x = (i + g) % MAX_CYCLES;
         _signals[x].print();
-        Pins.idle();
+        if (i % 4 == 3)
+            Pins.idle();
     }
 }
 
 void Signals::disassembleCycles() {
     const auto n = _cycles;
     const auto g = _get;
+    auto idle = 4;
     for (auto i = 0; i < n;) {
         const auto x = (i + g) % MAX_CYCLES;
         const auto &signals = _signals[x];
-        const auto len = Regs::insnLen(signals.data);
-        if (len) {
+        const auto insn = signals.data;
+        const auto len = Regs::insnLen(insn);
+        if (signals.fetch() && len) {
             Regs.disassemble(signals.addr, 1);
             i += len;
-            const auto b = Regs::busCycles(signals.data) - len;
-            for (auto j = 0; j < b; j++) {
-                const auto &s = _signals[(i + g + j) % MAX_CYCLES];
+            const auto cycles = Regs::busCycles(insn);
+            for (auto c = 0; c < cycles; c++) {
+                const auto &s = _signals[(i + g + c) % MAX_CYCLES];
                 s.print();
             }
-            i += b;
+            i += cycles;
         } else {
             signals.print();
             i++;
         }
-        Pins.idle();
+        if (i >= idle) {
+            Pins.idle();
+            idle += 4;
+        }
     }
 }
 
@@ -83,7 +94,7 @@ void Signals::nextCycle() {
 void Signals::getAddr() {
     addr = busRead(ADDR);
     rw = digitalReadFast(PIN_RW);
-#if Z8_DATA_MEMORY == 1
+#if Z88_DATA_MEMORY == 1
     dm = digitalReadFast(PIN_DM);
 #endif
 }
@@ -111,22 +122,22 @@ void Signals::print() const {
     // clang-format off
     static char buffer[] = {
         ' ', ' ',                  // _debug=0
-#if Z8_DATA_MEMORY == 1
+#if Z88_DATA_MEMORY == 1
         ' ',                       // P/D=2
 #endif
-        'R',                       // R/W=3
-        ' ', 'A', '=', 0, 0, 0, 0, // addr=7
-        ' ', 'D', '=', 0, 0,       // data=14
+        'R',                       // R/#W=2
+        ' ', 'A', '=', 0, 0, 0, 0, // addr=6
+        ' ', 'D', '=', 0, 0,       // data=13
         0,
     };
     // clang-format off
     buffer[0] = _debug;
-#if Z8_DATA_MEMORY == 1
+#if Z88_DATA_MEMORY == 1
     buffer[2] = dm ? 'P' : 'D';
 #endif
-    buffer[2 + Z8_DATA_MEMORY] = read() ? 'R' : 'W';
-    outHex16(buffer + 6 + Z8_DATA_MEMORY, addr);
-    outHex8(buffer + 13 + Z8_DATA_MEMORY, data);
+    buffer[2 + Z88_DATA_MEMORY] = read() ? 'R' : 'W';
+    outHex16(buffer + 6 + Z88_DATA_MEMORY, addr);
+    outHex8(buffer + 13 + Z88_DATA_MEMORY, data);
     cli.println(buffer);
 }
 

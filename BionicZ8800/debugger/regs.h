@@ -5,8 +5,14 @@
 
 #include <dis_memory.h>
 
+enum RegSpace : uint8_t {
+    SET_ONE = 0,    // %00~%FF
+    SET_TWO = 1,    // %C0~%FF
+    SET_BANK1 = 2,  // %E0-%FF
+};
+
 struct Regs {
-    uint8_t read_reg(uint8_t addr);
+    uint8_t read_reg(uint8_t addr, RegSpace space = SET_ONE);
     void write_reg(uint8_t addr, uint8_t val);
 
     void print() const;
@@ -31,28 +37,26 @@ struct Regs {
 
 private:
     uint16_t _pc;
-    static constexpr auto sfr_base = 252;
+    static constexpr auto sfr_base = 213;
     static constexpr auto sfr_flags = sfr_base + 0;
-    static constexpr auto sfr_rp = sfr_base + 1;
-    static constexpr auto sfr_sph = sfr_base + 2;
-    static constexpr auto sfr_spl = sfr_base + 3;
-    uint8_t _sfr[4];
+    static constexpr auto sfr_rp0 = sfr_base + 1;
+    static constexpr auto sfr_rp1 = sfr_base + 2;
+    static constexpr auto sfr_sph = sfr_base + 3;
+    static constexpr auto sfr_spl = sfr_base + 4;
+    static constexpr auto sfr_iph = sfr_base + 5;
+    static constexpr auto sfr_ipl = sfr_base + 6;
+    uint8_t _sfr[7];
     uint8_t _r[16];
 
     void set_flags(uint8_t val) { set_sfr(sfr_flags, val); }
-    void set_sph(uint8_t val) { set_sfr(sfr_sph, val); }
-    void set_spl(uint8_t val) { set_sfr(sfr_spl, val); }
-    void set_rp(uint8_t val);
-    bool in_rp(uint8_t num) const {
-        const auto rp_base = get_sfr(sfr_rp) & 0xF0;
-        return num >= rp_base && num <= rp_base + 15;
-    }
+    void set_rp0(uint8_t val);
+    void set_rp1(uint8_t val);
+    void set_sp(uint16_t val);
+    void set_ip(uint16_t val);
     void set_sfr(uint8_t name, uint8_t val);
-    uint8_t get_sfr(uint8_t name) const {
-        const auto num = name - sfr_base;
-        return _sfr[num];
-    }
+    uint8_t get_sfr(uint8_t name) const { return _sfr[name - sfr_base]; }
 
+    void update_r(uint8_t addr, uint8_t val);
     void save_r(uint8_t num);
     void restore_r(uint8_t num);
     void set_r(uint8_t num, uint8_t val);
@@ -61,6 +65,7 @@ private:
         set_r(num + 1, lo(val));
     }
 
+    static void switchBank(RegSpace space);
     static constexpr uint8_t hi(const uint16_t v) {
         return static_cast<uint8_t>(v >> 8);
     }

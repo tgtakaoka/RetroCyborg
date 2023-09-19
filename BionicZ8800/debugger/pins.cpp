@@ -9,38 +9,43 @@
 #include "regs.h"
 #include "signals.h"
 #include "string_util.h"
-#include "z8_sio_handler.h"
 
 extern libcli::Cli cli;
 
 class Pins Pins;
 I8251 Usart(Console);
-Z8SioHandler SioH(Console);
 
 static constexpr bool debug_cycles = false;
-static constexpr bool debug_step = false;
 
 /**
  * Z8 External Bus cycle
- *         __    __    __    __    __    __    __    __    __    __
- * XTAL1 _|  |__|  |__|  |__|  |__|  |__|  |__|  |__|  |__|  |__|  |__
- *        \     \     \                       \     \     \     \
- *       __       _________________________________________       ____
- *   #AS   |_____|                                         |_____|
- *       _____________                          ______________________
- *   #DS              |________________________|____|
- *          _______________________________________         __________
- *  R/#W --<_______________________________________>-------<__________
- *          _________                                       __________
- *  ADDR --<_________>-------------------------------------<__________
- *                     ________________________
- *  DATA -------------<________________________>----|-----------------
+ *         -|-----T1----|-----T2----|-----T3----|-----T1----|-----T2----|-----T3----|-----
+ *         _    __    __    __    __    __    __    __    __    __    __    __
+ * __    __ XTAL1/2  |__|  |__|  |__|  |__|  |__|  |__|  |__|  |__|  |__|  |__|
+ * |__|  |__|  |__|
+ *           \     \     \           \     \     \     \     \     \     \     \
+ * \
+ *         ___|     |_____|___________|_____|_____|
+ * |_____|_____|_____|_____|_____| #AS      \_____/ \_____/ \___
+ *         _______________|                 |_______________________| |_________
+ *   #DS                  \_________________/ \___________/
+ *         ___|___________________________________| |___ R/#W   ___/
+ * \___________________________________/___
+ *         ___|___________________________________|___________________________________|___
+ *    P0
+ * ___X______________A15-18_______________X_______________A15-A8______________X___
+ *            |___________|           |_____|
+ * |___________|_______________________|___ P1
+ * ---<__A7-A0____>-----------<D7-D0>-----<__A7-A0____X__________D7-D0________X___
+ *         ___|___________________________________|___________________________________|___
+ *   #DM
+ * ___X___________________________________X___________________________________X___
  *
  */
 
 #if defined(ARDUINO_TEENSY41)
-static constexpr auto xtal1_hi_ns = 18;
-static constexpr auto xtal1_lo_ns = 18;
+static constexpr auto xtal1_hi_ns = 0;
+static constexpr auto xtal1_lo_ns = 10;
 #endif
 
 static inline void xtal1_hi() __attribute__((always_inline));
@@ -56,12 +61,10 @@ static inline void xtal1_lo() {
 }
 
 void Pins::xtal1_cycle() const {
-    xtal1_hi();
-    delayNanoseconds(xtal1_hi_ns);
     xtal1_lo();
     delayNanoseconds(xtal1_lo_ns);
-    if (_freeRunning)
-        SioH.loop();
+    xtal1_hi();
+    delayNanoseconds(xtal1_hi_ns);
 }
 
 static inline uint8_t signal_as() __attribute__((always_inline));
@@ -100,12 +103,17 @@ static void negate_irq2() {
 
 static void toggle_debug() __attribute__((unused));
 static void toggle_debug() {
-    digitalToggleFast(PIN_IRQ2);
+    digitalToggleFast(PIN_WAIT);
 }
 
-static void toggle_irq1() __attribute__((unused));
-static void toggle_irq1() {
-    digitalToggleFast(PIN_IRQ1);
+static void assert_debug() __attribute__((unused));
+static void assert_debug() {
+    digitalWriteFast(PIN_WAIT, HIGH);
+}
+
+static void negate_debug() __attribute__((unused));
+static void negate_debug() {
+    digitalWriteFast(PIN_WAIT, LOW);
 }
 
 static void assert_reset() {
@@ -163,7 +171,9 @@ void Pins::begin() {
     pinMode(PIN_AS, INPUT);
     pinMode(PIN_DS, INPUT);
     pinMode(PIN_RW, INPUT);
+#if Z88_DATA_MEMORY == 1
     pinMode(PIN_DM, INPUT);
+#endif
     pinMode(PIN_RESET, OUTPUT);
     pinMode(PIN_IRQ0, OUTPUT);
     pinMode(PIN_IRQ1, OUTPUT);
@@ -185,7 +195,7 @@ void Pins::begin() {
 }
 
 Signals &Pins::prepareCycle() {
-    Signals &signals = Signals::currCycle();
+    auto &signals = Signals::currCycle();
     // Wait for bus cycle
     while (signal_ds() != LOW) {
         if (signal_as() == LOW) {
@@ -262,7 +272,7 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
     uint8_t inj = 0;
     uint8_t cap = 0;
     while (inj < len || cap < max) {
-        Signals &signals = prepareCycle();
+        auto &signals = prepareCycle().fetch(inj == 0);
         if (cap < max)
             signals.capture();
         if (inj < len)
@@ -270,16 +280,14 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         completeCycle(signals);
         if (signals.read()) {
             signals.debug('i');  // injected
-            if (inj < len) {
+            if (inj < len)
                 inj++;
-            }
         } else {
             signals.debug('c');  // captured
             if (cap == 0 && addr)
                 *addr = signals.addr;
-            if (buf && cap < max) {
+            if (buf && cap < max)
                 buf[cap++] = signals.data;
-            }
         }
     }
     return cap;
@@ -287,9 +295,10 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 void Pins::reset(bool show) {
     assert_reset();
-    // #RESET must remain low for a minimum of 16 clocks.
-    for (auto i = 0; i < 16 * 2; i++)
+    // #RESET must remain low for a minimum of 18 clocks.
+    for (auto i = 0; i < 18 * 2; i++) {
         xtal1_cycle();
+    }
     negate_reset();
     // Wait for #AS pulse with #DS high
     while (signal_ds() == LOW) {
@@ -299,11 +308,10 @@ void Pins::reset(bool show) {
             xtal1_cycle();
     }
 
-    Regs.save(show);
     Regs.reset(show);
+    Regs.save(show);
 
     Usart.reset();
-    SioH.reset();
 }
 
 void Pins::idle() {
@@ -345,48 +353,43 @@ void Pins::run() {
 }
 
 bool Pins::rawStep() {
-    auto &signals = prepareCycle();
-    if (signals.write()) {
-        // interrupt acknowledge is ongoing
-        // finsh saving PC and FLAGS
-        while (signals.write()) {
-            completeCycle(signals).debug('I');
-            signals = prepareCycle();
-        }
-        // fetch vector
-        completeCycle(signals).debug('v');
-        completeCycle(prepareCycle()).debug('v');
-        signals = prepareCycle();
-    }
-    const auto insn = Memory.read(signals.addr);
-    const auto cycles = Regs::busCycles(insn);
-    if (debug_step) {
-        cli.print(F("@@ rawStep at "));
-        cli.printHex(signals.addr, 4);
-        cli.print(':');
-        cli.printHex(insn, 2);
-        cli.print(F(" cycles="));
-        cli.printlnDec(cycles);
-    }
-    if (cycles == 0) {
+    auto *signals = &prepareCycle();
+reentry:
+    const auto insn = Memory.read(signals->addr);
+    const auto len = Regs::insnLen(insn);
+    if (len == 0 && signals->addr >= 0x20) {
+        completeCycle(signals->inject(0x8B)).debug(' ');  // inject JR $
+        completeCycle(prepareCycle().inject(0xFE)).debug(' ');
         cli.print(F("Illegal instruction "));
         cli.printHex(insn, 2);
         cli.print(F(" at "));
-        cli.printHex(signals.addr, 4);
+        cli.printHex(signals->addr, 4);
         cli.println(F("; HALT"));
-        cycle(0x8B);  // JR $
-        cycle(0xFE);
         return false;
     }
-    completeCycle(signals).debug('1');
-    for (auto c = 1; c < cycles; c++) {
-        cycle().debug(c + '1');
-        if (_writes == 3) {
-            // interrupt is acknowledged, fetch vector
+    auto fetch = signals;
+    for (auto i = 0; i < len;) {
+        if (signals->addr < 0x20) {
+            // interrupt acknowledge is ongoing, fetching vector first.
+            completeCycle(*signals).debug('v');
             cycle().debug('v');
-            cycle().debug('v');
-            return true;
+            // saving PC and FLAGS, though no writes if fast interrupt.
+            signals = &prepareCycle();
+            while (signals->write()) {
+                completeCycle(*signals).debug('I');
+                signals = &prepareCycle();
+            }
+            goto reentry;
         }
+        completeCycle(*signals).debug(i + '1');
+        ++i;
+        if (i < len)
+            signals = &prepareCycle();
+    }
+    fetch->fetch(true);
+    const auto cycles = Regs::busCycles(insn);
+    for (auto c = 0; c < cycles; c++) {
+        cycle().debug(len + c + '1');
     }
     return true;
 }
@@ -433,13 +436,10 @@ void Pins::negateIntr(IntrName intr) {
 }
 
 static const char TEXT_USART[] PROGMEM = "USART";
-static const char TEXT_SIO[] PROGMEM = "SIO";
 
 Pins::Device Pins::parseDevice(const char *name) const {
     if (strcasecmp_P(name, TEXT_USART) == 0)
         return Device::USART;
-    if (strcasecmp_P(name, TEXT_SIO) == 0)
-        return Device::SIO;
     return Device::NONE;
 }
 
@@ -447,17 +447,12 @@ void Pins::getDeviceName(Pins::Device dev, char *name) const {
     *name = 0;
     if (dev == Device::USART)
         strcpy_P(name, TEXT_USART);
-    if (dev == Device::SIO)
-        strcpy_P(name, TEXT_SIO);
 }
 
 void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
     switch (dev) {
     case Device::USART:
         setSerialDevice(Device::USART, hasValue ? base : USART_BASE_ADDR);
-        break;
-    case Device::SIO:
-        setSerialDevice(Device::SIO, hasValue ? base : 0xF0);
         break;
     default:
         break;
@@ -476,22 +471,11 @@ void Pins::printDevices() const {
     } else {
         cli.println(F("disabled"));
     }
-    cli.print(F("SIO (Z86C91) "));
-    if (serial == Device::SIO) {
-        cli.print(F("at "));
-        cli.printDec(baseAddr);
-        cli.println(F(" bps"));
-    } else {
-        cli.println(F("disabled"));
-    }
 }
 
 Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
     if (_serialDevice == Device::USART) {
         baseAddr = Usart.baseAddr();
-    }
-    if (_serialDevice == Device::SIO) {
-        baseAddr = SioH.baudrate();
     }
     return _serialDevice;
 }
@@ -499,7 +483,6 @@ Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
 void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
     _serialDevice = device;
     Usart.enable(device == Device::USART, baseAddr);
-    SioH.enable(device == Device::SIO);
 }
 
 void Pins::setRomArea(uint16_t begin, uint16_t end) {

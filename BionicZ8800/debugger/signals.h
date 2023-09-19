@@ -9,18 +9,20 @@ struct Signals {
     void getAddr();
     bool read() const { return rw != 0; }
     bool write() const { return rw == 0; }
+    bool fetch() const { return _fetch; }
     void getData();
     void outData();
     void clear();
     Signals &inject(uint8_t data);
     void capture();
     void print() const;
+    Signals &fetch(bool fetch);
     Signals &debug(char c);
 
     uint16_t addr;
     uint8_t data;
     uint8_t rw;
-#if Z8_DATA_MEMORY == 1
+#if Z88_DATA_MEMORY == 1
     uint8_t dm;
 #endif
 
@@ -41,6 +43,7 @@ struct Signals {
 private:
     bool _inject;
     bool _capture;
+    bool _fetch;
     char _debug;
 
     static constexpr uint8_t MAX_CYCLES = 92;

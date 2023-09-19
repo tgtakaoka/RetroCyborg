@@ -480,7 +480,7 @@ void Commands::exec(char c) {
     switch (c) {
     case 'R':
         cli.println(F("Reset"));
-        Pins.reset(true);
+        Pins.reset();
         goto regs;
     case 'd':
         cli.print(F("Dump? "));

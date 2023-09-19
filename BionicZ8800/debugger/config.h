@@ -10,33 +10,43 @@
 #define USART_BASE_ADDR 0xFF00
 
 /**
- * External memory operation
- * R248:D7; %F8 Write only
- *   1 = P04~7=A12~15
- * R248:D43; %F8 Write only
- *   10 = P10~7=AD0~7
- * R248:D1; %F8 Write only
- *   1 = P00~3=A8~11
- *
- * Stack selection
- * R248:D2; %F8 Write only
- *   0 = External
- *   1 = Internal
+ * BANK0:R240:%F0 Write only; [P0M] Port 0 Mode
+ * D7-D0: Address or I/O
+ *   0001_1111 = P07-P05, A12-A8
  */
-#define Z8_INTERNAL_STACK 0
 
 /**
- * Data memory operation
- * R247:D43; %F7 Write only
- *   00 = P33=INPUT, P34=OUTPUT
- *   01 = P33=INPUT, P34=#DM
- *   10 = P33=INPUT, P34=#DM
- *
- * Serial IO
- * R247:D6; %F7 Write only
- *   1 = P30=Serial In, P37=Serial Out
+ * BANK0:R241:%F1 Write only; [PM] Port Mode
+ * D6-5: Port 1 mode
+ *   1x = Address/Data
+ *   01 = Input
+ *   00 = Output
+ * D3: DM enable
+ *   1 = Enable DM P35
+ *   0 = Disable DM P35
  */
-#define Z8_DATA_MEMORY 0
+#define Z88_DATA_MEMORY 0
+
+/**
+ * BANK0:R254:%F8 Write only; [EMT] External Memory Timing
+ * D7: Wait input selection
+ *   1 = External #WAIT input
+ *   0 = I/O
+ * D6: Slow memory timing
+ *   1 = Enabled
+ *   0 = Disabled
+ * D5-4: Program memory automatic waits
+ *   0~3 = waits
+ * D3-2: Data memory automatic waits
+ *   0~3 = waits
+ * D1: Stack location selection
+ *   1 = Data memory
+ *   0 = Register file
+ * D0: DMA select
+ *   1 = Data memory
+ *   0 = Register file
+ */
+#define Z88_EXTERNAL_STACK 1
 
 #if defined(ARDUINO_TEENSY41)
 #define PORT_DATA 6    /* GPIO6 */
@@ -80,6 +90,7 @@
 #define PIN_XTAL1 5    /* P9.08 */
 #define PIN_DS 29      /* P9.31 */
 #define PIN_IRQ2 6     /* P7.10 */
+#define PIN_WAIT 32    /* P7.12 */
 #define PIN_RESET 28   /* P8.18 */
 #define PIN_DM 30      /* P8.23 */
 #define PIN_USRSW 35   /* P7.28 */

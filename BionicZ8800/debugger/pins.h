@@ -8,9 +8,9 @@
 
 enum IntrName : uint8_t {
     INTR_NONE = 0,
-    INTR_IRQ0 = 1,
-    INTR_IRQ1 = 2,
-    INTR_IRQ2 = 3,
+    INTR_IRQ0 = 1,  // P23
+    INTR_IRQ1 = 2,  // P21
+    INTR_IRQ2 = 3,  // P26
 };
 
 class Pins {
@@ -40,7 +40,6 @@ public:
     enum Device : uint8_t {
         NONE = 0,
         USART = 1,  // i8251
-        SIO = 2,    // Z86C91 SIO
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
