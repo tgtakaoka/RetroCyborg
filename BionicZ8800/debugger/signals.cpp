@@ -85,8 +85,7 @@ void Signals::nextCycle() {
     if (_cycles < MAX_CYCLES) {
         _cycles++;
     } else {
-        _get++;
-        _get %= MAX_CYCLES;
+        _get = _put;
     }
     _signals[_put].clear();
 }
