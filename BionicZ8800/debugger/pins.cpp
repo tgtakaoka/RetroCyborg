@@ -9,11 +9,13 @@
 #include "regs.h"
 #include "signals.h"
 #include "string_util.h"
+#include "z88_uart_handler.h"
 
 extern libcli::Cli cli;
 
 class Pins Pins;
 I8251 Usart(Console);
+Z88UartHandler UartH(Console);
 
 static constexpr bool debug_cycles = false;
 
@@ -45,7 +47,7 @@ static constexpr bool debug_cycles = false;
 
 #if defined(ARDUINO_TEENSY41)
 static constexpr auto xtal1_hi_ns = 0;
-static constexpr auto xtal1_lo_ns = 10;
+static constexpr auto xtal1_lo_ns = 1;
 #endif
 
 static inline void xtal1_hi() __attribute__((always_inline));
@@ -63,6 +65,8 @@ static inline void xtal1_lo() {
 void Pins::xtal1_cycle() const {
     xtal1_lo();
     delayNanoseconds(xtal1_lo_ns);
+    if (_freeRunning)
+        UartH.loop();
     xtal1_hi();
     delayNanoseconds(xtal1_hi_ns);
 }
@@ -312,6 +316,7 @@ void Pins::reset(bool show) {
     Regs.save(show);
 
     Usart.reset();
+    UartH.reset();
 }
 
 void Pins::idle() {
@@ -436,10 +441,13 @@ void Pins::negateIntr(IntrName intr) {
 }
 
 static const char TEXT_USART[] PROGMEM = "USART";
+static const char TEXT_UART[] PROGMEM = "UART";
 
 Pins::Device Pins::parseDevice(const char *name) const {
     if (strcasecmp_P(name, TEXT_USART) == 0)
         return Device::USART;
+    if (strcasecmp_P(name, TEXT_UART) == 0)
+        return Device::UART;
     return Device::NONE;
 }
 
@@ -447,12 +455,17 @@ void Pins::getDeviceName(Pins::Device dev, char *name) const {
     *name = 0;
     if (dev == Device::USART)
         strcpy_P(name, TEXT_USART);
+    if (dev == Device::UART)
+        strcpy_P(name, TEXT_UART);
 }
 
 void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
     switch (dev) {
     case Device::USART:
         setSerialDevice(Device::USART, hasValue ? base : USART_BASE_ADDR);
+        break;
+    case Device::UART:
+        setSerialDevice(Device::UART, hasValue ? base : 0xEF);
         break;
     default:
         break;
@@ -471,11 +484,22 @@ void Pins::printDevices() const {
     } else {
         cli.println(F("disabled"));
     }
+    cli.print(F("UART (Z88C00) "));
+    if (serial == Device::UART) {
+        cli.print(F("at "));
+        cli.printDec(baseAddr);
+        cli.println(F(" bps"));
+    } else {
+        cli.println(F("disabled"));
+    }
 }
 
 Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
     if (_serialDevice == Device::USART) {
         baseAddr = Usart.baseAddr();
+    }
+    if (_serialDevice == Device::UART) {
+        baseAddr = UartH.baudrate();
     }
     return _serialDevice;
 }
@@ -483,6 +507,7 @@ Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
 void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
     _serialDevice = device;
     Usart.enable(device == Device::USART, baseAddr);
+    UartH.enable(device == Device::UART);
 }
 
 void Pins::setRomArea(uint16_t begin, uint16_t end) {

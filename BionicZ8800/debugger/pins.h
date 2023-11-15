@@ -40,6 +40,7 @@ public:
     enum Device : uint8_t {
         NONE = 0,
         USART = 1,  // i8251
+        UART = 2,   // Z88 UART
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
