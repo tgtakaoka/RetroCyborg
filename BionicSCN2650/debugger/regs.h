@@ -5,22 +5,14 @@
 
 #include <dis_memory.h>
 
-enum RegSpace : uint8_t {
-    SET_ONE = 0,    // %00~%FF
-    SET_TWO = 1,    // %C0~%FF
-    SET_BANK1 = 2,  // %E0-%FF
-};
-
 struct Regs {
-    uint8_t read_reg(uint8_t addr, RegSpace space = SET_ONE);
-    void write_reg(uint8_t addr, uint8_t val);
-
     void print() const;
     void reset(bool show = false);
     void save(bool show = false);
     void restore(bool show = false);
     static uint8_t insnLen(uint8_t insn);
     static uint8_t busCycles(uint8_t insn);
+    static bool hasIndirect(uint8_t insn);
 
     const char *cpu() const;
     const char *cpuName() const;
@@ -37,35 +29,12 @@ struct Regs {
 
 private:
     uint16_t _pc;
-    static constexpr auto sfr_base = 213;
-    static constexpr auto sfr_flags = sfr_base + 0;
-    static constexpr auto sfr_rp0 = sfr_base + 1;
-    static constexpr auto sfr_rp1 = sfr_base + 2;
-    static constexpr auto sfr_sph = sfr_base + 3;
-    static constexpr auto sfr_spl = sfr_base + 4;
-    static constexpr auto sfr_iph = sfr_base + 5;
-    static constexpr auto sfr_ipl = sfr_base + 6;
-    uint8_t _sfr[7];
-    uint8_t _r[16];
+    uint8_t _psu;
+    uint8_t _psl;
+    uint8_t rs() const { return (_psl & 0x10) ? 1 : 0; }
+    uint8_t _r0;
+    uint8_t _r[/*rs*/2][4];
 
-    void set_flags(uint8_t val) { set_sfr(sfr_flags, val); }
-    void set_rp0(uint8_t val);
-    void set_rp1(uint8_t val);
-    void set_sp(uint16_t val);
-    void set_ip(uint16_t val);
-    void set_sfr(uint8_t name, uint8_t val);
-    uint8_t get_sfr(uint8_t name) const { return _sfr[name - sfr_base]; }
-
-    void update_r(uint8_t addr, uint8_t val);
-    void save_r(uint8_t num);
-    void restore_r(uint8_t num);
-    void set_r(uint8_t num, uint8_t val);
-    void set_rr(uint8_t num, uint16_t val) {
-        set_r(num, hi(val));
-        set_r(num + 1, lo(val));
-    }
-
-    static void switchBank(RegSpace space);
     static constexpr uint8_t hi(const uint16_t v) {
         return static_cast<uint8_t>(v >> 8);
     }
@@ -86,7 +55,7 @@ public:
     void write(uint16_t addr, uint8_t data, const char *space = nullptr);
     void write(uint16_t addr, const uint8_t *data, uint8_t len);
 
-    static constexpr auto memory_size = 0x10000;
+    static constexpr auto memory_size = 0x8000;
 
 protected:
     uint8_t nextByte() { return read(address()); }

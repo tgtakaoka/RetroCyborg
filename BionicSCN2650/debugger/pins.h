@@ -6,13 +6,6 @@
 #include "config.h"
 #include "signals.h"
 
-enum IntrName : uint8_t {
-    INTR_NONE = 0,
-    INTR_IRQ0 = 1,  // P23
-    INTR_IRQ1 = 2,  // P21
-    INTR_IRQ2 = 3,  // P26
-};
-
 class Pins {
 public:
     void begin();
@@ -26,16 +19,12 @@ public:
     void run();
     void idle();
 
-    void xtal1_cycle() const;
-    Signals &cycle();
-    Signals &cycle(uint8_t insn);
-
     void execInst(const uint8_t *inst, uint8_t len);
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
-    void assertIntr(IntrName intr);
-    void negateIntr(IntrName intr);
+    void assertIntr();
+    void negateIntr();
 
     enum Device : uint8_t {
         NONE = 0,
@@ -55,7 +44,6 @@ public:
 
 private:
     bool _freeRunning;
-    uint8_t _writes;
 
     Signals &prepareCycle();
     Signals &completeCycle(Signals &signals);

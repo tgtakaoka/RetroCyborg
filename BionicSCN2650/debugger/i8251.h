@@ -4,13 +4,11 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#include "pins.h"
-
 /**
  * i8251 USART device emulator.
  *
  * Support only asynchronous mode. Stop bit and bit length, clock aren't
- * emulated. No interrupt support (via TxEMPTY, RxRDY, #INTA).
+ * emulated. Interrupt support via TxEMPTY, RxRDY, intrVec().
  */
 class I8251 {
 public:
@@ -20,8 +18,8 @@ public:
     bool isSelected(uint16_t addr) const {
         // addr+0: USART data
         // addr+1: USART control/status
-        // addr+2: USART Rx interrupt name
-        // addr+3: USART Tx interrupt name
+        // addr+2: USART Rx interrupt vector
+        // addr+3: USART Tx interrupt vector
         return _enabled && (addr & ~3) == _baseAddr;
     }
     void write(uint8_t data, uint16_t addr);
@@ -29,6 +27,7 @@ public:
     void loop();
     void enable(bool enabled, uint16_t baseAddr);
     uint16_t baseAddr() const { return _baseAddr; }
+    uint8_t intrVec() const { return _rxVec ? _rxVec : _txVec; }
 
 private:
     Stream &_stream;
@@ -47,12 +46,14 @@ private:
     uint8_t _status;
     uint8_t _txData;
     uint8_t _rxData;
-    IntrName _rxIntr;
-    IntrName _txIntr;
+    uint8_t _rxIntr;
+    uint8_t _txIntr;
     uint16_t _baseAddr;
+    uint8_t _rxVec;  // active Rx interruput vector
+    uint8_t _txVec;  // active Tx interrupt vector
 
-    void assertIntr(IntrName intr) const;
-    void negateIntr(IntrName intr) const;
+    void assertIntr(uint8_t intr);
+    void negateIntr(uint8_t intr);
     bool rxEnabled() const { return _command & CMD_RxEN_bm; }
     bool txEnabled() const { return _command & CMD_TxEN_bm; }
     bool rxReady() const { return _status & ST_RxRDY_bm; }

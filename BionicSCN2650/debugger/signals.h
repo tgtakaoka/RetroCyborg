@@ -6,25 +6,22 @@
 #include "config.h"
 
 struct Signals {
-    void getAddr();
-    bool read() const { return rw != 0; }
-    bool write() const { return rw == 0; }
+    Signals &getAddr();
+    bool read() const { return _rw == 0; }
+    bool write() const { return _rw != 0; }
     bool fetch() const { return _fetch; }
+    bool ioAccess() const;
     void getData();
     void outData();
     void clear();
+    void markFetch() { _fetch = true; }
     Signals &inject(uint8_t data);
     void capture();
     void print() const;
-    Signals &fetch(bool fetch);
     Signals &debug(char c);
 
     uint16_t addr;
     uint8_t data;
-    uint8_t rw;
-#if Z88_DATA_MEMORY == 1
-    uint8_t dm;
-#endif
 
     bool readRam() const {
         return _inject == false;
@@ -33,17 +30,19 @@ struct Signals {
         return _capture == false;
     }
 
-    static void printCycles();
     static void disassembleCycles();
+    static void printCycles();
     static Signals &currCycle();
     static void resetCycles();
     static void resetTo(const Signals &);
     static void nextCycle();
 
 private:
+    uint8_t _rw;
+    uint8_t _mio;
+    bool _fetch;
     bool _inject;
     bool _capture;
-    bool _fetch;
     char _debug;
 
     static constexpr uint8_t MAX_CYCLES = 92;

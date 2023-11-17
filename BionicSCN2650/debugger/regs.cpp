@@ -2,8 +2,8 @@
 
 #include <libcli.h>
 
-#include <asm_z8.h>
-#include <dis_z8.h>
+#include <asm_scn2650.h>
+#include <dis_scn2650.h>
 #include "config.h"
 #include "digital_fast.h"
 #include "pins.h"
@@ -16,313 +16,309 @@ extern libcli::Cli cli;
 
 static constexpr bool debug_cycles = false;
 
-libasm::z8::AsmZ8 assembler;
-libasm::z8::DisZ8 disassembler;
+libasm::scn2650::AsmScn2650 assembler;
+libasm::scn2650::DisScn2650 disassembler;
 
 struct Regs Regs;
 struct Memory Memory;
 
-static constexpr uint8_t E(
-        uint8_t insn_len, uint8_t external_cycles, uint8_t stack_cycles) {
-    return static_cast<uint8_t>(
-            insn_len | (external_cycles << 4) | (stack_cycles << 6));
-}
-
 static constexpr uint8_t insn_len(uint8_t e) {
-    return e & 7;
-}
-
-static constexpr uint8_t external_cycles(uint8_t e) {
-    return (e >> 4) & 3;
-}
-
-static constexpr uint8_t stack_cycles(uint8_t e) {
-    return (e >> 6) & 3;
+    return (e >> 2) & 3;
 }
 
 static constexpr uint8_t bus_cycles(uint8_t e) {
-    return external_cycles(e)
-#if Z88_EXTERNAL_STACK == 1
-           + stack_cycles(e)
-#endif
-            ;
+    return e & 3;
 }
 
-// clang-format: off
-static constexpr uint8_t insn_table[256] = {
-        E(2, 0, 0),  // 00:DEC    r
-        E(2, 0, 0),  // 01:DEC    @r
-        E(2, 0, 0),  // 02:ADD    r,r
-        E(2, 0, 0),  // 03:ADD    r,@r
-        E(3, 0, 0),  // 04:ADD    R,R
-        E(3, 0, 0),  // 05:ADD    @R,R
-        E(3, 0, 0),  // 06:ADD    R,#IM
-        E(3, 0, 0),  // 07:BOR    r0,R,#b
-        E(2, 0, 0),  // 08:LD     r0,R
-        E(2, 0, 0),  // 09:LD     R,r0
-        E(2, 0, 0),  // 0A:DJNZ   r0,RA
-        E(2, 0, 0),  // 0B:JR     F,RA
-        E(2, 0, 0),  // 0C:LD     r0,#IM
-        E(3, 0, 0),  // 0D:JP     F,DA
-        E(1, 0, 0),  // 0E:INC    r0
-        E(1, 2, 0),  // 0F:NEXT   -
-        E(2, 0, 0),  // 10:RLC    R
-        E(2, 0, 0),  // 11:RLC    @R
-        E(2, 0, 0),  // 12:ADC    r,r
-        E(2, 0, 0),  // 13:ADC    r,@r
-        E(3, 0, 0),  // 14:ADC    R,R
-        E(3, 0, 0),  // 15:ADC    R,@R
-        E(3, 0, 0),  // 16:ADC    R,#IM
-        E(3, 0, 0),  // 17:BCP    r0,R,#b
-        E(2, 0, 0),  // 18:LD     r1,R
-        E(2, 0, 0),  // 19:LD     R,r1
-        E(2, 0, 0),  // 1A:DJNZ   r1,RA
-        E(2, 0, 0),  // 1B:JR     LT,RA
-        E(2, 0, 0),  // 1C:LD     r1,#IM
-        E(3, 0, 0),  // 1D:JP     LT,DA
-        E(1, 0, 0),  // 1E:INC    r1
-        E(1, 2, 2),  // 1F:ENTER  -
-        E(2, 0, 0),  // 20:INC    R
-        E(2, 0, 0),  // 21:INC    @R
-        E(2, 0, 0),  // 22:SUB    r,r
-        E(2, 0, 0),  // 23:SUB    r,@r
-        E(3, 0, 0),  // 24:SUB    R,R
-        E(3, 0, 0),  // 25:SUB    R,@R
-        E(3, 0, 0),  // 26:SUB    R,#IM
-        E(3, 0, 0),  // 27:BXOR   r0,R,#b
-        E(2, 0, 0),  // 28:LD     r2,R
-        E(2, 0, 0),  // 29:LD     R,r2
-        E(2, 0, 0),  // 2A:DJNZ   r2,RA
-        E(2, 0, 0),  // 2B:JR     LE,RA
-        E(2, 0, 0),  // 2C:LD     r2,#IM
-        E(3, 0, 0),  // 2D:JP     LE,DA
-        E(1, 0, 0),  // 2E:INC    r2
-        E(1, 2, 2),  // 2F:EXIT   -
-        E(2, 0, 0),  // 30:JP     @RR
-        E(2, 0, 0),  // 31:SRP    #IM
-        E(2, 0, 0),  // 32:SBC    r,r
-        E(2, 0, 0),  // 33:SBC    r,@r
-        E(3, 0, 0),  // 34:SBC    R,R
-        E(3, 0, 0),  // 35:SBC    R,@R
-        E(3, 0, 0),  // 36:SBC    R,#IM
-        E(3, 0, 0),  // 37:BTJRF  RA,r,#b
-        E(2, 0, 0),  // 38:LD     r3,R
-        E(2, 0, 0),  // 39:LD     R,r3
-        E(2, 0, 0),  // 3A:DJNZ   r3,RA
-        E(2, 0, 0),  // 3B:JR     ULE,RA
-        E(2, 0, 0),  // 3C:LD     r3,#IM
-        E(3, 0, 0),  // 3D:JP     ULE,DA
-        E(1, 0, 0),  // 3E:INC    r3
-        E(1, 0, 0),  // 3F:WFI    -
-        E(2, 0, 0),  // 40:DA     R
-        E(2, 0, 0),  // 41:DA     @R
-        E(2, 0, 0),  // 42:OR     r,r
-        E(2, 0, 0),  // 43:OR     r,@r
-        E(3, 0, 0),  // 44:OR     R,R
-        E(3, 0, 0),  // 45:OR     R,@R
-        E(3, 0, 0),  // 46:OR     R,#IM
-        E(3, 0, 0),  // 47:LDB    r0,R,#b
-        E(2, 0, 0),  // 48:LD     r4,R
-        E(2, 0, 0),  // 49:LD     R,r4
-        E(2, 0, 0),  // 4A:DJNZ   r4,RA
-        E(2, 0, 0),  // 4B:JR     OV,RA
-        E(2, 0, 0),  // 4C:LD     r4,#IM
-        E(3, 0, 0),  // 4D:JP     OV,DA
-        E(1, 0, 0),  // 4E:INC    r4
-        E(1, 0, 0),  // 4F:SB0    -
-        E(2, 0, 1),  // 50:POP    R
-        E(2, 0, 1),  // 51:POP    @R
-        E(2, 0, 0),  // 52:AND    r,r
-        E(2, 0, 0),  // 53:AND    r,@r
-        E(3, 0, 0),  // 54:AND    R,R
-        E(3, 0, 0),  // 55:AND    R,@R
-        E(3, 0, 0),  // 56:AND    R,#IM
-        E(2, 0, 0),  // 57:BITC   r,#b
-        E(2, 0, 0),  // 58:LD     r5,R
-        E(2, 0, 0),  // 59:LD     R,r5
-        E(2, 0, 0),  // 5A:DJNZ   r5,RA
-        E(2, 0, 0),  // 5B:JR     MI,RA
-        E(2, 0, 0),  // 5C:LD     r5,#IM
-        E(3, 0, 0),  // 5D:JP     MI,DA
-        E(1, 0, 0),  // 5E:INC    r5
-        E(1, 0, 0),  // 5F:SB1    -
-        E(2, 0, 0),  // 60:COM    R
-        E(2, 0, 0),  // 61:COM    @R
-        E(2, 0, 0),  // 62:TCM    r,r
-        E(2, 0, 0),  // 63:TCM    r,@r
-        E(3, 0, 0),  // 64:TCM    R,R
-        E(3, 0, 0),  // 65:TCM    R,@R
-        E(3, 0, 0),  // 66:TCM    R,#IM
-        E(3, 0, 0),  // 67:BAND   r0,R,#b
-        E(2, 0, 0),  // 68:LD     r6,R
-        E(2, 0, 0),  // 69:LD     R,r6
-        E(2, 0, 0),  // 6A:DJNZ   r6,RA
-        E(2, 0, 0),  // 6B:JR     Z,RA
-        E(2, 0, 0),  // 6C:LD     r6,#IM
-        E(3, 0, 0),  // 6D:JP     Z,DA
-        E(1, 0, 0),  // 6E:INC    r6
-        E(0, 0, 0),  // 6F:-      -
-        E(2, 0, 1),  // 70:PUSH   R
-        E(2, 0, 1),  // 71:PUSH   @R
-        E(2, 0, 0),  // 72:TM     r,r
-        E(2, 0, 0),  // 73:TM     r,@r
-        E(3, 0, 0),  // 74:TM     R,R
-        E(3, 0, 0),  // 75:TM     R,@R
-        E(3, 0, 0),  // 76:TM     R,#IM
-        E(2, 0, 0),  // 77:BITR   r,#B
-        E(2, 0, 0),  // 78:LD     r7,R
-        E(2, 0, 0),  // 79:LD     R,r7
-        E(2, 0, 0),  // 7A:DJNZ   r7,RA
-        E(2, 0, 0),  // 7B:JR     C,RA
-        E(2, 0, 0),  // 7C:LD     r7,#IM
-        E(3, 0, 0),  // 7D:JP     C,DA
-        E(1, 0, 0),  // 7E:INC    r7
-        E(0, 0, 0),  // 7F:-      -
-        E(2, 0, 0),  // 80:DECW   RR
-        E(2, 0, 0),  // 81:DECW   @R
-        E(3, 0, 0),  // 82:PUSHUD @R,R
-        E(3, 0, 0),  // 83:PUSHUI @R,R
-        E(3, 0, 0),  // 84:MULT   RR,R
-        E(3, 0, 0),  // 85:MULT   RR,@IR
-        E(3, 0, 0),  // 86:MULT   RR,#IM
-        E(3, 0, 0),  // 87:LD     r,x(r)
-        E(2, 0, 0),  // 88:LD     r8,R
-        E(2, 0, 0),  // 89:LD     R,r8
-        E(2, 0, 0),  // 8A:DJNZ   r8,RA
-        E(2, 0, 0),  // 8B:JR     RA
-        E(2, 0, 0),  // 8C:LD     r8,#IM
-        E(3, 0, 0),  // 8D:JP     DA
-        E(1, 0, 0),  // 8E:INC    r8
-        E(1, 0, 0),  // 8F:DI     -
-        E(2, 0, 0),  // 90:RL     R
-        E(2, 0, 0),  // 91:RL     @R
-        E(3, 0, 0),  // 92:POPUD  R,@R
-        E(3, 0, 0),  // 93:POPUI  R,@R
-        E(3, 0, 0),  // 94:DIV    RR,R
-        E(3, 0, 0),  // 95:DIV    RR,@R
-        E(3, 0, 0),  // 96:DIV    RR,#IM
-        E(3, 0, 0),  // 97:LD     x(r),r
-        E(2, 0, 0),  // 98:LD     r9,R
-        E(2, 0, 0),  // 99:LD     R,r9
-        E(2, 0, 0),  // 9A:DJNZ   r9,RA
-        E(2, 0, 0),  // 9B:JR     GE,RA
-        E(2, 0, 0),  // 9C:LD     r9,#IM
-        E(3, 0, 0),  // 9D:JP     GE,DA
-        E(1, 0, 0),  // 9E:INC    r9
-        E(1, 0, 0),  // 9F:EI     -
-        E(2, 0, 0),  // A0:INCW   R
-        E(2, 0, 0),  // A1:INCW   @R
-        E(2, 0, 0),  // A2:CP     r,r
-        E(2, 0, 0),  // A3:CP     r,@r
-        E(3, 0, 0),  // A4:CP     R,R
-        E(3, 0, 0),  // A5:CP     @R,R
-        E(3, 0, 0),  // A6:CP     R,#IM
-        E(4, 1, 0),  // A7:LDE    r,xl(rr)
-        E(2, 0, 0),  // A8:LD     r10,R
-        E(2, 0, 0),  // A9:LD     R,r10
-        E(2, 0, 0),  // AA:DJNZ   r10,RA
-        E(2, 0, 0),  // AB:JR     GT,RA
-        E(2, 0, 0),  // AC:LD     r10,#IM
-        E(3, 0, 0),  // AD:JP     GT,DA
-        E(1, 0, 0),  // AE:INC    r10
-        E(1, 1, 2),  // AF:RET    -        fetch as 2 bytes instruction
-        E(2, 0, 0),  // B0:CLR    R
-        E(2, 0, 0),  // B1:CLR    @R
-        E(2, 0, 0),  // B2:XOR    r,r
-        E(2, 0, 0),  // B3:XOR    r,@r
-        E(3, 0, 0),  // B4:XOR    R,R
-        E(3, 0, 0),  // B5:XOR    R,@R
-        E(3, 0, 0),  // B6:XOR    R,#IM
-        E(4, 1, 0),  // B7:LDE    xl(rr),r
-        E(2, 0, 0),  // B8:LD     r11,R
-        E(2, 0, 0),  // B9:LD     R,r11
-        E(2, 0, 0),  // BA:DJNZ   r11,RA
-        E(2, 0, 0),  // BB:JR     UGT,RA
-        E(2, 0, 0),  // BC:LD     r11,#IM
-        E(3, 0, 0),  // BD:JP     UGT,DA
-        E(1, 0, 0),  // BE:INC    r11
-        E(1, 1, 3),  // BF:IRET   -        fetch as 2 bytes inustruction
-        E(2, 0, 0),  // C0:RRC    R
-        E(2, 0, 0),  // C1:RRC    @R
-        E(3, 0, 0),  // C2:CPIJE  r,r,RA
-        E(2, 1, 0),  // C3:LDE    r,@rr
-        E(3, 0, 0),  // C4:LDW    RR,RR
-        E(3, 0, 0),  // C5:LDW    RR,@R
-        E(4, 0, 0),  // C6:LDW    RR,#IML
-        E(2, 0, 0),  // C7:LD     r,@r
-        E(2, 0, 0),  // C8:LD     r12,R
-        E(2, 0, 0),  // C9:LD     R,r12
-        E(2, 0, 0),  // CA:DJNZ   r12,RA
-        E(2, 0, 0),  // CB:JR     NOV,RA
-        E(2, 0, 0),  // CC:LD     r12,#IM
-        E(3, 0, 0),  // CD:JP     NOV,DA
-        E(1, 0, 0),  // CE:INC    r12
-        E(1, 0, 0),  // CF:RCF    -
-        E(2, 0, 0),  // D0:SRA    R
-        E(2, 0, 0),  // D1:SRA    @R
-        E(3, 0, 0),  // D2:CPIJNE r,r,RA
-        E(2, 1, 0),  // D3:LDE    @rr,r
-        E(2, 2, 2),  // D4:CALL   #IA
-        E(0, 0, 0),  // D5:-      -
-        E(3, 0, 0),  // D6:LD     @R,#IM
-        E(2, 0, 0),  // D7:LD     @r,r
-        E(2, 0, 0),  // D8:LD     r13,R
-        E(2, 0, 0),  // D9:LD     R,r13
-        E(2, 0, 0),  // DA:DJNZ   r13,RA
-        E(2, 0, 0),  // DB:JR     PL,RA
-        E(2, 0, 0),  // DC:LD     r13,#IM
-        E(3, 0, 0),  // DD:JP     PL,DA
-        E(1, 0, 0),  // DE:INC    r13
-        E(1, 0, 0),  // DF:SCF    -
-        E(2, 0, 0),  // E0:RR     R
-        E(2, 0, 0),  // E1:RR     @R
-        E(2, 1, 0),  // E2:LDED   r,@rr
-        E(2, 1, 0),  // E3:LDEI   r,@rr
-        E(3, 0, 0),  // E4:LD     R,R
-        E(3, 0, 0),  // E5:LD     R,@R
-        E(3, 0, 0),  // E6:LD     R,#IM
-        E(3, 1, 0),  // E7:LDE    r,xs(rr)
-        E(2, 0, 0),  // E8:LD     r14,R
-        E(2, 0, 0),  // E9:LD     R,r14
-        E(2, 0, 0),  // EA:DJNZ   r14,RA
-        E(2, 0, 0),  // EB:JR     NZ,RA
-        E(2, 0, 0),  // EC:LD     r14,#IM
-        E(3, 0, 0),  // ED:JP     NZ,DA
-        E(1, 0, 0),  // EE:INC    r14
-        E(1, 0, 0),  // EF:CCF    -
-        E(2, 0, 0),  // F0:SWAP   R
-        E(2, 0, 0),  // F1:SWAP   @R
-        E(2, 1, 0),  // F2:LDEPD  @rr,r
-        E(2, 1, 0),  // F3:LDEPI  @rr,r
-        E(2, 1, 2),  // F4:CALL   @RR     fetch as 3 bytes instruction
-        E(3, 0, 0),  // F5:LD     @R,R
-        E(3, 0, 2),  // F6:CALL   DA
-        E(3, 1, 0),  // F7:LDE    xs(rr),r
-        E(2, 0, 0),  // F8:LD     r15,R
-        E(2, 0, 0),  // F9:LD     R,r15
-        E(2, 0, 0),  // FA:DJNZ   r15,RA
-        E(2, 0, 0),  // FB:JR     NC,RA
-        E(2, 0, 0),  // FC:LD     r15,#IM
-        E(3, 0, 0),  // FD:JP     NC,DA
-        E(1, 0, 0),  // FE:INC    r15
-        E(1, 0, 0),  // FF:NOP    -
+static constexpr bool has_indirect(uint8_t e) {
+    return e & 0x80;
+}
+
+static constexpr uint8_t E(uint8_t len, uint8_t bus) {
+    return (len << 2) | bus;
+}
+
+static constexpr uint8_t I(uint8_t len, uint8_t bus) {
+    return (len << 2) | bus | 0x80;
+}
+
+static constexpr uint8_t cycles[] = {
+    E(0, 0),  // 00:-    -
+    E(1, 0),  // 01:LODZ R1
+    E(1, 0),  // 02:LODZ R2
+    E(1, 0),  // 03:LODZ R3
+    E(2, 0),  // 04:LODI R0,nn
+    E(2, 0),  // 05:LODI R1,nn
+    E(2, 0),  // 06:LODI R2,nn
+    E(2, 0),  // 07:LODI R3,nn
+    I(2, 1),  // 08:LODR R0,rel
+    I(2, 1),  // 09:LODR R1,rel
+    I(2, 1),  // 0A:LODR R2,rel
+    I(2, 1),  // 0B:LODR R3,rel
+    I(3, 1),  // 0C:LODA R0,abs
+    I(3, 1),  // 0D:LODA R1,abs
+    I(3, 1),  // 0E:LODA R2,abs
+    I(3, 1),  // 0F:LODA R3,abs
+    E(0, 0),  // 10:-    -
+    E(0, 0),  // 11:-    -
+    E(1, 0),  // 12:SPSU -
+    E(1, 0),  // 13:SPSL -
+    E(1, 0),  // 14:RETC EQ
+    E(1, 0),  // 15:RETC GT
+    E(1, 0),  // 16:RETC LT
+    E(1, 0),  // 17:RETC UN
+    I(2, 0),  // 18:BCTR EQ,rel
+    I(2, 0),  // 19:BCTR GT,rel
+    I(2, 0),  // 1A:BCTR LT,rel
+    I(2, 0),  // 1B:BCTR UN,rel
+    I(3, 0),  // 1C:BCTA EQ,abs
+    I(3, 0),  // 1D:BCTA GT,abs
+    I(3, 0),  // 1E:BCTA LT,abs
+    I(3, 0),  // 1F:BCTA UN,abs
+    E(1, 0),  // 20:EORZ R0
+    E(1, 0),  // 21:EORZ R1
+    E(1, 0),  // 22:EORZ R2
+    E(1, 0),  // 23:EORZ R3
+    E(2, 0),  // 24:EORI R0,nn
+    E(2, 0),  // 25:EORI R1,nn
+    E(2, 0),  // 26:EORI R2,nn
+    E(2, 0),  // 27:EORI R3,nn
+    I(2, 1),  // 28:EORR R0,rel
+    I(2, 1),  // 29:EORR R1,rel
+    I(2, 1),  // 2A:EORR R2,rel
+    I(2, 1),  // 2B:EORR R3,rel
+    I(3, 1),  // 2C:EORA R0,abs
+    I(3, 1),  // 2D:EORA R1,abs
+    I(3, 1),  // 2E:EORA R2,abs
+    I(3, 1),  // 2F:EORA R3,abs
+    E(1, 1),  // 30:REDC R0
+    E(1, 1),  // 31:REDC R1
+    E(1, 1),  // 32:REDC R2
+    E(1, 1),  // 33:REDC R3
+    E(1, 0),  // 34:RETE EQ
+    E(1, 0),  // 35:RETE GT
+    E(1, 0),  // 36:RETE LT
+    E(1, 0),  // 37:RETE UN
+    I(2, 0),  // 38:BSTR EQ,rel
+    I(2, 0),  // 39:BSTR GT,rel
+    I(2, 0),  // 3A:BSTR LT,rel
+    I(2, 0),  // 3B:BSTR UN,rel
+    I(3, 0),  // 3C:BSTA EQ,abs
+    I(3, 0),  // 3D:BSTA GT,abs
+    I(3, 0),  // 3E:BSTA LT,abs
+    I(3, 0),  // 3F:BSTA UN,abs
+    E(1, 0),  // 40:HALT -
+    E(1, 0),  // 41:ANDZ R1
+    E(1, 0),  // 42:ANDZ R2
+    E(1, 0),  // 43:ANDZ R3
+    E(2, 0),  // 44:ANDI R0,nn
+    E(2, 0),  // 45:ANDI R1,nn
+    E(2, 0),  // 46:ANDI R2,nn
+    E(2, 0),  // 47:ANDI R3,nn
+    I(2, 1),  // 48:ANDR R0,rel
+    I(2, 1),  // 49:ANDR R1,rel
+    I(2, 1),  // 4A:ANDR R2,rel
+    I(2, 1),  // 4B:ANDR R3,rel
+    I(3, 1),  // 4C:ANDA R0,abs
+    I(3, 1),  // 4D:ANDA R1,abs
+    I(3, 1),  // 4E:ANDA R2,abs
+    I(3, 1),  // 4F:ANDA R3,abs
+    E(1, 0),  // 50:RRR  R0
+    E(1, 0),  // 51:RRR  R1
+    E(1, 0),  // 52:RRR  R2
+    E(1, 0),  // 53:RRR  R3
+    E(2, 1),  // 54:REDE R0,io
+    E(2, 1),  // 55:REDE R1,io
+    E(2, 1),  // 56:REDE R2,io
+    E(2, 1),  // 57:REDE R3,io
+    I(2, 0),  // 58:BRNR R0,rel
+    I(2, 0),  // 59:BRNR R1,rel
+    I(2, 0),  // 5A:BRNR R2,rel
+    I(2, 0),  // 5B:BRNR R3,rel
+    I(3, 0),  // 5C:BRNA R0,abs
+    I(3, 0),  // 5D:BRNA R1,abs
+    I(3, 0),  // 5E:BRNA R2,abs
+    I(3, 0),  // 5F:BRNA R3,abs
+    E(1, 0),  // 60:IORZ R0
+    E(1, 0),  // 61:IORZ R1
+    E(1, 0),  // 62:IORZ R2
+    E(1, 0),  // 63:IORZ R3
+    E(2, 0),  // 64:IORI R0,nn
+    E(2, 0),  // 65:IORI R1,nn
+    E(2, 0),  // 66:IORI R2,nn
+    E(2, 0),  // 67:IORI R3,nn
+    I(2, 1),  // 68:IORR R0,rel
+    I(2, 1),  // 69:IORR R1,rel
+    I(2, 1),  // 6A:IORR R2,rel
+    I(2, 1),  // 6B:IORR R3,rel
+    I(3, 1),  // 6C:IORA R0,abs
+    I(3, 1),  // 6D:IORA R1,abs
+    I(3, 1),  // 6E:IORA R2,abs
+    I(3, 1),  // 6F:IORA R3,abs
+    E(1, 1),  // 70:REDD R0
+    E(1, 1),  // 71:REDD R1
+    E(1, 1),  // 72:REDD R2
+    E(1, 1),  // 73:REDD R3
+    E(2, 0),  // 74:CPSU nn
+    E(2, 0),  // 75:CPSL nn
+    E(2, 0),  // 76:PPSU nn
+    E(2, 0),  // 77:PPSL nn
+    I(2, 0),  // 78:BSNR R0,rel
+    I(2, 0),  // 79:BSNR R1,rel
+    I(2, 0),  // 7A:BSNR R2,rel
+    I(2, 0),  // 7B:BSNR R3,rel
+    I(3, 0),  // 7C:BSNA R0,abs
+    I(3, 0),  // 7D:BSNA R1,abs
+    I(3, 0),  // 7E:BSNA R2,abs
+    I(3, 0),  // 7F:BSNA R3,abs
+    E(1, 0),  // 80:ADDZ R0
+    E(1, 0),  // 81:ADDZ R1
+    E(1, 0),  // 82:ADDZ R2
+    E(1, 0),  // 83:ADDZ R3
+    E(2, 0),  // 84:ADDI R0,nn
+    E(2, 0),  // 85:ADDI R1,nn
+    E(2, 0),  // 86:ADDI R2,nn
+    E(2, 0),  // 87:ADDI R3,nn
+    I(2, 1),  // 88:ADDR R0,rel
+    I(2, 1),  // 89:ADDR R1,rel
+    I(2, 1),  // 8A:ADDR R2,rel
+    I(2, 1),  // 8B:ADDR R3,rel
+    I(3, 1),  // 8C:ADDA R0,abs
+    I(3, 1),  // 8D:ADDA R1,abs
+    I(3, 1),  // 8E:ADDA R2,abs
+    I(3, 1),  // 8F:ADDA R3,abs
+    E(0, 0),  // 90:-    -
+    E(0, 0),  // 91:-    -
+    E(1, 0),  // 92:LPSU -
+    E(1, 0),  // 93:LPSL -
+    E(1, 0),  // 94:DAR  R0
+    E(1, 0),  // 95:DAR  R1
+    E(1, 0),  // 96:DAR  R2
+    E(1, 0),  // 97:DAR  R3
+    I(2, 0),  // 98:BCFR EQ,rel
+    I(2, 0),  // 99:BCFR GT,rel
+    I(2, 0),  // 9A:BCFR LT,rel
+    I(2, 0),  // 9B:ZBRR rel
+    I(3, 0),  // 9C:BCFA EQ,abs
+    I(3, 0),  // 9D:BCFA GT,abs
+    I(3, 0),  // 9E:BCFA LT,abs
+    I(3, 0),  // 9F:BXA  abs
+    E(1, 0),  // A0:SUBZ R0
+    E(1, 0),  // A1:SUBZ R1
+    E(1, 0),  // A2:SUBZ R2
+    E(1, 0),  // A3:SUBZ R3
+    E(2, 0),  // A4:SUBI R0,nn
+    E(2, 0),  // A5:SUBI R1,nn
+    E(2, 0),  // A6:SUBI R2,nn
+    E(2, 0),  // A7:SUBI R3,nn
+    I(2, 1),  // A8:SUBR R0,rel
+    I(2, 1),  // A9:SUBR R1,rel
+    I(2, 1),  // AA:SUBR R2,rel
+    I(2, 1),  // AB:SUBR R3,rel
+    I(3, 1),  // AC:SUBA R0,abs
+    I(3, 1),  // AD:SUBA R1,abs
+    I(3, 1),  // AE:SUBA R2,abs
+    I(3, 1),  // AF:SUBA R3,abs
+    E(1, 1),  // B0:WRTC R0
+    E(1, 1),  // B1:WRTC R1
+    E(1, 1),  // B2:WRTC R2
+    E(1, 1),  // B3:WRTC R3
+    E(2, 0),  // B4:TPSU nn
+    E(2, 0),  // B5:TPSL nn
+    E(0, 0),  // B6:-    -
+    E(0, 0),  // B7:-    -
+    I(2, 0),  // B8:BSFR EQ,rel
+    I(2, 0),  // B9:BSFR GT,rel
+    I(2, 0),  // BA:BSFR LT,rel
+    I(2, 0),  // BB:ZBSR rel
+    I(3, 0),  // BC:BSFA EQ,abs
+    I(3, 0),  // BD:BSFA GT,abs
+    I(3, 0),  // BE:BSFA LT,abs
+    I(3, 0),  // BF:BSXA abs
+    E(1, 0),  // C0:NOP  -
+    E(1, 0),  // C1:STRZ R1
+    E(1, 0),  // C2:STRZ R2
+    E(1, 0),  // C3:STRZ R3
+    E(0, 0),  // C4:-    -
+    E(0, 0),  // C5:-    -
+    E(0, 0),  // C6:-    -
+    E(0, 0),  // C7:-    -
+    I(2, 1),  // C8:STRR R0,rel
+    I(2, 1),  // C9:STRR R1,rel
+    I(2, 1),  // CA:STRR R2,rel
+    I(2, 1),  // CB:STRR R3,rel
+    I(3, 1),  // CC:STRA R0,abs
+    I(3, 1),  // CD:STRA R1,abs
+    I(3, 1),  // CE:STRA R2,abs
+    I(3, 1),  // CF:STRA R3,abs
+    E(1, 0),  // D0:RRL  R0
+    E(1, 0),  // D1:RRL  R1
+    E(1, 0),  // D2:RRL  R2
+    E(1, 0),  // D3:RRL  R3
+    E(2, 1),  // D4:WRTE R0,io
+    E(2, 1),  // D5:WRTE R1,io
+    E(2, 1),  // D6:WRTE R2,io
+    E(2, 1),  // D7:WRTE R3,io
+    I(2, 0),  // D8:BIRR R0,rel
+    I(2, 0),  // D9:BIRR R1,rel
+    I(2, 0),  // DA:BIRR R2,rel
+    I(2, 0),  // DB:BIRR R3,rel
+    I(3, 0),  // DC:BIRA R0,abs
+    I(3, 0),  // DD:BIRA R1,abs
+    I(3, 0),  // DE:BIRA R2,abs
+    I(3, 0),  // DF:BIRA R3,abs
+    E(1, 0),  // E0:COMZ R0
+    E(1, 0),  // E1:COMZ R1
+    E(1, 0),  // E2:COMZ R2
+    E(1, 0),  // E3:COMZ R3
+    E(2, 0),  // E4:COMI R0,nn
+    E(2, 0),  // E5:COMI R1,nn
+    E(2, 0),  // E6:COMI R2,nn
+    E(2, 0),  // E7:COMI R3,nn
+    I(2, 1),  // E8:COMR R0,rel
+    I(2, 1),  // E9:COMR R1,rel
+    I(2, 1),  // EA:COMR R2,rel
+    I(2, 1),  // EB:COMR R3,rel
+    I(3, 1),  // EC:COMA R0,abs
+    I(3, 1),  // ED:COMA R1,abs
+    I(3, 1),  // EE:COMA R2,abs
+    I(3, 1),  // EF:COMA R3,abs
+    E(1, 1),  // F0:WRTD R0
+    E(1, 1),  // F1:WRTD R1
+    E(1, 1),  // F2:WRTD R2
+    E(1, 1),  // F3:WRTD R3
+    E(2, 0),  // F4:TMI  R0,nn
+    E(2, 0),  // F5:TMI  R1,nn
+    E(2, 0),  // F6:TMI  R2,nn
+    E(2, 0),  // F7:TMI  R3,nn
+    I(2, 0),  // F8:BDRR R0,rel
+    I(2, 0),  // F9:BDRR R1,rel
+    I(2, 0),  // FA:BDRR R2,rel
+    I(2, 0),  // FB:BDRR R3,rel
+    I(3, 0),  // FC:BDRA R0,abs
+    I(3, 0),  // FD:BDRA R1,abs
+    I(3, 0),  // FE:BDRA R2,abs
+    I(3, 0),  // FF:BDRA R3,abs
 };
-// clang-format: on
 
 uint8_t Regs::insnLen(uint8_t insn) {
-    return insn_len(insn_table[insn]);
+    return insn_len(cycles[insn]);
 }
 
 uint8_t Regs::busCycles(uint8_t insn) {
-    return bus_cycles(insn_table[insn]);
+    return bus_cycles(cycles[insn]);
+}
+
+bool Regs::hasIndirect(uint8_t insn) {
+    return has_indirect(cycles[insn]);
 }
 
 const char *Regs::cpu() const {
-    return "Z88";
+    return "2650";
 }
 
 const char *Regs::cpuName() const {
-    return "Z88C00";
+    return "SCN2650";
 }
 
 static char bit1(uint8_t v, char name) {
@@ -333,138 +329,50 @@ void Regs::print() const {
     // clang-format off
     static char buffer[] = {
         'P', 'C', '=', 0, 0, 0, 0, ' ',      // PC=3
-        'S', 'P', '=', 0, 0, 0, 0, ' ',      // SP=11
-        'I', 'P', '=', 0, 0, 0, 0, ' ',      // SP=19
-        'R', 'P', '=', 0, 0, ':', 0, 0, ' ', // RP0=27, RP1=30
-        'F', '=',                            // F=35
-        0, 0, 0, 0, 0, 0, 0, 0,
+        'P', 'S', 'U', '=', 0, 0, 0, ' ',    // PSU=12
+        'S', 'P', '=', 0, ' ',               // SP=19
+        'C', 'C', '=', 0, ' ',               // CC=24
+        'P', 'S', 'L', '=', 0, 0, 0, 0, 0, 0, // PSL=30
         0,
     };
     // clang-format on
     outHex16(buffer + 3, _pc);
-    outHex8(buffer + 11, get_sfr(sfr_sph));
-    outHex8(buffer + 13, get_sfr(sfr_spl));
-    outHex8(buffer + 19, get_sfr(sfr_iph));
-    outHex8(buffer + 21, get_sfr(sfr_ipl));
-    outHex8(buffer + 27, get_sfr(sfr_rp0));
-    outHex8(buffer + 30, get_sfr(sfr_rp1));
-    const auto flags = get_sfr(sfr_flags);
-    constexpr char *flags_bits = buffer + 35;
-    flags_bits[0] = bit1(flags & 0x80, 'C');
-    flags_bits[1] = bit1(flags & 0x40, 'Z');
-    flags_bits[2] = bit1(flags & 0x20, 'S');
-    flags_bits[3] = bit1(flags & 0x10, 'V');
-    flags_bits[4] = bit1(flags & 0x08, 'D');
-    flags_bits[5] = bit1(flags & 0x04, 'H');
-    flags_bits[6] = bit1(flags & 0x02, 'F');
-    flags_bits[7] = (flags & 0x01) ? '1' : '0';  // bank address
+    char *p = buffer + 12;
+    p[0] = bit1(_psu & 0x80, 'S');  // SENSE
+    p[1] = bit1(_psu & 0x40, 'F');  // FLAG
+    p[2] = bit1(_psu & 0x20, 'I');  // Inhibit Interrupt
+    buffer[19] = (_psu & 7) + '0';  // Stack pointer
+    static constexpr char cc[] = {'Z', 'P', 'N', '3'};
+    buffer[24] = cc[_psl >> 6];  // Condition code
+    p = buffer + 30;
+    p[0] = bit1(_psl & 0x20, 'D');  // Interdigit carry
+    p[1] = rs() + '0';              // Register select
+    p[2] = bit1(_psl & 8, 'W');     // With carry
+    p[3] = bit1(_psl & 4, 'V');     // Overflow
+    p[4] = (_psl & 2) ? 'L' : 'A';  // Logic ot Arithmetic
+    p[5] = bit1(_psl & 1, 'C');     // Carry
     cli.println(buffer);
-    Pins.idle();
     // clang-format off
-    static char line1[] = {
-        ' ', 'R', '0', '=', 0, 0, ' ', // Rn=4+7n
-        ' ', 'R', '1', '=', 0, 0, ' ',
-        ' ', 'R', '2', '=', 0, 0, ' ',
-        ' ', 'R', '3', '=', 0, 0, ' ',
-        ' ', 'R', '4', '=', 0, 0, ' ',
-        ' ', 'R', '5', '=', 0, 0, ' ',
-        ' ', 'R', '6', '=', 0, 0, ' ',
-        ' ', 'R', '7', '=', 0, 0,
+    static char reg[] = {
+        'R', '0', '=', 0, 0, ' ', // R0=3
+        'R', '1', '=', 0, 0, ' ', // Rn=(n-1)*6+9
+        'R', '2', '=', 0, 0, ' ',
+        'R', '3', '=', 0, 0, ' ',
+        '(',
+        'R', '1', '=', 0, 0, ' ', // Rn=(n-1)*6+28
+        'R', '2', '=', 0, 0, ' ',
+        'R', '3', '=', 0, 0, ')',
         0,
     };
     // clang-format on
-    for (auto i = 0; i < 8; i++)
-        outHex8(line1 + 4 + i * 7, _r[i]);
-    cli.println(line1);
-    Pins.idle();
-    // clang-format off
-    static char line2[] = {
-        ' ', 'R', '8', '=', 0, 0, ' ', // Rn=4+7(n-8)
-        ' ', 'R', '9', '=', 0, 0, ' ',
-        'R', '1', '0', '=', 0, 0, ' ',
-        'R', '1', '1', '=', 0, 0, ' ',
-        'R', '1', '2', '=', 0, 0, ' ',
-        'R', '1', '3', '=', 0, 0, ' ',
-        'R', '1', '4', '=', 0, 0, ' ',
-        'R', '1', '5', '=', 0, 0,
-        0,
-    };
-    // clang-format on
-    for (auto i = 8; i < 16; i++)
-        outHex8(line2 + 4 + (i - 8) * 7, _r[i]);
-    cli.println(line2);
-    Pins.idle();
-}
-
-void Regs::switchBank(RegSpace space) {
-    if (space == SET_BANK1) {
-        static constexpr uint8_t BANK1[] = {
-                0x46, 0xD5, 0x01,  // OR FLAGS, #F_BANK
-        };
-        Pins.execInst(BANK1, sizeof(BANK1));
-    } else {
-        static constexpr uint8_t BANK0[] = {
-                0x56, 0xD5, 0xFE,  // AND FLAGS, #LNOT F_BANK
-        };
-        Pins.execInst(BANK0, sizeof(BANK0));
+    outHex8(reg + 3, _r0);
+    const auto bank = rs();
+    for (auto n = 1; n < 4; ++n) {
+        outHex8(reg + (n - 1) * 6 + 9, _r[bank][n]);
+        outHex8(reg + (n - 1) * 6 + 28, _r[1 - bank][n]);
     }
-}
-
-uint8_t Regs::read_reg(uint8_t addr, RegSpace space) {
-    uint8_t val;
-    if (space == SET_TWO && addr >= 0xC0) {
-        static uint8_t READ_TWO[] = {
-                0xFC, 0,     // LD r15,IM
-                0xC7, 0xFF,  // LD r15,@r15
-                0xD3, 0xFE,  // LDE @rr14,r15
-                0xFC, 0,     // LD r15,IM
-        };
-        READ_TWO[1] = addr;
-        READ_TWO[7] = _r[15];
-        Pins.captureWrites(
-                READ_TWO, sizeof(READ_TWO), nullptr, &val, sizeof(val));
-        return val;
-    } else {
-        if (addr >= 0xE0)
-            switchBank(space);
-        static uint8_t READ_REG[] = {
-                0xF8, 0,     // LD r15,Rn
-                0xD3, 0xFE,  // LDE @rr14,r15
-                0xFC, 0,     // LD r15,IM
-        };
-        READ_REG[1] = addr;
-        READ_REG[5] = _r[15];
-        Pins.captureWrites(
-                READ_REG, sizeof(READ_REG), nullptr, &val, sizeof(val));
-    }
-    if (space == SET_ONE || space == SET_TWO)
-        update_r(addr, val);
-    return val;
-}
-
-void Regs::write_reg(uint8_t addr, uint8_t val) {
-    static uint8_t WRITE_REG[] = {
-            0xE6, 0, 0,  // LD Rn,IM
-    };
-    WRITE_REG[1] = addr;
-    WRITE_REG[2] = val;
-    Pins.execInst(WRITE_REG, sizeof(WRITE_REG));
-    update_r(addr, val);
-}
-
-void Regs::reset(bool show) {
-    if (show)
-        Signals::resetCycles();
-    constexpr auto EMT = 254;  // External Memory Timing
-    write_reg(EMT, (Z88_EXTERNAL_STACK << 1));
-    constexpr auto P0M = 240;  // Port 0 Mode
-    write_reg(P0M, 0xFF);      // Port 0 = A15-A8
-    constexpr auto PM = 241;   // Port 1 Mode
-    write_reg(PM, (Z88_DATA_MEMORY << 3) | (1 << 6));
-    static constexpr uint8_t JP_RESET[] = {0x8D, 0x00, 0x20};  // JP %0020
-    Pins.execInst(JP_RESET, sizeof(JP_RESET));
-    if (show)
-        Signals::printCycles();
+    cli.println(reg);
+    Pins.idle();
 }
 
 static constexpr uint16_t uint16(const uint8_t hi, const uint8_t lo) {
@@ -477,146 +385,106 @@ static constexpr uint16_t be16(const uint8_t *p) {
     return uint16(p[0], p[1]);
 }
 
-void Regs::update_r(uint8_t addr, uint8_t val) {
-    const auto rp0 = get_sfr(sfr_rp0) & 0xF8;
-    if ((addr & 0xF8) == rp0)
-        _r[addr & 7] = val;
-    const auto rp1 = get_sfr(sfr_rp1) & 0xF8;
-    if ((addr & 0xF8) == rp1)
-        _r[(addr & 7) + 8] = val;
-}
-
-void Regs::save_r(uint8_t num) {
-    static uint8_t SAVE_R[] = {
-            0xD3, 0x0E,  // LDE @rr14, rn
-    };
-    SAVE_R[1] = (num << 4) | 14;  // LDE @rr14,ri
-    Pins.captureWrites(
-            SAVE_R, sizeof(SAVE_R), nullptr, &_r[num], sizeof(_r[0]));
-}
-
 void Regs::save(bool show) {
     if (debug_cycles)
         cli.println(F("@@ save"));
     if (show)
         Signals::resetCycles();
-    const auto &signals = Pins.cycle(0xFF);  // NOP
-    _pc = signals.addr;
-
-    for (uint8_t num = 0; num < sizeof(_r); num++)
-        save_r(num);
-    for (uint8_t num = 0; num < sizeof(_sfr); num++)
-        _sfr[num] = read_reg(sfr_base + num);
-    restore_r(15);
+    static constexpr uint8_t SAVE_R0PS[] = {
+            0xC8, 0x00,        // STRR,R0 $
+            0x13, 0xC8, 0x00,  // SPSL, STRR,R0 $
+            0x12, 0xC8, 0x00,  // SPSU; STRR,R0 $
+    };
+    uint8_t buffer[3];
+    Pins.captureWrites(
+            SAVE_R0PS, sizeof(SAVE_R0PS), &_pc, buffer, sizeof(buffer));
+    _r0 = buffer[0];
+    _psl = buffer[1];
+    _psu = buffer[2];
+    static constexpr uint8_t SAVE_REGS[] = {
+            0xC9, 0x00,  // STRR,R1 $
+            0xCA, 0x00,  // STRR,R2,$
+            0xCB, 0x00,  // STRR,R3 $
+    };
+    Pins.captureWrites(SAVE_REGS, sizeof(SAVE_REGS), nullptr, &_r[rs()][1], 3);
+    constexpr uint8_t PPSL = 0x77;
+    constexpr uint8_t CPSL = 0x75;
+    static uint8_t SET_RS[] = {
+            0, 0x10,  // PPSL|CPSL 0x10
+    };
+    SET_RS[0] = rs() ? CPSL : PPSL;
+    Pins.execInst(SET_RS, sizeof(SET_RS));
+    Pins.captureWrites(
+            SAVE_REGS, sizeof(SAVE_REGS), nullptr, &_r[1 - rs()][1], 3);
+    SET_RS[0] = rs() ? PPSL : CPSL;
+    Pins.execInst(SET_RS, sizeof(SET_RS));
 
     if (show)
         Signals::printCycles();
 }
 
-void Regs::restore_r(uint8_t num) {
-    static uint8_t LOAD_R[] = {
-            0x0C, 0,  // LD r,IM
-    };
-    LOAD_R[0] = 0x0C | (num << 4);
-    LOAD_R[1] = _r[num];
-    Pins.execInst(LOAD_R, sizeof(LOAD_R));
-}
-
 void Regs::restore(bool show) {
-    static uint8_t JP[] = {
-            0x8D, 0, 0,  // JP DA
-    };
     if (debug_cycles)
         cli.println(F("@@ restore"));
     if (show)
         Signals::resetCycles();
 
-    for (uint8_t num = 0; num < sizeof(_sfr); num++)
-        write_reg(sfr_base + num, _sfr[num]);
-    for (uint8_t num = 0; num < sizeof(_r); num++)
-        restore_r(num);
+    constexpr uint8_t PPSL = 0x77;
+    constexpr uint8_t CPSL = 0x75;
+    static uint8_t RESTORE[] = {
+            0, 0x10,        // PPSL|CPSL 0x10; switch to !rs bank
+            0x05, 0,        // LODI,R1 _r1
+            0x06, 0,        // LODI,R2 _r2
+            0x07, 0,        // LODI,R3 _r3
+            0, 0x10,        // PPSL|CPSL 0x10; switch to rs bank
+            0x05, 0,        // LODI,R1 _r1
+            0x06, 0,        // LODI,R2 _r2
+            0x07, 0,        // LODI,R3 _r3
+            0x04, 0, 0x92,  // LODI,R0 _psu; LPSU
+            0x04, 0,        // LODI,R0 _r0
+            PPSL, 0,        // PPSL _psl; restore PSL one bits
+            CPSL, 0,        // CPSL ~_psl; restore PSL zero bits
+            0x1F, 0, 0,     // BCTA _pc
+    };
+    RESTORE[0] = rs() ? CPSL : PPSL;
+    RESTORE[8] = rs() ? PPSL : CPSL;
+    for (auto n = 1; n < 4; ++n) {
+        RESTORE[(n - 1) * 2 + 3] = _r[1 - rs()][n];
+        RESTORE[(n - 1) * 2 + 11] = _r[rs()][n];
+    }
+    RESTORE[17] = _psu;
+    RESTORE[20] = _r0;
+    RESTORE[22] = _psl;
+    RESTORE[24] = ~_psl;
+    RESTORE[26] = hi(_pc);
+    RESTORE[27] = lo(_pc);
+    Pins.execInst(RESTORE, sizeof(RESTORE));
 
-    JP[1] = hi(_pc);
-    JP[2] = lo(_pc);
-    Pins.execInst(JP, sizeof(JP));
     if (show)
         Signals::printCycles();
 }
 
-void Regs::set_rp0(uint8_t val) {
-    set_sfr(sfr_rp0, val);
-    for (auto num = 0; num < 8; num++)
-        save_r(num);
-}
-
-void Regs::set_rp1(uint8_t val) {
-    set_sfr(sfr_rp1, val);
-    for (auto num = 8; num < 16; num++)
-        save_r(num);
-}
-
-void Regs::set_sp(uint16_t val) {
-    set_sfr(sfr_sph, hi(val));
-    set_sfr(sfr_spl, lo(val));
-}
-
-void Regs::set_ip(uint16_t val) {
-    set_sfr(sfr_iph, hi(val));
-    set_sfr(sfr_ipl, lo(val));
-}
-
-void Regs::set_sfr(uint8_t name, uint8_t val) {
-    const auto num = name - sfr_base;
-    _sfr[num] = val;
-    write_reg(name, val);
-}
-
-void Regs::set_r(uint8_t num, uint8_t val) {
-    _r[num] = val;
-    restore_r(num);
-}
-
 void Regs::printRegList() const {
-    cli.println(F("?Reg: PC SP IP RP/0/1 FLAGS R0~R15 RR0~14"));
+    cli.println(F("?Reg: PC PSU/PSL RS CC R0~R3"));
 }
 
 char Regs::validUint8Reg(const char *word) const {
-    if (strcasecmp_P(word, PSTR("RP")) == 0)
-        return 'R';
-    if (strcasecmp_P(word, PSTR("RP0")) == 0)
-        return 'r';
-    if (strcasecmp_P(word, PSTR("RP1")) == 0)
-        return 's';
-    if (strcasecmp_P(word, PSTR("FLAGS")) == 0)
-        return 'X';
-    if (toupper(*word++) == 'R' && isdigit(*word)) {
-        uint8_t num = *word++ - '0';
-        if (isdigit(*word)) {
-            num *= 10;
-            num += *word++ - '0';
-        }
-        if (*word == 0 && num < 16)
-            return num < 10 ? num + '0' : num - 10 + 'A';
-    }
+    if (strcasecmp_P(word, PSTR("RS")) == 0)
+        return 'S';
+    if (strcasecmp_P(word, PSTR("CC")) == 0)
+        return 'C';
+    if (strcasecmp_P(word, PSTR("PSU")) == 0)
+        return 'U';
+    if (strcasecmp_P(word, PSTR("PSL")) == 0)
+        return 'L';
+    if (toupper(*word++) == 'R' && *word >= '0' && *word < '4')
+        return *word;
     return 0;
 }
 
 char Regs::validUint16Reg(const char *word) const {
     if (strcasecmp_P(word, PSTR("PC")) == 0)
         return 'P';
-    if (strcasecmp_P(word, PSTR("SP")) == 0)
-        return 'S';
-    if (strcasecmp_P(word, PSTR("IP")) == 0)
-        return 'I';
-    if (toupper(*word++) == 'R' && toupper(*word++) == 'R' && isdigit(*word)) {
-        uint8_t num = *word++ - '0';
-        if (isdigit(*word)) {
-            num *= 10;
-            num += *word++ - '0';
-        }
-        if (*word == 0 && num < 16 && num % 2 == 0)
-            return num + 'a';
-    }
     return 0;
 }
 
@@ -625,34 +493,34 @@ void Regs::setRegValue(char reg, uint32_t value) {
     case 'P':
         _pc = value;
         break;
+    case 'U':
+        _psu = value;
+        break;
+    case 'C':
+        value <<= 6;
+        value |= _psl & 0x3F;
+        // Fall-through
+    case 'L':
+        _psl = value;
+        break;
     case 'S':
-        set_sp(value);
+        if (value)
+            _psl |= 0x10;
+        else
+            _psl &= ~0x10;
         break;
-    case 'I':
-        set_ip(value);
+    case '0':
+        _r0 = value;
         break;
-    case 'R':
-        set_rp0(value);
-        set_rp1(value + 8);
-        break;
-    case 'r':
-        set_rp0(value);
-        break;
-    case 's':
-        set_rp1(value);
-        break;
-    case 'X':
-        set_flags(value);
-        break;
-    default:
-        if (islower(reg)) {
-            const auto num = reg - 'a';
-            set_rr(num, value);
-        } else if (isxdigit(reg)) {
-            const auto num = isdigit(reg) ? reg - '0' : reg - 'A' + 10;
-            set_r(num, value);
-        }
-        break;
+    case '1':
+        _r[rs()][1] = value;
+        return;
+    case '2':
+        _r[rs()][2] = value;
+        return;
+    case '3':
+        _r[rs()][3] = value;
+        return;
     }
 }
 
@@ -671,6 +539,7 @@ static void printInsn(const libasm::Insn &insn) {
 uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
     disassembler.setCpu(cpu());
     disassembler.setOption("uppercase", "true");
+    const auto nameMax = -(disassembler.nameMax() + 1);
     uint16_t num = 0;
     while (num < numInsn) {
         char operands[20];
@@ -680,7 +549,7 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
         addr += insn.length();
         num++;
         printInsn(insn);
-        cli.printStr(insn.name(), -6);
+        cli.printStr(insn.name(), nameMax);
         cli.printlnStr(operands, -12);
         if (insn.getError()) {
             cli.print(F("Error: "));
@@ -724,24 +593,11 @@ void Memory::write(uint16_t addr, const uint8_t *data, uint8_t len) {
 }
 
 uint8_t Memory::read(uint16_t addr, const char *space) const {
-    if (space == nullptr) {
-        return memory[addr];
-    } else {
-        auto spc = SET_ONE;
-        if (strcasecmp_P(space, PSTR("set2")) == 0)
-            spc = SET_TWO;
-        if (strcasecmp_P(space, PSTR("bank1")) == 0)
-            spc = SET_BANK1;
-        return Regs.read_reg(addr, spc);
-    }
+    return memory[addr];
 }
 
 void Memory::write(uint16_t addr, uint8_t data, const char *space) {
-    if (space == nullptr) {
-        memory[addr] = data;
-    } else {
-        Regs.write_reg(addr, data);
-    }
+    memory[addr] = data;
 }
 
 // Local Variables:
