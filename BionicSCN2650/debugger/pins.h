@@ -42,6 +42,10 @@ public:
     void setRomArea(uint16_t begin, uint16_t end);
     void printRomArea() const;
 
+    bool setBreakPoint(uint16_t addr);
+    bool clearBreakPoint(uint8_t index);
+    void printBreakPoints() const;
+
 private:
     bool _freeRunning;
 
@@ -50,14 +54,20 @@ private:
     bool rawStep();
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
-    Device _serialDevice;
 
+    Device _serialDevice;
     void setDeviceBase(Device dev, bool hasValue, uint16_t base);
     Device getSerialDevice(uint16_t &baseAddr) const;
     void setSerialDevice(Device dev, uint16_t addr);
 
     uint16_t _rom_begin;
     uint16_t _rom_end;
+
+    uint8_t _breakNum;
+    uint16_t _breakPoints[4];
+    uint8_t _breakInsns[4];
+    void saveBreakInsns();
+    void restoreBreakInsns();
 };
 
 extern Pins Pins;
