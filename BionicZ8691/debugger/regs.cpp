@@ -601,13 +601,18 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
         addr += insn.length();
         num++;
         printInsn(insn);
-        if (disassembler.getError()) {
-            cli.print(F("Error: "));
-            cli.println(disassembler.errorText_P(disassembler.getError()));
-            continue;
-        }
         cli.printStr(insn.name(), -6);
         cli.printlnStr(operands, -12);
+        if (insn.getError()) {
+            cli.print(F("Error: "));
+            cli.printStr_P(insn.errorText_P());
+            if (*insn.errorAt()) {
+                cli.print(F(" at '"));
+                cli.printStr(insn.errorAt());
+                cli.print('\'');
+            }
+            cli.println();
+        }
     }
     return addr;
 }
@@ -615,9 +620,16 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
 uint16_t Regs::assemble(uint16_t addr, const char *line) const {
     assembler.setCpu(cpu());
     libasm::Insn insn(addr);
-    if (assembler.encode(line, insn)) {
+    assembler.encode(line, insn);
+    if (insn.getError()) {
         cli.print(F("Error: "));
-        cli.println(assembler.errorText_P(assembler.getError()));
+        cli.print(insn.errorText_P());
+        if (*insn.errorAt()) {
+            cli.print(F(" at '"));
+            cli.printStr(insn.errorAt());
+            cli.print('\'');
+        }
+        cli.println();
     } else {
         Memory.write(insn.address(), insn.bytes(), insn.length());
         disassemble(insn.address(), 1);

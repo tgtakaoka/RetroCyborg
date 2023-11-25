@@ -318,6 +318,7 @@ void Pins::loop() {
     if (_freeRunning) {
         Usart.loop();
         if (!rawStep() || user_sw() == LOW) {
+            restoreBreakInsns();
             Commands.halt(true);
             return;
         }
@@ -340,45 +341,53 @@ void Pins::run() {
     Regs.restore(debug_cycles);
     // Reset cycles for dump valid bus cycles at HALT.
     Signals::resetCycles();
+    rawStep();  // step over possible break point
+    saveBreakInsns();
     _freeRunning = true;
     turn_on_led();
 }
 
 bool Pins::rawStep() {
-    auto &signals = prepareCycle();
-    if (signals.write()) {
+    auto *signals = &prepareCycle();
+    if (signals->write()) {
         // interrupt acknowledge is ongoing
         // finsh saving PC and FLAGS
-        while (signals.write()) {
-            completeCycle(signals).debug('I');
-            signals = prepareCycle();
+        while (signals->write()) {
+            completeCycle(*signals).debug('I');
+            signals = &prepareCycle();
         }
         // fetch vector
-        completeCycle(signals).debug('v');
+        completeCycle(*signals).debug('v');
         completeCycle(prepareCycle()).debug('v');
-        signals = prepareCycle();
+        signals = &prepareCycle();
     }
-    const auto insn = Memory.read(signals.addr);
+    const auto insn = Memory.read(signals->addr);
     const auto cycles = Regs::busCycles(insn);
     if (debug_step) {
         cli.print(F("@@ rawStep at "));
-        cli.printHex(signals.addr, 4);
+        cli.printHex(signals->addr, 4);
         cli.print(':');
         cli.printHex(insn, 2);
         cli.print(F(" cycles="));
         cli.printlnDec(cycles);
     }
-    if (cycles == 0) {
-        cli.print(F("Illegal instruction "));
-        cli.printHex(insn, 2);
+    if (cycles == 0 || insn == 0x7F || insn == 0x6F) {
+        if (cycles == 0) {
+            cli.print(F("Illegal instruction "));
+            cli.printHex(insn, 2);
+        } else if (insn == 0x7F) {
+            cli.print(F("HALT instruction "));
+        } else if (insn == 0x6F) {
+            cli.print(F("STOP instruction "));
+        }
         cli.print(F(" at "));
-        cli.printHex(signals.addr, 4);
+        cli.printHex(signals->addr, 4);
         cli.println(F("; HALT"));
         cycle(0x8B);  // JR $
         cycle(0xFE);
         return false;
     }
-    completeCycle(signals).debug('1');
+    completeCycle(*signals).debug('1');
     for (auto c = 1; c < cycles; c++) {
         cycle().debug(c + '1');
         if (_writes == 3) {
@@ -515,6 +524,52 @@ void Pins::printRomArea() const {
         cli.printlnHex(_rom_end, 4);
     } else {
         cli.println(F("none"));
+    }
+}
+
+bool Pins::setBreakPoint(uint16_t addr) {
+    uint8_t i = 0;
+    while (i < _breakNum) {
+        if (_breakPoints[i] == addr)
+            return true;
+        ++i;
+    }
+    if (i < sizeof(_breakInsns)) {
+        _breakPoints[i] = addr;
+        ++_breakNum;
+        return true;
+    }
+    return false;
+}
+
+bool Pins::clearBreakPoint(uint8_t index) {
+    if (--index >= _breakNum)
+        return false;
+    for (uint8_t i = index + 1; i < _breakNum; ++i) {
+        _breakPoints[index] = _breakPoints[i];
+        ++index;
+    }
+    --_breakNum;
+    return true;
+}
+
+void Pins::printBreakPoints() const {
+    for (uint8_t i = 0; i < _breakNum; ++i) {
+        cli.printDec(i + 1, -2);
+        Regs.disassemble(_breakPoints[i], 1);
+    }
+}
+
+void Pins::saveBreakInsns() {
+    for (uint8_t i = 0; i < _breakNum; ++i) {
+        _breakInsns[i] = Memory.read(_breakPoints[i]);
+        Memory.write(_breakPoints[i], 0x7F);  // HALT
+   }
+}
+
+void Pins::restoreBreakInsns() {
+    for (uint8_t i = 0; i < _breakNum; ++i) {
+        Memory.write(_breakPoints[i], _breakInsns[i]);
     }
 }
 

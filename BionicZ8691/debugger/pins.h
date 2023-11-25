@@ -53,6 +53,10 @@ public:
     void setRomArea(uint16_t begin, uint16_t end);
     void printRomArea() const;
 
+    bool setBreakPoint(uint16_t addr);
+    bool clearBreakPoint(uint8_t index);
+    void printBreakPoints() const;
+
 private:
     bool _freeRunning;
     uint8_t _writes;
@@ -70,6 +74,12 @@ private:
 
     uint16_t _rom_begin;
     uint16_t _rom_end;
+
+    uint8_t _breakNum;
+    uint16_t _breakPoints[4];
+    uint8_t _breakInsns[4];
+    void saveBreakInsns();
+    void restoreBreakInsns();
 };
 
 extern Pins Pins;
