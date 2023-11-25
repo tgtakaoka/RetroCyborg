@@ -35,7 +35,7 @@ extern libcli::Cli cli;
 
 #define USAGE                                                                \
     F("R:eset r:egs =:setReg d:ump D:is m/M:emory A:sm s/S:tep c/C:ont G:o " \
-      "h/H:alt F:iles L:oad U:pload I:o")
+      "h/H:alt b/B:reak F:iles L:oad U:pload I:o")
 
 class Commands Commands;
 
@@ -508,6 +508,31 @@ static void handleRomArea(uint32_t value, uintptr_t extra, State state) {
     printPrompt();
 }
 
+static void handleSetBreak(uint32_t value, uintptr_t extra, State state) {
+    if (state != State::CLI_CANCEL) {
+        if (Pins.setBreakPoint(value)) {
+            cli.println(F("Set"));
+        } else {
+            cli.println(F("Full"));
+        }
+        Pins.printBreakPoints();
+    }
+    printPrompt();
+}
+
+static void handleClearBreak(char *line, uintptr_t extra, State state) {
+    if (state != State::CLI_CANCEL) {
+        if (str_buffer[0]) {
+            const auto index = atoi(str_buffer);
+            if (Pins.clearBreakPoint(index))
+                cli.print(F(" Clear"));
+        }
+        cli.println();
+        Pins.printBreakPoints();
+    }
+    printPrompt();
+}
+
 void Commands::exec(char c) {
     switch (c) {
     case 'R':
@@ -534,6 +559,14 @@ void Commands::exec(char c) {
         Pins.printRomArea();
         cli.print(F("  ROM area? "));
         cli.readHex(handleRomArea, MEMORY_ADDR, Regs.maxAddr());
+        return;
+    case 'B':
+        cli.print(F("Set break? "));
+        cli.readHex(handleSetBreak, 0, Regs.maxAddr());
+        return;
+    case 'b':
+        cli.print(F("Clear break? "));
+        cli.readLine(handleClearBreak, 0, str_buffer, sizeof(str_buffer));
         return;
     case 'r':
         cli.println(F("Registers"));
