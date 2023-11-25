@@ -387,7 +387,7 @@ bool Pins::rawStep() {
         cycle(0xFE);
         return false;
     }
-    completeCycle(*signals).debug('1');
+    completeCycle(*signals).debug('1').fetch(true);
     for (auto c = 1; c < cycles; c++) {
         cycle().debug(c + '1');
         if (_writes == 3) {

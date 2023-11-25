@@ -16,7 +16,12 @@ Signals Signals::_signals[MAX_CYCLES];
 
 void Signals::clear() {
     // fields including _debug will be written in Pins::cycle().
-    _inject = _capture = false;
+    _inject = _capture = _fetch = false;
+}
+
+Signals &Signals::fetch(bool fetch) {
+    _fetch = fetch;
+    return *this;
 }
 
 void Signals::printCycles() {
@@ -25,31 +30,37 @@ void Signals::printCycles() {
     for (auto i = 0; i < n; i++) {
         const auto x = (i + g) % MAX_CYCLES;
         _signals[x].print();
-        Pins.idle();
+        if (i % 4 == 3)
+            Pins.idle();
     }
 }
 
 void Signals::disassembleCycles() {
     const auto n = _cycles;
     const auto g = _get;
+    auto idle = 4;
     for (auto i = 0; i < n;) {
         const auto x = (i + g) % MAX_CYCLES;
         const auto &signals = _signals[x];
-        const auto len = Regs::insnLen(signals.data);
-        if (len) {
+        const auto insn = signals.data;
+        const auto len = Regs::insnLen(insn);
+        if (signals.fetch() && len) {
             Regs.disassemble(signals.addr, 1);
             i += len;
-            const auto b = Regs::busCycles(signals.data) - len;
-            for (auto j = 0; j < b; j++) {
-                const auto &s = _signals[(i + g + j) % MAX_CYCLES];
+            const auto cycles = Regs::busCycles(insn) - len;
+            for (auto c = 0; c < cycles; c++) {
+                const auto &s = _signals[(i + g + c) % MAX_CYCLES];
                 s.print();
             }
-            i += b;
+            i += cycles;
         } else {
             signals.print();
             i++;
         }
-        Pins.idle();
+        if (i >= idle) {
+            Pins.idle();
+            idle += 4;
+        }
     }
 }
 
