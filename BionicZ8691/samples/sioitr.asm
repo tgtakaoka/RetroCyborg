@@ -1,5 +1,5 @@
 ;;; -*- mode: asm; mode: flyspell-prog; -*-
-        cpu     z8
+        cpu     z86c
         option  "reg-alias", "disable"
 
         include "z8.inc"
@@ -42,6 +42,8 @@ init_config:
 ;;; p=1 for PRE0, t=12 for T0
 ;;; bit rate = 14754600 / (2 x 4 x p x t x 16) = 9600 bps
 init_sio:
+        ld      r0, SIO          ; dummy read
+        or      PORT3, #%80      ; TxD(P37)=High
         ld      P3M, #P3M_SERIAL LOR P3M_P2PUSHPULL ; enable SIO I/O
         ld      T0, #12
         ld      PRE0, #(1 SHL PRE0_gp) LOR PRE0_MODULO ; modulo-N
@@ -55,6 +57,9 @@ init_irq:
 receive_loop:
         call    getchar
         jr      nc, receive_loop
+        or      r0, r0
+        jr      nz, echo_back
+        halt
 echo_back:
         ld      r1, r0          ; save letter
         call    putchar         ; echo

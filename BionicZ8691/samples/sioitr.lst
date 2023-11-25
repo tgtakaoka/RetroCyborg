@@ -1,5 +1,5 @@
           0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
-          0 :                            cpu     z8
+          0 :                            cpu     z86c
           0 :                            option  "reg-alias", "disable"
           0 :
           0 :                            include "z8.inc"
@@ -101,10 +101,10 @@
        1000 : =1000              stack:  equ     $
        1000 :
           6 :                            org     VEC_IRQ3
-          6 : 01 9D                      dw      isr_intr_rx
+          6 : 01 A7                      dw      isr_intr_rx
           8 :
           8 :                            org     VEC_IRQ4
-          8 : 01 B6                      dw      isr_intr_tx
+          8 : 01 C0                      dw      isr_intr_tx
           A :
           C :                            org     ORG_RESET
           C :                    init_config:
@@ -119,297 +119,302 @@
          16 : 2C 20                      ld      r2, #HIGH rx_queue
          18 : 3C 00                      ld      r3, #LOW rx_queue
          1A : 1C 80                      ld      r1, #rx_queue_size
-         1C : D6 00 F0                   call    queue_init
+         1C : D6 00 FA                   call    queue_init
          1F : 2C 20                      ld      r2, #HIGH tx_queue
          21 : 3C 80                      ld      r3, #LOW tx_queue
          23 : 1C 80                      ld      r1, #tx_queue_size
-         25 : D6 00 F0                   call    queue_init
+         25 : D6 00 FA                   call    queue_init
          28 :
          28 :                    ;;; XTAL=14.7546MHz
          28 :                    ;;; p=1 for PRE0, t=12 for T0
          28 :                    ;;; bit rate = 14754600 / (2 x 4 x p x t x 16) = 9600 bps
          28 :                    init_sio:
-         28 : E6 F7 41                   ld      P3M, #P3M_SERIAL LOR P3M_P2PUSHPULL ; enable SIO I/O
-         2B : E6 F4 0C                   ld      T0, #12
-         2E : E6 F5 05                   ld      PRE0, #(1 SHL PRE0_gp) LOR PRE0_MODULO ; modulo-N
-         31 : 46 F1 03                   or      TMR, #TMR_LOAD_T0 LOR TMR_ENABLE_T0
-         34 :
-         34 :                    init_irq:
-         34 : E6 F9 2F                   ld      IPR, #IPR_ACB LOR IPR_A35 LOR IPR_C41 LOR IPR_B02
-         37 : E6 FB 08                   ld      IMR, #IMR_IRQ3 ; enable IRQ3
-         3A : 9F                         ei                     ; clear IRQ and enable interrupt system
-         3B :
-         3B :                    receive_loop:
-         3B : D6 00 B6                   call    getchar
-         3E : FB FB                      jr      nc, receive_loop
-         40 :                    echo_back:
-         40 : 18 E0                      ld      r1, r0          ; save letter
-         42 : D6 00 C8                   call    putchar         ; echo
-         45 : 0C 20                      ld      r0, #' '        ; space
-         47 : D6 00 C8                   call    putchar
-         4A : D6 00 63                   call    put_hex8        ; print in hex
-         4D : 0C 20                      ld      r0, #' '        ; space
-         4F : D6 00 C8                   call    putchar
-         52 : D6 00 88                   call    put_bin8        ; print in binary
-         55 : D6 00 5A                   call    newline
-         58 : 8B E1                      jr      receive_loop
-         5A :
-         5A :                    ;;; Put newline
-         5A :                    ;;; @clobber r0
-         5A :                    newline:
-         5A : 0C 0D                      ld      r0, #%0D
-         5C : D6 00 C8                   call    putchar
-         5F : 0C 0A                      ld      r0, #%0A
-         61 : 8B 65                      jr      putchar
-         63 :
-         63 :                    ;;; Print uint8_t in hex
-         63 :                    ;;; @param r1 uint8_t value to be printed in hex.
-         63 :                    ;;; @clobber r0
-         63 :                    put_hex8:
-         63 : 0C 30                      ld      r0, #'0'
-         65 : D6 00 C8                   call    putchar
-         68 : 0C 78                      ld      r0, #'x'
-         6A : D6 00 C8                   call    putchar
-         6D : 08 E1                      ld      r0, r1
-         6F : F0 E0                      swap    r0
-         71 : D6 00 76                   call    put_hex4
-         74 : 08 E1                      ld      r0, r1
-         76 :                    put_hex4:
-         76 : 56 E0 0F                   and     r0, #%F
-         79 : A6 E0 0A                   cp      r0, #10
-         7C : 7B 05                      jr      c, put_hex8_dec ; A<10
-         7E : 06 E0 37                   add     r0, #'A'-10
-         81 : 8B 45                      jr      putchar
-         83 :                    put_hex8_dec:
-         83 : 06 E0 30                   add     r0, #'0'
-         86 : 8B 40                      jr      putchar
-         88 :
-         88 :                    ;;; Print uint8_t in binary
-         88 :                    ;;; @param r1 uint8_t value to be printed in binary.
-         88 :                    ;;; @clobber r0
-         88 :                    put_bin8:
-         88 : 70 E4                      push    r4
-         8A : 0C 30                      ld      r0, #'0'
-         8C : D6 00 C8                   call    putchar
-         8F : 0C 62                      ld      r0, #'b'
-         91 : D6 00 C8                   call    putchar
-         94 : 48 E1                      ld      r4, r1
-         96 : D6 00 A1                   call    put_bin4
-         99 : 90 E4                      rl      r4
-         9B : D6 00 A1                   call    put_bin4
-         9E : 50 E4                      pop     r4
-         A0 : AF                         ret
-         A1 :                    put_bin4:
-         A1 : D6 00 A6                   call    put_bin2
-         A4 : 90 E4                      rl      r4
-         A6 :                    put_bin2:
-         A6 : D6 00 AB                   call    put_bin1
-         A9 : 90 E4                      rl      r4
-         AB :                    put_bin1:
-         AB : 0C 30                      ld      r0, #'0'
-         AD : 42 44                      or      r4, r4
-         AF : DD 00 B4                   jp      pl, put_bin0    ; MSB=0
-         B2 : 0C 31                      ld      r0, #'1'        ; MSB=1
-         B4 :                    put_bin0:
-         B4 : 8B 12                      jr      putchar
-         B6 :
-         B6 :                    ;;; Get character
-         B6 :                    ;;; @return r0
-         B6 :                    ;;; @return FLAGS.C 0 if no character
-         B6 :                    getchar:
-         B6 : 70 E3                      push    r3
-         B8 : 70 E2                      push    r2
-         BA : 2C 20                      ld      r2, #HIGH rx_queue
-         BC : 3C 00                      ld      r3, #LOW rx_queue
-         BE : 8F                         di
-         BF : D6 01 5B                   call    queue_remove
-         C2 : 9F                         ei
-         C3 : 50 E2                      pop     r2
-         C5 : 50 E3                      pop     r3
-         C7 : AF                         ret
-         C8 :
-         C8 :                    ;;; Put character
-         C8 :                    ;;; @param r0
-         C8 :                    putchar:
-         C8 : 70 E0                      push    r0
-         CA : 70 E3                      push    r3
-         CC : 70 E2                      push    r2
-         CE : 2C 20                      ld      r2, #HIGH tx_queue
-         D0 : 3C 80                      ld      r3, #LOW tx_queue
-         D2 :                    putchar_retry:
-         D2 : 8F                         di
-         D3 : D6 01 17                   call    queue_add
-         D6 : 9F                         ei
-         D7 : FB F9                      jr      nc, putchar_retry ; branch if queue is full
-         D9 : 50 E2                      pop     r2
-         DB : 50 E3                      pop     r3
-         DD : 8F                         di
-         DE : 76 FB 10                   tm      IMR, #IMR_IRQ4
-         E1 : EB 09                      jr      nz, putchar_exit ; already enabled
-         E3 : 46 02 04                   OR      PORT2, #4
-         E6 : 46 FB 10                   or      IMR, #IMR_IRQ4   ; enable IRQ4
-         E9 : 46 FA 10                   or      IRQ, #IRQ_IRQ4   ; software IRQ4
-         EC :                    putchar_exit:
-         EC : 9F                         ei
-         ED : 50 E0                      pop     r0
-         EF : AF                         ret
-         F0 :
-         F0 :                            include "queue.inc"
-(1)      F0 :                    ;;; [queue] queue structure
-(1)      F0 : =0                 queue_len:      equ     0       ; queue length
-(1)      F0 : =1                 queue_size:     equ     1       ; buffer size
-(1)      F0 : =2                 queue_put:      equ     2       ; queue put index
-(1)      F0 : =3                 queue_get:      equ     3       ; queue get index
-(1)      F0 : =4                 queue_buf:      equ     4       ; buffer start offset
-(1)      F0 :
-(1)      F0 :                    ;;; [queue] Initialize queue
-(1)      F0 :                    ;;; @param rr2 queue work space pointer
-(1)      F0 :                    ;;; @param r1 queue work space size
-(1)      F0 :                    ;;; @clobber r1
-(1)      F0 :                    queue_init:
-(1)      F0 : 70 E0                      push    r0
-(1)      F2 : 70 E2                      push    r2
-(1)      F4 : 70 E3                      push    r3
-(1)      F6 : B0 E0                      clr     r0
-(1)      F8 : 92 02                      lde     @rr2, r0        ; queue_len
-(1)      FA : A0 E2                      incw    rr2
-(1)      FC : 08 E1                      ld      r0, r1
-(1)      FE : 26 E0 04                   sub     r0, #queue_buf
-(1)     101 : 92 02                      lde     @rr2, r0        ; queue_size
-(1)     103 : A0 E2                      incw    rr2
-(1)     105 : 06 E0 02                   add     r0, #2          ; for queue_put and queue_get
-(1)     108 : B0 E1                      clr     r1
-(1)     10A :                    queue_init_loop:
-(1)     10A : 92 12                      lde     @rr2, r1
-(1)     10C : A0 E2                      incw    rr2
-(1)     10E : 0A FA                      djnz    r0, queue_init_loop
-(1)     110 : 50 E3                      pop     r3
-(1)     112 : 50 E2                      pop     r2
-(1)     114 : 50 E0                      pop     r0
-(1)     116 : AF                         ret
-(1)     117 :
-(1)     117 :                    ;;; [queue] Add an element to queue
-(1)     117 :                    ;;; @param rr2 queue work space pointer
-(1)     117 :                    ;;; @param r0 an element
-(1)     117 :                    ;;; @return FLAGS.C 0 if queue is full
-(1)     117 :                    queue_add:
-(1)     117 : 70 E1                      push    r1
-(1)     119 : 70 E4                      push    r4              ; save r1, r4
-(1)     11B : 82 12                      lde     r1, @rr2        ; queue_len
-(1)     11D : 1E                         inc     r1              ; queue_len++
-(1)     11E : A0 E2                      incw    rr2             ; rr2 points queue_size
-(1)     120 : 82 42                      lde     r4, @rr2        ; r4=queue_size
-(1)     122 : A2 14                      cp      r1, r4
-(1)     124 : 80 E2                      decw    rr2                ; rr2 points queue_len
-(1)     126 : 7B 05                      jr      c, queue_add_store ; queue_len < queue_size
-(1)     128 : 50 E4                      pop     r4                 ; restore r1, r4
-(1)     12A : 50 E1                      pop     r1
-(1)     12C : AF                         ret                     ; return with FLAGS.C=0
-(1)     12D :                    queue_add_store:
-(1)     12D : 92 12                      lde     @rr2, r1        ; update queue_len
-(1)     12F : A0 E2                      incw    rr2
-(1)     131 : A0 E2                      incw    rr2             ; rr2 points to queue_put
-(1)     133 : 82 12                      lde     r1, @rr2        ; queue_put
-(1)     135 : 70 E3                      push    r3              ; save rr2
-(1)     137 : 70 E2                      push    r2
+         28 : 08 F0                      ld      r0, SIO          ; dummy read
+         2A : 46 03 80                   or      PORT3, #%80      ; TxD(P37)=High
+         2D : E6 F7 41                   ld      P3M, #P3M_SERIAL LOR P3M_P2PUSHPULL ; enable SIO I/O
+         30 : E6 F4 0C                   ld      T0, #12
+         33 : E6 F5 05                   ld      PRE0, #(1 SHL PRE0_gp) LOR PRE0_MODULO ; modulo-N
+         36 : 46 F1 03                   or      TMR, #TMR_LOAD_T0 LOR TMR_ENABLE_T0
+         39 :
+         39 :                    init_irq:
+         39 : E6 F9 2F                   ld      IPR, #IPR_ACB LOR IPR_A35 LOR IPR_C41 LOR IPR_B02
+         3C : E6 FB 08                   ld      IMR, #IMR_IRQ3 ; enable IRQ3
+         3F : 9F                         ei                     ; clear IRQ and enable interrupt system
+         40 :
+         40 :                    receive_loop:
+         40 : D6 00 C0                   call    getchar
+         43 : FB FB                      jr      nc, receive_loop
+         45 : 42 00                      or      r0, r0
+         47 : EB 01                      jr      nz, echo_back
+         49 : 7F                         halt
+         4A :                    echo_back:
+         4A : 18 E0                      ld      r1, r0          ; save letter
+         4C : D6 00 D2                   call    putchar         ; echo
+         4F : 0C 20                      ld      r0, #' '        ; space
+         51 : D6 00 D2                   call    putchar
+         54 : D6 00 6D                   call    put_hex8        ; print in hex
+         57 : 0C 20                      ld      r0, #' '        ; space
+         59 : D6 00 D2                   call    putchar
+         5C : D6 00 92                   call    put_bin8        ; print in binary
+         5F : D6 00 64                   call    newline
+         62 : 8B DC                      jr      receive_loop
+         64 :
+         64 :                    ;;; Put newline
+         64 :                    ;;; @clobber r0
+         64 :                    newline:
+         64 : 0C 0D                      ld      r0, #%0D
+         66 : D6 00 D2                   call    putchar
+         69 : 0C 0A                      ld      r0, #%0A
+         6B : 8B 65                      jr      putchar
+         6D :
+         6D :                    ;;; Print uint8_t in hex
+         6D :                    ;;; @param r1 uint8_t value to be printed in hex.
+         6D :                    ;;; @clobber r0
+         6D :                    put_hex8:
+         6D : 0C 30                      ld      r0, #'0'
+         6F : D6 00 D2                   call    putchar
+         72 : 0C 78                      ld      r0, #'x'
+         74 : D6 00 D2                   call    putchar
+         77 : 08 E1                      ld      r0, r1
+         79 : F0 E0                      swap    r0
+         7B : D6 00 80                   call    put_hex4
+         7E : 08 E1                      ld      r0, r1
+         80 :                    put_hex4:
+         80 : 56 E0 0F                   and     r0, #%F
+         83 : A6 E0 0A                   cp      r0, #10
+         86 : 7B 05                      jr      c, put_hex8_dec ; A<10
+         88 : 06 E0 37                   add     r0, #'A'-10
+         8B : 8B 45                      jr      putchar
+         8D :                    put_hex8_dec:
+         8D : 06 E0 30                   add     r0, #'0'
+         90 : 8B 40                      jr      putchar
+         92 :
+         92 :                    ;;; Print uint8_t in binary
+         92 :                    ;;; @param r1 uint8_t value to be printed in binary.
+         92 :                    ;;; @clobber r0
+         92 :                    put_bin8:
+         92 : 70 E4                      push    r4
+         94 : 0C 30                      ld      r0, #'0'
+         96 : D6 00 D2                   call    putchar
+         99 : 0C 62                      ld      r0, #'b'
+         9B : D6 00 D2                   call    putchar
+         9E : 48 E1                      ld      r4, r1
+         A0 : D6 00 AB                   call    put_bin4
+         A3 : 90 E4                      rl      r4
+         A5 : D6 00 AB                   call    put_bin4
+         A8 : 50 E4                      pop     r4
+         AA : AF                         ret
+         AB :                    put_bin4:
+         AB : D6 00 B0                   call    put_bin2
+         AE : 90 E4                      rl      r4
+         B0 :                    put_bin2:
+         B0 : D6 00 B5                   call    put_bin1
+         B3 : 90 E4                      rl      r4
+         B5 :                    put_bin1:
+         B5 : 0C 30                      ld      r0, #'0'
+         B7 : 42 44                      or      r4, r4
+         B9 : DD 00 BE                   jp      pl, put_bin0    ; MSB=0
+         BC : 0C 31                      ld      r0, #'1'        ; MSB=1
+         BE :                    put_bin0:
+         BE : 8B 12                      jr      putchar
+         C0 :
+         C0 :                    ;;; Get character
+         C0 :                    ;;; @return r0
+         C0 :                    ;;; @return FLAGS.C 0 if no character
+         C0 :                    getchar:
+         C0 : 70 E3                      push    r3
+         C2 : 70 E2                      push    r2
+         C4 : 2C 20                      ld      r2, #HIGH rx_queue
+         C6 : 3C 00                      ld      r3, #LOW rx_queue
+         C8 : 8F                         di
+         C9 : D6 01 65                   call    queue_remove
+         CC : 9F                         ei
+         CD : 50 E2                      pop     r2
+         CF : 50 E3                      pop     r3
+         D1 : AF                         ret
+         D2 :
+         D2 :                    ;;; Put character
+         D2 :                    ;;; @param r0
+         D2 :                    putchar:
+         D2 : 70 E0                      push    r0
+         D4 : 70 E3                      push    r3
+         D6 : 70 E2                      push    r2
+         D8 : 2C 20                      ld      r2, #HIGH tx_queue
+         DA : 3C 80                      ld      r3, #LOW tx_queue
+         DC :                    putchar_retry:
+         DC : 8F                         di
+         DD : D6 01 21                   call    queue_add
+         E0 : 9F                         ei
+         E1 : FB F9                      jr      nc, putchar_retry ; branch if queue is full
+         E3 : 50 E2                      pop     r2
+         E5 : 50 E3                      pop     r3
+         E7 : 8F                         di
+         E8 : 76 FB 10                   tm      IMR, #IMR_IRQ4
+         EB : EB 09                      jr      nz, putchar_exit ; already enabled
+         ED : 46 02 04                   OR      PORT2, #4
+         F0 : 46 FB 10                   or      IMR, #IMR_IRQ4   ; enable IRQ4
+         F3 : 46 FA 10                   or      IRQ, #IRQ_IRQ4   ; software IRQ4
+         F6 :                    putchar_exit:
+         F6 : 9F                         ei
+         F7 : 50 E0                      pop     r0
+         F9 : AF                         ret
+         FA :
+         FA :                            include "queue.inc"
+(1)      FA :                    ;;; [queue] queue structure
+(1)      FA : =0                 queue_len:      equ     0       ; queue length
+(1)      FA : =1                 queue_size:     equ     1       ; buffer size
+(1)      FA : =2                 queue_put:      equ     2       ; queue put index
+(1)      FA : =3                 queue_get:      equ     3       ; queue get index
+(1)      FA : =4                 queue_buf:      equ     4       ; buffer start offset
+(1)      FA :
+(1)      FA :                    ;;; [queue] Initialize queue
+(1)      FA :                    ;;; @param rr2 queue work space pointer
+(1)      FA :                    ;;; @param r1 queue work space size
+(1)      FA :                    ;;; @clobber r1
+(1)      FA :                    queue_init:
+(1)      FA : 70 E0                      push    r0
+(1)      FC : 70 E2                      push    r2
+(1)      FE : 70 E3                      push    r3
+(1)     100 : B0 E0                      clr     r0
+(1)     102 : 92 02                      lde     @rr2, r0        ; queue_len
+(1)     104 : A0 E2                      incw    rr2
+(1)     106 : 08 E1                      ld      r0, r1
+(1)     108 : 26 E0 04                   sub     r0, #queue_buf
+(1)     10B : 92 02                      lde     @rr2, r0        ; queue_size
+(1)     10D : A0 E2                      incw    rr2
+(1)     10F : 06 E0 02                   add     r0, #2          ; for queue_put and queue_get
+(1)     112 : B0 E1                      clr     r1
+(1)     114 :                    queue_init_loop:
+(1)     114 : 92 12                      lde     @rr2, r1
+(1)     116 : A0 E2                      incw    rr2
+(1)     118 : 0A FA                      djnz    r0, queue_init_loop
+(1)     11A : 50 E3                      pop     r3
+(1)     11C : 50 E2                      pop     r2
+(1)     11E : 50 E0                      pop     r0
+(1)     120 : AF                         ret
+(1)     121 :
+(1)     121 :                    ;;; [queue] Add an element to queue
+(1)     121 :                    ;;; @param rr2 queue work space pointer
+(1)     121 :                    ;;; @param r0 an element
+(1)     121 :                    ;;; @return FLAGS.C 0 if queue is full
+(1)     121 :                    queue_add:
+(1)     121 : 70 E1                      push    r1
+(1)     123 : 70 E4                      push    r4              ; save r1, r4
+(1)     125 : 82 12                      lde     r1, @rr2        ; queue_len
+(1)     127 : 1E                         inc     r1              ; queue_len++
+(1)     128 : A0 E2                      incw    rr2             ; rr2 points queue_size
+(1)     12A : 82 42                      lde     r4, @rr2        ; r4=queue_size
+(1)     12C : A2 14                      cp      r1, r4
+(1)     12E : 80 E2                      decw    rr2                ; rr2 points queue_len
+(1)     130 : 7B 05                      jr      c, queue_add_store ; queue_len < queue_size
+(1)     132 : 50 E4                      pop     r4                 ; restore r1, r4
+(1)     134 : 50 E1                      pop     r1
+(1)     136 : AF                         ret                     ; return with FLAGS.C=0
+(1)     137 :                    queue_add_store:
+(1)     137 : 92 12                      lde     @rr2, r1        ; update queue_len
 (1)     139 : A0 E2                      incw    rr2
-(1)     13B : A0 E2                      incw    rr2             ; rr2 points to queue_buf
-(1)     13D : 02 31                      add     r3, r1
-(1)     13F : 16 E2 00                   adc     r2, #0          ; rr2=&queue_buf[queue_put]
-(1)     142 : 92 02                      lde     @rr2, r0        ; store an element
-(1)     144 : 50 E2                      pop     r2              ; restore rr2 points to queue_put
-(1)     146 : 50 E3                      pop     r3
-(1)     148 : 1E                         inc     r1              ; queue_put++
-(1)     149 : A2 14                      cp      r1, r4
-(1)     14B : 7B 02                      jr      c, queue_add_update ; queue_put < queue_size
-(1)     14D : B0 E1                      clr     r1
-(1)     14F :                    queue_add_update:
-(1)     14F : 92 12                      lde     @rr2, r1        ; queue_put
-(1)     151 : 80 E2                      decw    rr2
-(1)     153 : 80 E2                      decw    rr2             ; rr2 points queue_len
-(1)     155 : DF                         scf                     ; set carry flag
-(1)     156 : 50 E4                      pop     r4              ; restpre r1, r4
-(1)     158 : 50 E1                      pop     r1              ; restore r1
-(1)     15A : AF                         ret
-(1)     15B :
-(1)     15B :                    ;;; [queue] Remove an element from queue
-(1)     15B :                    ;;; @param rr2 queue work space pointer
-(1)     15B :                    ;;; @return r0 an element
-(1)     15B :                    ;;; @return FLAGS.C 0 if queue is empty
-(1)     15B :                    queue_remove:
-(1)     15B : 70 E1                      push    r1              ; save r1
-(1)     15D : 82 12                      lde     r1, @rr2        ; queue_len
-(1)     15F : 42 11                      or      r1, r1
-(1)     161 : EB 04                      jr      nz, queue_remove_elem ; queue_len > 0
-(1)     163 : CF                         rcf                           ; reset carry flag
-(1)     164 : 50 E1                      pop     r1
-(1)     166 : AF                         ret
-(1)     167 :                    queue_remove_elem:
-(1)     167 : 70 E4                      push    r4              ; save r4
-(1)     169 : 00 E1                      dec     r1              ; queue_len--
-(1)     16B : 92 12                      lde     @rr2, r1        ; update queue_len
-(1)     16D : A0 E2                      incw    rr2
-(1)     16F : 82 42                      lde     r4, @rr2        ; r4=queue_size
-(1)     171 : A0 E2                      incw    rr2
-(1)     173 : A0 E2                      incw    rr2             ; rr2 points queue_get
-(1)     175 : 70 E3                      push    r3
-(1)     177 : 70 E2                      push    r2
-(1)     179 : 82 12                      lde     r1, @rr2        ; queue_get
-(1)     17B : A0 E2                      incw    rr2             ; rr2 points queue_buf
-(1)     17D : 02 31                      add     r3, r1
-(1)     17F : 16 E2 00                   adc     r2, #0          ; rr2=&queue_buf[queue_get]
-(1)     182 : 82 02                      lde     r0, @rr2        ; read an element
-(1)     184 : 50 E2                      pop     r2              ; restore rr2 points to queue_get
-(1)     186 : 50 E3                      pop     r3
-(1)     188 : 1E                         inc     r1              ; queue_get++
-(1)     189 : A2 14                      cp      r1, r4
-(1)     18B : 7B 02                      jr      c, queue_remove_update ; queue_get < queue_size
-(1)     18D : B0 E1                      clr     r1
-(1)     18F :                    queue_remove_update:
-(1)     18F : 92 12                      lde     @rr2, r1        ; update queue_get
-(1)     191 : 80 E2                      decw    rr2
-(1)     193 : 80 E2                      decw    rr2
-(1)     195 : 80 E2                      decw    rr2             ; rr2 points queue_len
-(1)     197 : 50 E4                      pop     r4              ; restore r1, r4
-(1)     199 : 50 E1                      pop     r1
-(1)     19B : DF                         scf                     ; set carry
-(1)     19C : AF                         ret
-(1)     19D :
-(1)     19D :                    ;;; Local Variables:
-(1)     19D :                    ;;; mode: asm
-(1)     19D :                    ;;; End:
-(1)     19D :                    ;;; vim: set ft=asm et ts=4 sw=4:
-        19D :
-        19D :                            setrp   -1
-        19D :                    isr_intr_rx:
-        19D : 70 E0                      push    r0
-        19F : 08 F0                      ld      r0, SIO             ; read received letter
-        1A1 : 56 FA F7                   and     IRQ, #LNOT IRQ_IRQ3 ; acknowledge IRQ3
-        1A4 : 70 E3                      push    r3
-        1A6 : 70 E2                      push    r2
-        1A8 : 2C 20                      ld      r2, #HIGH rx_queue
-        1AA : 3C 00                      ld      r3, #LOW rx_queue
-        1AC : D6 01 17                   call    queue_add
-        1AF : 50 E2                      pop     r2
-        1B1 : 50 E3                      pop     r3
-        1B3 : 50 E0                      pop     r0
-        1B5 : BF                         iret
-        1B6 :
-        1B6 :                    isr_intr_tx:
-        1B6 : 56 FA EF                   and     IRQ, #LNOT IRQ_IRQ4 ; acknowledge IRQ4
-        1B9 : 70 E0                      push    r0
-        1BB : 70 E3                      push    r3
-        1BD : 70 E2                      push    r2
-        1BF : 2C 20                      ld      r2, #HIGH tx_queue
-        1C1 : 3C 80                      ld      r3, #LOW tx_queue
-        1C3 : D6 01 5B                   call    queue_remove
-        1C6 : 50 E2                      pop     r2
-        1C8 : 50 E3                      pop     r3
-        1CA : FB 05                      jr      nc, isr_intr_send_empty
-        1CC : 09 F0                      ld      SIO, r0         ; write sending letter
-        1CE : 50 E0                      pop     r0
-        1D0 : BF                         iret
-        1D1 :                    isr_intr_send_empty:
-        1D1 : 56 FB EF                   and     IMR, #LNOT IMR_IRQ4 ; disable IRQ4
-        1D4 : 50 E0                      pop     r0
-        1D6 : BF                         iret
+(1)     13B : A0 E2                      incw    rr2             ; rr2 points to queue_put
+(1)     13D : 82 12                      lde     r1, @rr2        ; queue_put
+(1)     13F : 70 E3                      push    r3              ; save rr2
+(1)     141 : 70 E2                      push    r2
+(1)     143 : A0 E2                      incw    rr2
+(1)     145 : A0 E2                      incw    rr2             ; rr2 points to queue_buf
+(1)     147 : 02 31                      add     r3, r1
+(1)     149 : 16 E2 00                   adc     r2, #0          ; rr2=&queue_buf[queue_put]
+(1)     14C : 92 02                      lde     @rr2, r0        ; store an element
+(1)     14E : 50 E2                      pop     r2              ; restore rr2 points to queue_put
+(1)     150 : 50 E3                      pop     r3
+(1)     152 : 1E                         inc     r1              ; queue_put++
+(1)     153 : A2 14                      cp      r1, r4
+(1)     155 : 7B 02                      jr      c, queue_add_update ; queue_put < queue_size
+(1)     157 : B0 E1                      clr     r1
+(1)     159 :                    queue_add_update:
+(1)     159 : 92 12                      lde     @rr2, r1        ; queue_put
+(1)     15B : 80 E2                      decw    rr2
+(1)     15D : 80 E2                      decw    rr2             ; rr2 points queue_len
+(1)     15F : DF                         scf                     ; set carry flag
+(1)     160 : 50 E4                      pop     r4              ; restpre r1, r4
+(1)     162 : 50 E1                      pop     r1              ; restore r1
+(1)     164 : AF                         ret
+(1)     165 :
+(1)     165 :                    ;;; [queue] Remove an element from queue
+(1)     165 :                    ;;; @param rr2 queue work space pointer
+(1)     165 :                    ;;; @return r0 an element
+(1)     165 :                    ;;; @return FLAGS.C 0 if queue is empty
+(1)     165 :                    queue_remove:
+(1)     165 : 70 E1                      push    r1              ; save r1
+(1)     167 : 82 12                      lde     r1, @rr2        ; queue_len
+(1)     169 : 42 11                      or      r1, r1
+(1)     16B : EB 04                      jr      nz, queue_remove_elem ; queue_len > 0
+(1)     16D : CF                         rcf                           ; reset carry flag
+(1)     16E : 50 E1                      pop     r1
+(1)     170 : AF                         ret
+(1)     171 :                    queue_remove_elem:
+(1)     171 : 70 E4                      push    r4              ; save r4
+(1)     173 : 00 E1                      dec     r1              ; queue_len--
+(1)     175 : 92 12                      lde     @rr2, r1        ; update queue_len
+(1)     177 : A0 E2                      incw    rr2
+(1)     179 : 82 42                      lde     r4, @rr2        ; r4=queue_size
+(1)     17B : A0 E2                      incw    rr2
+(1)     17D : A0 E2                      incw    rr2             ; rr2 points queue_get
+(1)     17F : 70 E3                      push    r3
+(1)     181 : 70 E2                      push    r2
+(1)     183 : 82 12                      lde     r1, @rr2        ; queue_get
+(1)     185 : A0 E2                      incw    rr2             ; rr2 points queue_buf
+(1)     187 : 02 31                      add     r3, r1
+(1)     189 : 16 E2 00                   adc     r2, #0          ; rr2=&queue_buf[queue_get]
+(1)     18C : 82 02                      lde     r0, @rr2        ; read an element
+(1)     18E : 50 E2                      pop     r2              ; restore rr2 points to queue_get
+(1)     190 : 50 E3                      pop     r3
+(1)     192 : 1E                         inc     r1              ; queue_get++
+(1)     193 : A2 14                      cp      r1, r4
+(1)     195 : 7B 02                      jr      c, queue_remove_update ; queue_get < queue_size
+(1)     197 : B0 E1                      clr     r1
+(1)     199 :                    queue_remove_update:
+(1)     199 : 92 12                      lde     @rr2, r1        ; update queue_get
+(1)     19B : 80 E2                      decw    rr2
+(1)     19D : 80 E2                      decw    rr2
+(1)     19F : 80 E2                      decw    rr2             ; rr2 points queue_len
+(1)     1A1 : 50 E4                      pop     r4              ; restore r1, r4
+(1)     1A3 : 50 E1                      pop     r1
+(1)     1A5 : DF                         scf                     ; set carry
+(1)     1A6 : AF                         ret
+(1)     1A7 :
+(1)     1A7 :                    ;;; Local Variables:
+(1)     1A7 :                    ;;; mode: asm
+(1)     1A7 :                    ;;; End:
+(1)     1A7 :                    ;;; vim: set ft=asm et ts=4 sw=4:
+        1A7 :
+        1A7 :                            setrp   -1
+        1A7 :                    isr_intr_rx:
+        1A7 : 70 E0                      push    r0
+        1A9 : 08 F0                      ld      r0, SIO             ; read received letter
+        1AB : 56 FA F7                   and     IRQ, #LNOT IRQ_IRQ3 ; acknowledge IRQ3
+        1AE : 70 E3                      push    r3
+        1B0 : 70 E2                      push    r2
+        1B2 : 2C 20                      ld      r2, #HIGH rx_queue
+        1B4 : 3C 00                      ld      r3, #LOW rx_queue
+        1B6 : D6 01 21                   call    queue_add
+        1B9 : 50 E2                      pop     r2
+        1BB : 50 E3                      pop     r3
+        1BD : 50 E0                      pop     r0
+        1BF : BF                         iret
+        1C0 :
+        1C0 :                    isr_intr_tx:
+        1C0 : 56 FA EF                   and     IRQ, #LNOT IRQ_IRQ4 ; acknowledge IRQ4
+        1C3 : 70 E0                      push    r0
+        1C5 : 70 E3                      push    r3
+        1C7 : 70 E2                      push    r2
+        1C9 : 2C 20                      ld      r2, #HIGH tx_queue
+        1CB : 3C 80                      ld      r3, #LOW tx_queue
+        1CD : D6 01 65                   call    queue_remove
+        1D0 : 50 E2                      pop     r2
+        1D2 : 50 E3                      pop     r3
+        1D4 : FB 05                      jr      nc, isr_intr_send_empty
+        1D6 : 09 F0                      ld      SIO, r0         ; write sending letter
+        1D8 : 50 E0                      pop     r0
+        1DA : BF                         iret
+        1DB :                    isr_intr_send_empty:
+        1DB : 56 FB EF                   and     IMR, #LNOT IMR_IRQ4 ; disable IRQ4
+        1DE : 50 E0                      pop     r0
+        1E0 : BF                         iret

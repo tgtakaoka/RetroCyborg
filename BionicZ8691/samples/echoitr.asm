@@ -1,5 +1,5 @@
 ;;; -*- mode: asm; mode: flyspell-prog; -*-
-        cpu     z8
+        cpu     z86c
         option  "reg-alias", "disable"
 
         include "z8.inc"
@@ -89,6 +89,9 @@ init_usart:
 receive_loop:
         call    getchar
         jr      nc, receive_loop
+        or      r0, r0
+        jr      nz, echo_back
+        halt
 echo_back:
         ld      r1, r0          ; save letter
         call    putchar         ; echo

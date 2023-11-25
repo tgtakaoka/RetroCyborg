@@ -1,5 +1,5 @@
           0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
-          0 :                            cpu     z8
+          0 :                            cpu     z86c
           0 :                            option  "reg-alias", "disable"
           0 :
           0 :                            include "z8.inc"
@@ -182,13 +182,16 @@
          3D : 6B F9                      jr      z, receive_loop
          3F :                    receive_data:
          3F : 82 0A                      lde     r0, @rr10       ; USARTD
-         41 :                    transmit_loop:
-         41 : 82 1C                      lde     r1, @rr12       ; USARTS
-         43 : 76 E1 01                   tm      r1, #ST_TxRDY_bm
-         46 : 6B F9                      jr      z, transmit_loop
-         48 :                    transmit_data:
-         48 : 92 0A                      lde     @rr10, r0       ; USARTD
-         4A : A6 E0 0D                   cp      r0, #%0D
-         4D : EB E9                      jr      nz, receive_loop
-         4F : 0C 0A                      ld      r0, #%0A
-         51 : 8B EE                      jr      transmit_loop
+         41 : 42 00                      or      r0, r0
+         43 : EB 01                      jr      nz, transmit_loop
+         45 : 7F                         halt
+         46 :                    transmit_loop:
+         46 : 82 1C                      lde     r1, @rr12       ; USARTS
+         48 : 76 E1 01                   tm      r1, #ST_TxRDY_bm
+         4B : 6B F9                      jr      z, transmit_loop
+         4D :                    transmit_data:
+         4D : 92 0A                      lde     @rr10, r0       ; USARTD
+         4F : A6 E0 0D                   cp      r0, #%0D
+         52 : EB E4                      jr      nz, receive_loop
+         54 : 0C 0A                      ld      r0, #%0A
+         56 : 8B EE                      jr      transmit_loop

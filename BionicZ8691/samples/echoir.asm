@@ -1,5 +1,5 @@
 ;;; -*- mode: asm; mode: flyspell-prog; -*-
-        cpu     z8
+        cpu     z86c
         option  "reg-alias", "disable"
 
         include "z8.inc"
@@ -75,6 +75,9 @@ receive_loop:
         call    queue_remove
         ei                      ; Enable INTR
         jr      nc, receive_loop
+        or      r0, r0
+        jr      nz, transmit_loop
+        halt
 transmit_loop:
         lde     r1, @rr12       ; USARTC
         tm      r1, #ST_TxRDY_bm

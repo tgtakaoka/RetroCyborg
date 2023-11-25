@@ -1,5 +1,5 @@
 ;;; -*- mode: asm; mode: flyspell-prog; -*-
-        cpu     z8
+        cpu     z86c
         option  "reg-alias", "disable"
 
         include "z8.inc"
@@ -52,6 +52,9 @@ receive_loop:
         jr      z, receive_loop
 receive_data:
         lde     r0, @rr10       ; USARTD
+        or      r0, r0
+        jr      nz, transmit_loop
+        halt
 transmit_loop:
         lde     r1, @rr12       ; USARTS
         tm      r1, #ST_TxRDY_bm

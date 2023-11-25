@@ -1,5 +1,5 @@
           0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
-          0 :                            cpu     z8
+          0 :                            cpu     z86c
           0 :                            option  "reg-alias", "disable"
           0 :
           0 :                            include "z8.inc"
@@ -109,30 +109,35 @@
          16 :                    ;;; p=1 for PRE0, t=12 for T0
          16 :                    ;;; bit rate = 14754600 / (2 x 4 x p x t x 16) = 9600 bps
          16 :                    init_sio:
-         16 : E6 F7 40                   ld      P3M, #P3M_SERIAL ; enable SIO I/O
-         19 : E6 F4 0C                   ld      T0, #12
-         1C : E6 F5 05                   ld      PRE0, #(1 SHL PRE0_gp) LOR PRE0_MODULO ; modulo-N
-         1F : 46 F1 03                   or      TMR, #TMR_LOAD_T0 LOR TMR_ENABLE_T0
-         22 :
-         22 :                    init_irq:
-         22 : E6 F9 2F                   ld      IPR, #IPR_ACB LOR IPR_A35 LOR IPR_C41 LOR IPR_B02
-         25 : B0 FB                      clr     IMR            ; mask all IRQs
-         27 : 9F                         ei                     ; clear IRQ and enable interrupt system
-         28 : 8F                         di                     ; disable IRQ heading
-         29 : 46 FA 10                   or      IRQ, #IRQ_IRQ4
-         2C :
-         2C :                    receive_loop:
-         2C : 76 FA 08                   tm      IRQ, #IRQ_IRQ3  ; check IRQ3
-         2F : 6B FB                      jr      z, receive_loop
-         31 : 08 F0                      ld      r0, SIO
-         33 : 56 FA F7                   and     IRQ, #LNOT IRQ_IRQ3 ; clear IRQ3
-         36 :                    transmit_loop:
-         36 : 76 FA 10                   tm      IRQ, #IRQ_IRQ4  ; check IRQ4
-         39 : 6B FB                      jr      z, transmit_loop
-         3B :                    transmit_data:
-         3B : 09 F0                      ld      SIO, r0
-         3D : 56 FA EF                   and     IRQ, #LNOT IRQ_IRQ4 ; clear IRQ4
-         40 : A6 E0 0D                   cp      r0, #%0D
-         43 : EB E7                      jr      nz, receive_loop
-         45 : 0C 0A                      ld      r0, #%0A
-         47 : 8B ED                      jr      transmit_loop
+         16 : 08 F0                      ld      r0, SIO          ; dummy read
+         18 : 46 03 80                   or      PORT3, #%80      ; TxD(P37)=High
+         1B : E6 F7 40                   ld      P3M, #P3M_SERIAL ; enable SIO I/O
+         1E : E6 F4 0C                   ld      T0, #12
+         21 : E6 F5 05                   ld      PRE0, #(1 SHL PRE0_gp) LOR PRE0_MODULO ; modulo-N
+         24 : 46 F1 03                   or      TMR, #TMR_LOAD_T0 LOR TMR_ENABLE_T0
+         27 :
+         27 :                    init_irq:
+         27 : E6 F9 2F                   ld      IPR, #IPR_ACB LOR IPR_A35 LOR IPR_C41 LOR IPR_B02
+         2A : B0 FB                      clr     IMR            ; mask all IRQs
+         2C : 9F                         ei                     ; clear IRQ and enable interrupt system
+         2D : 8F                         di                     ; disable IRQ heading
+         2E : 46 FA 10                   or      IRQ, #IRQ_IRQ4
+         31 :
+         31 :                    receive_loop:
+         31 : 76 FA 08                   tm      IRQ, #IRQ_IRQ3  ; check IRQ3
+         34 : 6B FB                      jr      z, receive_loop
+         36 : 08 F0                      ld      r0, SIO
+         38 : 56 FA F7                   and     IRQ, #LNOT IRQ_IRQ3 ; clear IRQ3
+         3B : 42 00                      or      r0, r0
+         3D : EB 01                      jr      nz, transmit_loop
+         3F : 7F                         halt
+         40 :                    transmit_loop:
+         40 : 76 FA 10                   tm      IRQ, #IRQ_IRQ4  ; check IRQ4
+         43 : 6B FB                      jr      z, transmit_loop
+         45 :                    transmit_data:
+         45 : 09 F0                      ld      SIO, r0
+         47 : 56 FA EF                   and     IRQ, #LNOT IRQ_IRQ4 ; clear IRQ4
+         4A : A6 E0 0D                   cp      r0, #%0D
+         4D : EB E2                      jr      nz, receive_loop
+         4F : 0C 0A                      ld      r0, #%0A
+         51 : 8B ED                      jr      transmit_loop

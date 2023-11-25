@@ -1,7 +1,7 @@
           0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
           0 :                    ;;; Z8671 SIO patch
           0 :                    ;;; http://www.armory.com/~rstevew/Public/Micros/Z8/Z8671-BASIC/Z8671-BASIC_ROM_Main.htm
-          0 :                            cpu     z8
+          0 :                            cpu     z86c
           0 :                            option  "reg-alias", "disable"
           0 :
           0 :                            include "z8.inc"
