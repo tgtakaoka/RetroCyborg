@@ -46,6 +46,9 @@ receive_loop:
         jr      z, receive_loop
 receive_data:
         lde     r0, USARTD(rr12)
+        or      r0,r0
+        jr      nz,transmit_loop
+        db      %7F             ; unknown instruction
 transmit_loop:
         lde     r1, USARTS(rr12)
         tm      r1, #ST_TxRDY_bm

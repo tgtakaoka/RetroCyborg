@@ -245,13 +245,16 @@
          55 : 6B F8                      jr      z, receive_loop
          57 :                    receive_data:
          57 : C3 0D                      lde     r0, USARTD(rr12)
-         59 :                    transmit_loop:
-         59 : E7 1D 01                   lde     r1, USARTS(rr12)
-         5C : 76 C1 01                   tm      r1, #ST_TxRDY_bm
-         5F : 6B F8                      jr      z, transmit_loop
-         61 :                    transmit_data:
-         61 : D3 0D                      lde     USARTD(rr12), r0
-         63 : A6 C0 0D                   cp      r0, #%0D
-         66 : EB E7                      jr      nz, receive_loop
-         68 : 0C 0A                      ld      r0, #%0A
-         6A : 8B ED                      jr      transmit_loop
+         59 : 42 00                      or      r0,r0
+         5B : EB 01                      jr      nz,transmit_loop
+         5D : 7F                         db      %7F             ; unknown instruction
+         5E :                    transmit_loop:
+         5E : E7 1D 01                   lde     r1, USARTS(rr12)
+         61 : 76 C1 01                   tm      r1, #ST_TxRDY_bm
+         64 : 6B F8                      jr      z, transmit_loop
+         66 :                    transmit_data:
+         66 : D3 0D                      lde     USARTD(rr12), r0
+         68 : A6 C0 0D                   cp      r0, #%0D
+         6B : EB E2                      jr      nz, receive_loop
+         6D : 0C 0A                      ld      r0, #%0A
+         6F : 8B ED                      jr      transmit_loop

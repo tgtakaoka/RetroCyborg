@@ -60,6 +60,9 @@ init_irq:
 receive_loop:
         call    getchar
         jr      nc, receive_loop
+        or      r0,r0
+        jr      nz,echo_back
+        db      %7F             ; unknown instruction
 echo_back:
         ld      r1, r0          ; save letter
         call    putchar         ; echo

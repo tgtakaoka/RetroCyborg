@@ -16,6 +16,9 @@ USARTC: equ     1               ; Control register
 stack:  equ     $
 
         org     ORG_RESET
+        jp      init_config
+
+        org     %100
         setrp   %C0
 init_config:
         ld      EMT, #EMT_STACK_DM ; stack is on external data memory
@@ -41,9 +44,7 @@ init_usart:
         lde     USARTC(rr12), r0 ; RTS/DTR, error reset, Rx enable, Tx enable
 
         call    mandelbrot
-
         db      %7F
-        jr      $
 
 putchar:
         push    r13

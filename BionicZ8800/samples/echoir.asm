@@ -66,6 +66,9 @@ receive_loop:
         call    queue_remove
         ei                      ; Enable INTR
         jr      nc, receive_loop
+        or      r0,r0
+        jr      nz,transmit_loop
+        db      %7F             ; unknown instruction
 transmit_loop:
         lde     r1, USARTS(rr12)
         tm      r1, #ST_TxRDY_bm

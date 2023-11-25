@@ -54,6 +54,9 @@ receive_loop:
         call    queue_remove
         ei                      ; Enable INTR
         jr      nc, receive_loop
+        or      r0,r0
+        jr      nz,transmit_loop
+        db      %7F             ; unknown instruction
 transmit_loop:
         tm      UTC, #UTC_TBE   ; check transmit buffer empty
         jr      z, transmit_loop

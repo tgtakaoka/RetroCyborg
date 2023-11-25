@@ -36,6 +36,9 @@ receive_loop:
         tm      URC, #URC_RCA   ; check receive character available
         jr      z, receive_loop
         ld      r0, UIO
+        or      r0,r0
+        jr      nz,transmit_loop
+        db      %7F             ; unknown instruction
 transmit_loop:
         tm      UTC, #UTC_TBE   ; check transmit buffer empty
         jr      z, transmit_loop
