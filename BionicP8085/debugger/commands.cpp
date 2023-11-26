@@ -33,8 +33,8 @@
 using State = libcli::State;
 extern libcli::Cli cli;
 
-#define USAGE                                                              \
-    F("R:eset r:egs =:setReg d:ump D:is m:emory A:sm s/S:tep c/C:ont G:o " \
+#define USAGE                                                                \
+    F("R:eset r:egs =:setReg d:ump D:is m/M:emory A:sm s/S:tep c/C:ont G:o " \
       "h/H:alt F:iles L:oad I:o")
 
 class Commands Commands;
@@ -56,8 +56,9 @@ static uint32_t last_addr;
 #define DIS_LENGTH 1
 
 static uint8_t mem_buffer[16];
-#define MEMORY_ADDR static_cast<uintptr_t>(sizeof(mem_buffer) + 10)
 #define MEMORY_DATA(i) ((uintptr_t)(i))
+#define MEMORY_ADDR static_cast<uintptr_t>(sizeof(mem_buffer) + 1)
+#define MEMORY_END (MEMORY_ADDR + 1)
 
 static char str_buffer[40];
 
@@ -428,6 +429,28 @@ static void handleIo(char *line, uintptr_t extra, State state) {
     printPrompt();
 }
 
+static void handleRomArea(uint32_t value, uintptr_t extra, State state) {
+    if (state == State::CLI_DELETE) {
+        if (extra == MEMORY_END) {
+            cli.backspace();
+            cli.readHex(handleRomArea, MEMORY_END, Regs.maxAddr(), last_addr);
+        }
+        return;
+    }
+    if (state != State::CLI_CANCEL) {
+        if (state == State::CLI_SPACE && extra == MEMORY_ADDR) {
+            last_addr = value;
+            cli.readHex(handleRomArea, MEMORY_END, Regs.maxAddr());
+            return;
+        }
+        if (extra == MEMORY_END)
+            Pins.setRomArea(last_addr, value);
+        cli.println();
+        Pins.printRomArea();
+    }
+    printPrompt();
+}
+
 void Commands::exec(char c) {
     switch (c) {
     case 'R':
@@ -449,6 +472,11 @@ void Commands::exec(char c) {
     case 'm':
         cli.print(F("Memory? "));
         cli.readHex(handleMemory, MEMORY_ADDR, Regs.maxAddr());
+        return;
+    case 'M':
+        Pins.printRomArea();
+        cli.print(F("  ROM area? "));
+        cli.readHex(handleRomArea, MEMORY_ADDR, Regs.maxAddr());
         return;
     case 'r':
         cli.println(F("Registers"));

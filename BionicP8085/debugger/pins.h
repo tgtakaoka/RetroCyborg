@@ -54,6 +54,9 @@ public:
     void setDeviceBase(Device dev) { setDeviceBase(dev, false, 0); }
     void printDevices() const;
 
+    void setRomArea(uint16_t begin, uint16_t end);
+    void printRomArea() const;
+
 private:
     bool _freeRunning;
     uint8_t _inta;
@@ -77,6 +80,9 @@ private:
     void setSerialDevice(Device dev, uint16_t addr);
 
     static uint8_t intrToInta(IntrName intr);
+
+    uint16_t _rom_begin;
+    uint16_t _rom_end;
 };
 
 extern Pins Pins;
