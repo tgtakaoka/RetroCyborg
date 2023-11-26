@@ -1,7 +1,7 @@
                        BionicTMP90P802 (backside)
                _________                       _____
         VCC 40|        *|1  P45 RxD    GND  48|    *|1   GND
-    A15 P37 39|         |2      #RTS   P20  47|     |2   P10
+    A15 P37 39|         |2  P54 #RTS   P20  47|     |2   P10
     A14 P36 38|         |3  P44 TxD    P21  46|     |3   P11
     A13 P35 37|         |4  P50 #RD    P22  45|     |4   P12
     A12 P34 36|    T    |5  P51 #WR    P23  44|  B  |5   P13
