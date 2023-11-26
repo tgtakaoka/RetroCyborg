@@ -11,6 +11,10 @@ stack:  equ     $
 
 echo:
         call    getch
+        ora     a
+        jnz     echo_back
+        hlt
+echo_back:
         call    putch
         cpi     0DH
         jnz     echo

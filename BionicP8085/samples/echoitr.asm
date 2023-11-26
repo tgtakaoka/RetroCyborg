@@ -69,6 +69,9 @@ init_usart:
 receive_loop:
         call    getchar
         jnc     receive_loop
+        ora     a
+        jnz     echo_back
+        hlt
 echo_back:
         mov     b, a
         call    putchar         ; echo

@@ -30,20 +30,15 @@ void Signals::printCycles() {
 }
 
 void Signals::disassembleCycles() {
-    for (auto i = 0; i < _cycles; i++) {
+    for (auto i = 0; i < _cycles; ) {
         const auto x = (i + _get) % MAX_CYCLES;
-        const Signals &signals = _signals[x];
+        const auto &signals = _signals[x];
         if (signals.fetchInsn()) {
-            Regs.disassemble(signals.addr, 1);
+            const auto next = Regs.disassemble(signals.addr, 1);
+            i += next - signals.addr;
         } else {
-            cli.printHex(signals.addr, 4);
-            const char iom = (signals.iom == LOW) ? ' ' : 'I';
-            const char rdwr = (signals.rd == LOW) ? 'R' : (signals.wr == LOW ? 'W' : ' ');
-            cli.print(':');
-            cli.print(iom);
-            cli.print(rdwr);
-            cli.print(' ');
-            cli.printlnHex(signals.data, 2);
+            signals.print();
+            ++i;
         }
         Pins.idle();
     }
@@ -88,17 +83,14 @@ void Signals::getData() {
     data = busRead(AD);
 }
 
-void Signals::inject(uint8_t val) {
-    Signals &curr = currCycle();
-    curr._inject = true;
-    curr.data = val;
-    curr.debug('i');
+Signals &Signals::inject(uint8_t val) {
+    _inject = true;
+    data = val;
+    return *this;
 }
 
 void Signals::capture() {
-    Signals &curr = currCycle();
-    curr._capture = true;
-    curr.debug('c');
+    _capture = true;
 }
 
 void Signals::print() const {

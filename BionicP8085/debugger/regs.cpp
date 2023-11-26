@@ -55,11 +55,11 @@ void Regs::print() const {
     outHex8(buffer + 42, a);
     buffer[49] = bit1(psw & 0x80, 'S');
     buffer[50] = bit1(psw & 0x40, 'Z');
-    buffer[51] = (psw & 0x20) ? '1' : '0';
+    buffer[51] = bit1(psw & 0x20, '1');
     buffer[52] = bit1(psw & 0x10, 'H');
-    buffer[53] = (psw & 0x08) ? '1' : '0';
+    buffer[53] = bit1(psw & 0x08, '1');
     buffer[54] = bit1(psw & 0x04, 'P');
-    buffer[55] = (psw & 0x02) ? '1' : '0';
+    buffer[55] = bit1(psw & 0x02, '1');
     buffer[56] = bit1(psw & 0x01, 'C');
     buffer[57] = ie ? ' ' : 0;
     cli.println(buffer);
@@ -224,7 +224,7 @@ static void printInsn(const libasm::Insn &insn) {
         cli.printHex(insn.bytes()[i], 2);
         cli.print(' ');
     }
-    for (int i = insn.length(); i < disassembler.codeMax() + 1; i++) {
+    for (int i = insn.length(); i < 5; i++) {
         cli.print(F("   "));
     }
 }
@@ -241,13 +241,18 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
         addr += insn.length();
         num++;
         printInsn(insn);
-        if (disassembler.getError()) {
-            cli.print(F("Error: "));
-            cli.println(disassembler.errorText_P(disassembler.getError()));
-            continue;
-        }
         cli.printStr(insn.name(), -6);
         cli.printlnStr(operands, -12);
+        if (insn.getError()) {
+            cli.print(F("Error: "));
+            cli.printStr_P(insn.errorText_P());
+            if (*insn.errorAt()) {
+                cli.print(F(" at '"));
+                cli.printStr(insn.errorAt());
+                cli.print('\'');
+            }
+            cli.println();
+        }
     }
     return addr;
 }
@@ -255,9 +260,16 @@ uint16_t Regs::disassemble(uint16_t addr, uint16_t numInsn) const {
 uint16_t Regs::assemble(uint16_t addr, const char *line) const {
     assembler.setCpu(cpu());
     libasm::Insn insn(addr);
-    if (assembler.encode(line, insn)) {
+    assembler.encode(line, insn);
+    if (insn.getError()) {
         cli.print(F("Error: "));
-        cli.println(assembler.errorText_P(assembler.getError()));
+        cli.print(insn.errorText_P());
+        if (*insn.errorAt()) {
+            cli.print(F(" at '"));
+            cli.printStr(insn.errorAt());
+            cli.print('\'');
+        }
+        cli.println();
     } else {
         Memory.write(insn.address(), insn.bytes(), insn.length());
         disassemble(insn.address(), 1);

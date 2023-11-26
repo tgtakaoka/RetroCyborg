@@ -37,6 +37,9 @@ receive_loop:
 receive_data:
         in      USARTD
         mov     b, a
+        ora     a
+        jnz     transmit_loop
+        hlt
 transmit_loop:
         in      USARTS
         ani     ST_TxRDY_bm

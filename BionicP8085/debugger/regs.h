@@ -55,6 +55,7 @@ struct Regs {
 
     static constexpr uint8_t NOP = 0x00;
     static constexpr uint8_t RST_0 = 0xC7;
+    static constexpr uint8_t HLT = 0x76;
 
 private:
     uint16_t selectBase(uint8_t insn) const;

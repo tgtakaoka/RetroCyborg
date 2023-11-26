@@ -122,10 +122,6 @@ static inline auto signal_ready() {
     return digitalReadFast(PIN_READY);
 }
 
-static inline void assert_hold() {
-    digitalWriteFast(PIN_HOLD, HIGH);
-}
-
 static inline void negate_hold() {
     digitalWriteFast(PIN_HOLD, LOW);
 }
@@ -227,7 +223,7 @@ void Pins::begin() {
 }
 
 Signals &Pins::cycleT1() {
-    Signals &signals = Signals::currCycle();
+    auto &signals = Signals::currCycle();
     // Do T4/T5 if any, and confirm T1L by ALE=H
     while (signal_ale() == LOW)
         clk_cycle();
@@ -242,7 +238,7 @@ Signals &Pins::cycleT1() {
 }
 
 Signals &Pins::cycleT2() {
-    Signals &signals = Signals::currCycle();
+    auto &signals = Signals::currCycle();
     delayNanoseconds(t2_lo_ns);
     clk_cycle();
     signals.getDirection();
@@ -329,11 +325,11 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
     uint8_t inj = 0;
     uint8_t cap = 0;
     while (inj < len || cap < max) {
-        Signals &signals = (inj == 0) ? cycleT2Wait(Regs.nextIp()) : cycleT2();
+        auto &signals = (inj == 0) ? cycleT2Wait(Regs.nextIp()) : cycleT2();
         if (signals.rd == LOW) {
-            Signals::inject(inst[inj++]);
+            signals.inject(inst[inj++]);
         } else if (signals.wr == LOW) {
-            Signals::capture();
+            signals.capture();
         }
         cycleT3(signals);
         if (signals.wr == LOW && buf) {
@@ -384,14 +380,21 @@ void Pins::idle() {
 void Pins::loop() {
     if (_freeRunning) {
         Usart.loop();
-        cycleT1();
-        cycleT3(cycleT2());
-        if (user_sw() == LOW) {
+        const auto &signals = cycleT1();
+        if (signals.fetchInsn() && Memory.read(signals.addr) == Regs::HLT) {
+            cycleT2Ready();
+            restoreBreakInsns();
             Commands.halt(true);
-            Signals::resetCycles();
+            return;
         }
+        if (user_sw() == LOW) {
+            restoreBreakInsns();
+            Commands.halt(true);
+            return;
+        }
+        cycleT3(cycleT2());
     } else {
-        Signals::inject(0x00);
+        Signals::currCycle().inject(0x00);
         idle();
     }
 }
@@ -401,14 +404,16 @@ void Pins::halt(bool show) {
         show |= debug_cycles;
         if (debug_cycles)
             cli.println(F("@@ halt"));
-        while (true) {
-            Signals &signals = cycleT1();
-            if (signals.fetchInsn())
-                break;
-            cycleT3(cycleT2());
-            delayNanoseconds(t1_lo_ns);
+        if (signal_ready() != LOW) {
+            while (true) {
+                const auto &signals = cycleT1();
+                if (signals.fetchInsn())
+                    break;
+                cycleT3(cycleT2());
+                delayNanoseconds(t1_lo_ns);
+            }
+            cycleT2Ready();
         }
-        cycleT2Ready();
         if (show)
             Signals::disassembleCycles();
         Regs.save(debug_cycles);
@@ -421,27 +426,32 @@ void Pins::run() {
     Regs.restore(debug_cycles);
     // Mark cycles for dumping valid bus cycles at HALT.
     Signals::resetCycles();
-    cycleT3(cycleT2Wait(Regs.nextIp()));
+    cycleT3(cycleT2Wait(Regs.nextIp()));  // step over possible break point
+    saveBreakInsns();
     _freeRunning = true;
     turn_on_led();
 }
 
-void Pins::step(bool show) {
-    Regs.restore(debug_cycles);
-    if (debug_cycles)
-        cli.println(F("@@ step"));
-    if (show)
-        Signals::resetCycles();
-    char c = '1';
+bool Pins::rawStep() {
+    if (Memory.read(Regs.nextIp()) == Regs::HLT)
+        return false;
+    auto c = '1';
     cycleT3(cycleT2Wait(Regs.nextIp())).debug(c++);
     while (true) {
-        Signals &signals = cycleT1();
+        auto &signals = cycleT1();
         if (signals.fetchInsn())
             break;
         cycleT3(cycleT2());
         delayNanoseconds(t1_lo_ns);
     }
     cycleT2Ready();
+    return true;
+}
+
+void Pins::step(bool show) {
+    Regs.restore(debug_cycles);
+    Signals::resetCycles();
+    rawStep();
     if (show)
         Signals::printCycles();
     Regs.save(debug_cycles);
@@ -593,6 +603,52 @@ void Pins::printRomArea() const {
         cli.printlnHex(_rom_end, 4);
     } else {
         cli.println(F("none"));
+    }
+}
+
+bool Pins::setBreakPoint(uint16_t addr) {
+    uint8_t i = 0;
+    while (i < _breakNum) {
+        if (_breakPoints[i] == addr)
+            return true;
+        ++i;
+    }
+    if (i < sizeof(_breakInsns)) {
+        _breakPoints[i] = addr;
+        ++_breakNum;
+        return true;
+    }
+    return false;
+}
+
+bool Pins::clearBreakPoint(uint8_t index) {
+    if (--index >= _breakNum)
+        return false;
+    for (uint8_t i = index + 1; i < _breakNum; ++i) {
+        _breakPoints[index] = _breakPoints[i];
+        ++index;
+    }
+    --_breakNum;
+    return true;
+}
+
+void Pins::printBreakPoints() const {
+    for (uint8_t i = 0; i < _breakNum; ++i) {
+        cli.printDec(i + 1, -2);
+        Regs.disassemble(_breakPoints[i], 1);
+    }
+}
+
+void Pins::saveBreakInsns() {
+    for (uint8_t i = 0; i < _breakNum; ++i) {
+        _breakInsns[i] = Memory.read(_breakPoints[i]);
+        Memory.write(_breakPoints[i], Regs::HLT);
+    }
+}
+
+void Pins::restoreBreakInsns() {
+    for (uint8_t i = 0; i < _breakNum; ++i) {
+        Memory.write(_breakPoints[i], _breakInsns[i]);
     }
 }
 

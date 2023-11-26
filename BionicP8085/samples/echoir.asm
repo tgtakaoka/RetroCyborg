@@ -57,6 +57,9 @@ receive_loop:
         ei                      ; Enable INTR
         jnc     receive_loop
         mov     b, a            ; save character
+        ora     a
+        jnz     transmit_loop
+        hlt
 transmit_loop:
         in      USARTC
         ani     ST_TxRDY_bm

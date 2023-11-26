@@ -120,14 +120,17 @@
          21 :                    receive_data:
          21 : DB 00                      in      USARTD
          23 : 47                         mov     b, a
-         24 :                    transmit_loop:
-         24 : DB 01                      in      USARTS
-         26 : E6 01                      ani     ST_TxRDY_bm
-         28 : CA 24 00                   jz      transmit_loop
-         2B :                    transmit_data:
-         2B : 78                         mov     a, b
-         2C : D3 00                      out     USARTD
-         2E : FE 0D                      cpi     0DH
-         30 : C2 1A 00                   jnz     receive_loop
-         33 : 06 0A                      mvi     b, 0AH
-         35 : C3 24 00                   jmp     transmit_loop
+         24 : B7                         ora     a
+         25 : C2 29 00                   jnz     transmit_loop
+         28 : 76                         hlt
+         29 :                    transmit_loop:
+         29 : DB 01                      in      USARTS
+         2B : E6 01                      ani     ST_TxRDY_bm
+         2D : CA 29 00                   jz      transmit_loop
+         30 :                    transmit_data:
+         30 : 78                         mov     a, b
+         31 : D3 00                      out     USARTD
+         33 : FE 0D                      cpi     0DH
+         35 : C2 1A 00                   jnz     receive_loop
+         38 : 06 0A                      mvi     b, 0AH
+         3A : C3 29 00                   jmp     transmit_loop

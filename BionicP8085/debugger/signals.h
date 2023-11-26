@@ -4,13 +4,13 @@
 #include <stdint.h>
 
 struct Signals {
-    bool fetchInsn() const { return iom == 0 && s == S_FETCH; }
     void getAddress();
     void getDirection();
     void getData();
+    bool fetchInsn() const { return iom == 0 && s == S_FETCH; }
     void clear();
-    static void inject(uint8_t data);
-    static void capture();
+    Signals &inject(uint8_t data);
+    void capture();
     void print() const;
     Signals &debug(char c);
     Signals &setAddress(uint16_t addr);
