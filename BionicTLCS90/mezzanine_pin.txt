@@ -28,5 +28,5 @@
             |   74126    *|           
             +-------------+
              G 2 2 2 1 1 1 
-            N Y A O Y A O 
-            D     E     E 
+             N Y A O Y A O 
+             D     E     E 
