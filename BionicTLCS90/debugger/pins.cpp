@@ -6,6 +6,8 @@
 #include "config.h"
 #include "digital_fast.h"
 #include "i8251.h"
+#include "inst.h"
+#include "memory.h"
 #include "regs.h"
 #include "signals.h"
 #include "string_util.h"
@@ -19,116 +21,127 @@ static constexpr bool debug_cycles = false;
 
 // clang-format off
 /*
- * SCN25650 Bus cycle
- *            _____       _____       _____       _____       _____       _____       __
- *  CLOCK ___|    T|0____|    T|1____|    T|2____|    T|0____|    T|1____|    T|2____|
- *                        \__________________\                 \_________________\
- *  OPREQ ________________|                  |_________________|                 |_______
- *        _______________ /__________________\__ _____________ /__________________\_ ____
- * A0~A14 _______________X______________________X_____________X_____________________X____
- *  M/#IO _______________                     |  _________________________________|_
- *   #R/W                \____________________|_/                                 | \____
- *        ______________________________ _____ ___________________________________ ______
- *   DATA ______________________________X__in_X________________________out________X______
- *        ________________________    ________________________________    _______________
- * #OPACK                         \__/                                \__/
- *        ____________________________________________________       _______       ______
- *   #WRP                                                     \_____/       \_____/
+ * TMP90C802 Bus cycle
+ *          __    __    __    __    __    __
+ *     X1 _|  |__|  |__|  |__|  |__|  |__|  |__|
+ *                  \___________\           \___
+ *    CLK __________/            \__________/
+ *        ___ _______________ _______________ __
+ * A0~A15 ___X_______________X_______________X__
+ *        _______             __________________
+ *   #RD         \___________/
+ *       ________________________             __
+ *   #WR                         \___________/
+ *                        ___         _______
+ *   DATA ---------------<___>-------<_______>--
+ *        ______________________________________
+ *  W#AIT _____________/ \_____________/ \______
  */
 // clang-format on
 
 #if defined(ARDUINO_TEENSY41)
-static constexpr auto clock_hi_ns = 380;
-static constexpr auto clock_lo_ns = 380;
-static constexpr auto clock_hi_t0p = 250;
-static constexpr auto clock_hi_t0c = 340;
-static constexpr auto clock_hi_t1 = 100;
-static constexpr auto clock_hi_t2w = 360;
-static constexpr auto clock_hi_idle = 120;
-static constexpr auto clock_lo_t0 = 390;
-static constexpr auto clock_lo_t1w = 350;
-static constexpr auto clock_lo_t1r = 320;
+static constexpr auto x1_hi_ns = 74;
+static constexpr auto x1_lo_ns = 74;
 #endif
 
-static inline void clock_hi() __attribute__((always_inline));
-static inline void clock_hi() {
-    digitalWriteFast(PIN_CLOCK, HIGH);
+static inline void x1_hi() __attribute__((always_inline));
+static inline void x1_hi() {
+    digitalWriteFast(PIN_X1, HIGH);
 }
 
-static inline void clock_lo() __attribute__((always_inline));
-static inline void clock_lo() {
-    digitalWriteFast(PIN_CLOCK, LOW);
+static inline void x1_lo() __attribute__((always_inline));
+static inline void x1_lo() {
+    digitalWriteFast(PIN_X1, LOW);
 }
 
-void clock_cycle() {
-    clock_lo();
-    delayNanoseconds(clock_lo_ns);
-    clock_hi();
-    delayNanoseconds(clock_hi_ns);
+static inline void x1_cycle() __attribute__((always_inline));
+static inline void x1_cycle() {
+    x1_lo();
+    delayNanoseconds(x1_lo_ns);
+    x1_hi();
+    delayNanoseconds(x1_hi_ns);
+}
+
+static inline void x1_cycle_hi() __attribute__((always_inline));
+static inline void x1_cycle_hi() {
+    x1_lo();
+    delayNanoseconds(x1_lo_ns);
+    x1_hi();
 }
 
 static void toggle_debug() __attribute__((unused));
 static void toggle_debug() {
-    digitalToggleFast(PIN_SENSE);
+    digitalToggleFast(PIN_RXD);
 }
 
 static void assert_debug() __attribute__((unused));
 static void assert_debug() {
-    digitalWriteFast(PIN_SENSE, HIGH);
+    digitalWriteFast(PIN_RXD, HIGH);
 }
 
 static void negate_debug() __attribute__((unused));
 static void negate_debug() {
-    digitalWriteFast(PIN_SENSE, LOW);
+    digitalWriteFast(PIN_RXD, LOW);
 }
 
-static inline uint8_t signal_clock() {
-    return digitalReadFast(PIN_CLOCK);
+static inline uint8_t signal_clk() {
+    return digitalReadFast(PIN_CLK);
 }
 
-static inline uint8_t signal_opreq() {
-    return digitalReadFast(PIN_OPREQ);
+static inline uint8_t signal_rd() {
+    return digitalReadFast(PIN_RD);
 }
 
-static inline uint8_t signal_intack() {
-    return digitalReadFast(PIN_INTACK);
+static inline uint8_t signal_wr() {
+    return digitalReadFast(PIN_WR);
 }
 
-static void assert_intreq() {
-    digitalWriteFast(PIN_INTREQ, LOW);
+static void assert_nmi() __attribute__((unused));
+static void assert_nmi() {
+    digitalWriteFast(PIN_NMI, LOW);
 }
 
-static void negate_intreq() {
-    digitalWriteFast(PIN_INTREQ, HIGH);
+static void negate_nmi() {
+    digitalWriteFast(PIN_NMI, HIGH);
 }
 
-static void assert_adren() {
-    digitalWriteFast(PIN_ADREN, LOW);
+static void assert_int0() __attribute__((unused));
+static void assert_int0() {
+    digitalWriteFast(PIN_INT0, HIGH);
 }
 
-static void assert_dbusen() {
-    digitalWriteFast(PIN_DBUSEN, LOW);
+static void negate_int0() {
+    digitalWriteFast(PIN_INT0, LOW);
+}
+
+static void assert_int1() __attribute__((unused));
+static void assert_int1() {
+    digitalWriteFast(PIN_INT1, HIGH);
+}
+
+static void negate_int1() {
+    digitalWriteFast(PIN_INT1, LOW);
+}
+
+static void assert_wait() __attribute__((unused));
+static void assert_wait() {
+    digitalWriteFast(PIN_WAIT, LOW);
+}
+
+static void negate_wait() {
+    digitalWriteFast(PIN_WAIT, HIGH);
 }
 
 static void assert_reset() {
-    digitalWriteFast(PIN_RESET, HIGH);
-    negate_intreq();
-}
-
-static void negate_reset() {
+    negate_wait();
+    negate_nmi();
+    negate_int0();
+    negate_int1();
     digitalWriteFast(PIN_RESET, LOW);
 }
 
-static void negate_pause() {
-    digitalWriteFast(PIN_PAUSE, HIGH);
-}
-
-static void assert_opack() {
-    digitalWriteFast(PIN_OPACK, LOW);
-}
-
-static void negate_opack() {
-    digitalWriteFast(PIN_OPACK, HIGH);
+static void negate_reset() {
+    digitalWriteFast(PIN_RESET, HIGH);
 }
 
 static void turn_on_led() {
@@ -150,35 +163,28 @@ static uint8_t user_sw() {
 
 void Pins::begin() {
     // Set directions.
-    busMode(DBUS, INPUT_PULLDOWN);
-    busMode(ADRL, INPUT);
-    busMode(ADRM, INPUT);
-    busMode(ADRH, INPUT);
-    pinMode(PIN_OPREQ, INPUT);
-    pinMode(PIN_MIO, INPUT);
-    pinMode(PIN_RW, INPUT);
-    pinMode(PIN_WRP, INPUT);
-    pinMode(PIN_INTACK, INPUT);
-    pinMode(PIN_RUNWAIT, INPUT);
+    busMode(DB, INPUT_PULLDOWN);
+    busMode(ADL, INPUT);
+    busMode(ADM, INPUT);
+    busMode(ADH, INPUT);
+    pinMode(PIN_RD, INPUT);
+    pinMode(PIN_WR, INPUT);
+    pinMode(PIN_CLK, INPUT);
     pinMode(PIN_RESET, OUTPUT);
-    pinMode(PIN_CLOCK, OUTPUT);
-    pinMode(PIN_PAUSE, OUTPUT);
-    pinMode(PIN_OPACK, OUTPUT);
-    pinMode(PIN_INTREQ, OUTPUT);
-    pinMode(PIN_ADREN, OUTPUT);
-    pinMode(PIN_DBUSEN, OUTPUT);
-    pinMode(PIN_FLAG, INPUT);
-    pinMode(PIN_SENSE, OUTPUT);
+    pinMode(PIN_X1, OUTPUT);
+    pinMode(PIN_NMI, OUTPUT);
+    pinMode(PIN_INT0, OUTPUT);
+    // pinMode(PIN_INT1, OUTPUT);
+    pinMode(PIN_WAIT, OUTPUT);
+    pinMode(PIN_TXD, INPUT);
+    pinMode(PIN_RXD, OUTPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
     assert_reset();
-    assert_adren();
-    assert_dbusen();
-    negate_opack();
     turn_off_led();
 
     _freeRunning = false;
-    clock_hi();
+    x1_hi();
     reset();
 
     setDeviceBase(Device::USART);
@@ -189,54 +195,55 @@ void Pins::begin() {
 }
 
 void Pins::reset(bool show) {
-    negate_pause();
+    Signals::resetCycles();
     assert_reset();
-    // RESET must remain high for at least 3 cycles
-    for (auto i = 0; i < 5; ++i)
-        clock_cycle();
+    // #RESET input must be maintained at the "0" level for at least
+    // #10 systemn clock cycles (10 stated; 2usec at 10MHz).
+    for (auto i = 0; i < 10 * 2 || signal_clk() == LOW; ++i)
+        x1_cycle();
     negate_reset();
+    while (true) {
+        x1_lo();
+        delayNanoseconds(x1_lo_ns - 10);
+        if (signal_clk() == LOW)
+            break;
+        x1_hi();
+        delayNanoseconds(x1_hi_ns);
+    }
 
+    _writes = 0;
+    Regs.reset(show);
     Regs.save(show);
 
     Usart.reset();
 }
 
 Signals &Pins::prepareCycle() {
-    // T0H
-    goto entry;
-    do {
-        delayNanoseconds(clock_hi_t0p);
-    entry:
-        clock_lo();  // T0L
-        delayNanoseconds(clock_lo_t0);
-        clock_hi();  // T1H
-        delayNanoseconds(100);
-    } while (signal_opreq() == LOW);
-    // T1H, OPREQ=H
+    if (signal_rd() && signal_wr()) {
+        while (signal_clk() == LOW)
+            x1_cycle();
+        x1_cycle_hi();
+    }
     return Signals::currCycle().getAddr();
 }
 
 Signals &Pins::completeCycle(Signals &signals) {
-    // T1H, OPREQ=H
-    delayNanoseconds(clock_hi_t1);
-    clock_lo();  // T1L
-    if (signals.write()) {
+    negate_wait();
+    if (signals.read()) {
+        _writes = 0;
+        x1_cycle_hi();
+        if (signals.readRam()) {
+            signals.debug('m').data = Memory.read(signals.addr);
+        } else {
+            ;  // inject data from signals.data
+        }
+        signals.outData();
+        Signals::nextCycle();
+    } else if (signals.write()) {
+        ++_writes;
         signals.getData();
-        assert_opack();
-        delayNanoseconds(clock_lo_t1w);
-        clock_hi();  // T2H
-        if (signals.ioAccess()) {
-            if (signals.addr & 0x2000) {
-                signals.addr &= 0xFF;
-                if (Usart.isSelected(signals.addr)) {
-                    Usart.write(signals.debug('u').data, signals.addr);
-                } else {
-                    signals.debug('E');
-                }
-            } else {
-                signals.debug((signals.addr & 0x4000) ? 'D' : 'C');
-            }
-        } else if (signals.writeRam()) {
+        x1_cycle_hi();
+        if (signals.writeRam()) {
             if (signals.addr <= _rom_end && signals.addr >= _rom_begin) {
                 // ROM area, ignore write from CPU;
             } else {
@@ -245,40 +252,22 @@ Signals &Pins::completeCycle(Signals &signals) {
         } else {
             ;  // capture data to signals.data
         }
-        delayNanoseconds(clock_hi_t2w);
+        Signals::nextCycle();
     } else {
-        if (signals.ioAccess()) {
-            if (signal_intack() != LOW) {
-                signals.debug('V').data = Usart.intrVec();
-            } else if (signals.addr & 0x2000) {
-                signals.addr &= 0xFF;
-                if (Usart.isSelected(signals.addr)) {
-                    signals.debug('u').data = Usart.read(signals.addr);
-                } else {
-                    signals.debug('E');
-                }
-            } else {
-                signals.debug((signals.addr & 0x4000) ? 'D' : 'C');
-            }
-        } else if (signals.readRam()) {
-            signals.debug('m').data = Memory.read(signals.addr);
-        } else {
-            ;  // inject data from signals.data
-        }
-        signals.outData();
-        assert_opack();
-        delayNanoseconds(clock_lo_t1r);
-        clock_hi();  // T2H
-        delayNanoseconds(clock_hi_ns);
+        x1_cycle();
     }
-    negate_opack();
-    clock_lo();  // T2L
-    Signals::nextCycle();
-    busMode(DBUS, INPUT_PULLDOWN);
-    delayNanoseconds(clock_lo_ns);
-    clock_hi();  // T0H
-    delayNanoseconds(clock_hi_t0c);
+    x1_cycle_hi();
+    busMode(DB, INPUT_PULLDOWN);
     return signals;
+}
+
+void Pins::dummyCycles() {
+    while (true) {
+        auto &signals = prepareCycle();
+        if (signals.read() || signals.write())
+            break;
+        completeCycle(signals);
+    }
 }
 
 void Pins::execInst(const uint8_t *inst, uint8_t len) {
@@ -292,6 +281,7 @@ uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
 
 uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         uint8_t *buf, uint8_t max) {
+    negate_wait();
     uint8_t inj = 0;
     uint8_t cap = 0;
     while (inj < len || cap < max) {
@@ -301,99 +291,125 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         if (inj < len)
             signals.inject(inst[inj]);
         completeCycle(signals);
-        if (inj == 0 && addr)
-            *addr = signals.addr;
         if (signals.read()) {
             signals.debug('i');  // injected
+            if (inj == 0 && addr)
+                *addr = signals.addr;
             if (inj < len)
                 inj++;
-        } else {
+        } else if (signals.write()) {
             signals.debug('c');  // captured
             if (buf && cap < max)
                 buf[cap++] = signals.data;
         }
     }
+    dummyCycles();
+    assert_wait();
     return cap;
 }
 
 void Pins::idle() {
-    // CPU stops at OPREQ=H, #OPACK=H
+    // CPU stops at #WAIT=LOW
+    x1_cycle();
+    x1_cycle();
+    x1_cycle();
+    x1_cycle_hi();
 }
 
 void Pins::loop() {
     if (_freeRunning) {
         Usart.loop();
-        if (!rawStep() || user_sw() == LOW) {
+        completeCycle(prepareCycle());
+        if (_writes == 4) {
+            const auto &signals = prepareCycle();
+            if (signals.addr == 0x0010) {
+                // SWI; break point or hlat to system (A=0)
+                const auto &frame = signals.prev(4);
+                const auto pc = (frame.data << 8) + frame.next().data;
+                const auto a = frame.next(2).data;
+                const auto breakPoint = isBreakPoint(pc - 1);
+                if (breakPoint || a == 0) {
+                    restoreBreakInsns();
+                    Signals::disassembleCycles(signals.prev(7));
+                    Regs.breakPoint(frame);
+                    _freeRunning = false;
+                    Commands.halt(false);
+                    return;
+                }
+            }
+        } else if (user_sw() == LOW) {
             restoreBreakInsns();
             Commands.halt(true);
             return;
         }
     } else {
-        clock_lo();
-        delayNanoseconds(clock_lo_ns);
-        clock_hi();
-        delayNanoseconds(clock_hi_idle);
+        idle();
     }
 }
 
 void Pins::run() {
     Regs.restore(debug_cycles);
-    // Reset cycles for dump valid bus cycles at HALT.
-    Signals::resetCycles();
-    rawStep();  // step over possible break point
+    suspend(false, true);  // step over possible break point
     saveBreakInsns();
+    Regs.restore(debug_cycles);
+    Signals::resetCycles();
     _freeRunning = true;
     turn_on_led();
 }
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        if (show)
-            Signals::disassembleCycles();
-        Regs.save(debug_cycles);
-        turn_off_led();
-        _freeRunning = false;
+        suspend(show, true);
     }
+    turn_off_led();
+    _freeRunning = false;
 }
 
-bool Pins::rawStep() {
-    delayNanoseconds(clock_hi_ns);
-    auto *signals = &prepareCycle();
-    const auto insn = Memory.read(signals->addr);
-    const auto len = Regs::insnLen(insn);
-    if (insn == 0x40 || len == 0) {
-        // HALT or unknown instruction. Just return.
-        return false;
+void Pins::suspend(bool show, bool nmi) {
+    negate_wait();
+    auto assertNmi = nmi;
+    while (_writes < 4) {
+        auto &signals = prepareCycle();
+        completeCycle(signals);
+        // Interrupt; n:d:d:1:d:W:W:W:W:1
+        if (assertNmi) {
+            assertNmi = false;
+            assert_nmi();
+            _writes = 0;
+        }
     }
-
-    auto busCycles = len + Regs::busCycles(insn);
-    if (Regs::hasIndirect(insn)) {
-        if (Memory.read(signals->addr + 1) & 0x80)
-            busCycles += 2;
-    }
-    signals->markFetch();
-    for (auto i = 0; i < busCycles; ++i) {
-        completeCycle(*signals);
-        signals = &prepareCycle();
-    }
-    return true;
+    const auto &stop = Signals::currCycle();
+    negate_nmi();
+    dummyCycles();
+    if (show)
+        Signals::disassembleCycles(nmi ? stop.prev(6) : stop);
+    Regs.interrupt(stop.prev(4), nmi);
 }
 
 void Pins::step(bool show) {
+    const auto opc = Memory.read(Regs.nextIp());
+    Inst inst;
+    if (opc == Inst::HALT || !inst.get(Regs.nextIp())) {
+        // HALT or unknown instruction. Just return.
+        return;
+    }
     Regs.restore(debug_cycles);
     Signals::resetCycles();
-    rawStep();
-    if (show)
-        Signals::printCycles();
-    Regs.save(debug_cycles);
+    suspend(show, opc != Inst::SWI);
 }
 
-void Pins::assertIntr() {
-    assert_intreq();
+void Pins::assertIntr(IntrName intr) {
+    if (intr == INTR_INT0)
+        assert_int0();
+    else if (intr == INTR_INT1)
+        assert_int1();
 }
 
-void Pins::negateIntr() {
-    negate_intreq();
+void Pins::negateIntr(IntrName intr) {
+    if (intr == INTR_INT0)
+        negate_int0();
+    else if (intr == INTR_INT1)
+        negate_int1();
 }
 
 static const char TEXT_USART[] PROGMEM = "USART";
@@ -426,9 +442,9 @@ void Pins::printDevices() const {
     const auto serial = getSerialDevice(baseAddr);
     cli.print(F("USART (i8251) "));
     if (serial == Device::USART) {
-        cli.print(F("at H'"));
-        cli.printHex(baseAddr & 0xFF, 2);
-        cli.println('\'');
+        cli.print(F("at "));
+        cli.printHex(baseAddr, 4);
+        cli.println('H');
     } else {
         cli.println(F("disabled"));
     }
@@ -491,14 +507,14 @@ bool Pins::clearBreakPoint(uint8_t index) {
 void Pins::printBreakPoints() const {
     for (uint8_t i = 0; i < _breakNum; ++i) {
         cli.printDec(i + 1, -2);
-        Regs.disassemble(_breakPoints[i], 1);
+        Memory.disassemble(_breakPoints[i], 1);
     }
 }
 
 void Pins::saveBreakInsns() {
     for (uint8_t i = 0; i < _breakNum; ++i) {
         _breakInsns[i] = Memory.read(_breakPoints[i]);
-        Memory.write(_breakPoints[i], 0x40);  // HALT
+        Memory.write(_breakPoints[i], Inst::SWI);
     }
 }
 
@@ -506,6 +522,14 @@ void Pins::restoreBreakInsns() {
     for (uint8_t i = 0; i < _breakNum; ++i) {
         Memory.write(_breakPoints[i], _breakInsns[i]);
     }
+}
+
+bool Pins::isBreakPoint(uint16_t addr) const {
+    for (uint8_t i = 0; i < _breakNum; ++i) {
+        if (_breakPoints[i] == addr)
+            return true;
+    }
+    return false;
 }
 
 // Local Variables:

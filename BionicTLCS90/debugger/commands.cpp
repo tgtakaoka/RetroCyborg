@@ -19,17 +19,18 @@
   ? - print version.
 */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "commands.h"
 
 #include <SD.h>
 #include <libcli.h>
 
 #include "config.h"
+#include "memory.h"
 #include "pins.h"
 #include "regs.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 using State = libcli::State;
 extern libcli::Cli cli;
@@ -167,7 +168,7 @@ static void handleDisassemble(uint32_t value, uintptr_t extra, State state) {
         ;
     }
     cli.println();
-    last_addr = Regs.disassemble(last_addr, value);
+    last_addr = Memory.disassemble(last_addr, value);
 cancel:
     printPrompt();
 }
@@ -217,7 +218,7 @@ static void handleAssembleLine(char *line, uintptr_t extra, State state) {
         return;
     }
     cli.println();
-    last_addr = Regs.assemble(last_addr, line);
+    last_addr = Memory.assemble(last_addr, line);
     cli.printHex(last_addr, 4);
     cli.print('?');
     cli.readLine(handleAssembleLine, 0, str_buffer, sizeof(str_buffer));
@@ -304,7 +305,6 @@ static int loadIHexRecord(const char *line) {
         cli.printHex(addr, 4);
         cli.print(':');
         cli.printHex(num, 2);
-        cli.print(' ');
     }
     return num;
 }
@@ -336,7 +336,6 @@ static int loadS19Record(const char *line) {
     cli.printHex(addr, 4);
     cli.print(':');
     cli.printHex(num, 2);
-    cli.print(' ');
     return num;
 }
 
@@ -362,9 +361,15 @@ static void handleLoadFile(char *line, uintptr_t extra, State state) {
                 if (c == '\n') {
                     *p = 0;
                     if (*buffer == 'S') {
+                        cli.print(buffer);
+                        cli.print(' ');
                         size += loadS19Record(buffer);
+                        cli.println();
                     } else if (*buffer == ':') {
+                        cli.print(buffer);
+                        cli.print(' ');
                         size += loadIHexRecord(buffer);
+                        cli.println();
                     }
                     p = buffer;
                 } else if (c != '\r' && p < buffer + sizeof(buffer) - 1) {
@@ -573,7 +578,7 @@ void Commands::exec(char c) {
         cli.println(F("Registers"));
     regs:
         Regs.print();
-        Regs.disassemble(Regs.nextIp(), 1);
+        Memory.disassemble(Regs.nextIp(), 1);
         break;
     case '=':
         cli.print(F("Set register? "));
@@ -648,7 +653,7 @@ void Commands::halt(bool show) {
     Pins.halt(show);
     if (!_showRegs)
         Regs.print();
-    Regs.disassemble(Regs.nextIp(), 1);
+    Memory.disassemble(Regs.nextIp(), 1);
     printPrompt();
 }
 

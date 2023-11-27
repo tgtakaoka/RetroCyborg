@@ -7,14 +7,11 @@
 
 struct Signals {
     Signals &getAddr();
-    bool read() const { return _rw == 0; }
-    bool write() const { return _rw != 0; }
-    bool fetch() const { return _fetch; }
-    bool ioAccess() const;
+    bool read() const { return _rd == 0; }
+    bool write() const { return _wr == 0; }
     void getData();
     void outData();
     void clear();
-    void markFetch() { _fetch = true; }
     Signals &inject(uint8_t data);
     void capture();
     void print() const;
@@ -30,22 +27,23 @@ struct Signals {
         return _capture == false;
     }
 
-    static void disassembleCycles();
     static void printCycles();
+    static void disassembleCycles(const Signals &end);
     static Signals &currCycle();
     static void resetCycles();
-    static void resetTo(const Signals &);
     static void nextCycle();
+    const Signals &prev(uint8_t backward = 1) const;
+    const Signals &next(uint8_t forward = 1) const;
+    uint8_t diff(const Signals &s) const;
 
 private:
-    uint8_t _rw;
-    uint8_t _mio;
-    bool _fetch;
+    uint8_t _rd;
+    uint8_t _wr;
     bool _inject;
     bool _capture;
     char _debug;
 
-    static constexpr uint8_t MAX_CYCLES = 92;
+    static constexpr uint8_t MAX_CYCLES = 64;
     static uint8_t _put;
     static uint8_t _get;
     static uint8_t _cycles;

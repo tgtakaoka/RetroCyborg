@@ -6,6 +6,12 @@
 #include "config.h"
 #include "signals.h"
 
+enum IntrName : uint8_t {
+    INTR_NONE = 0,
+    INTR_INT0 = 0x28,  // INT0 vector
+    INTR_INT1 = 0x58,  // INT1 vector
+};
+
 class Pins {
 public:
     void begin();
@@ -23,13 +29,12 @@ public:
     uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
-    void assertIntr();
-    void negateIntr();
+    void assertIntr(IntrName intr);
+    void negateIntr(IntrName intr);
 
     enum Device : uint8_t {
         NONE = 0,
         USART = 1,  // i8251
-        UART = 2,   // Z88 UART
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
@@ -48,10 +53,12 @@ public:
 
 private:
     bool _freeRunning;
+    uint8_t _writes;
 
     Signals &prepareCycle();
     Signals &completeCycle(Signals &signals);
-    bool rawStep();
+    void dummyCycles();
+    void suspend(bool show, bool nmi);
     uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
             uint8_t *buf, uint8_t max);
 
@@ -68,6 +75,7 @@ private:
     uint8_t _breakInsns[4];
     void saveBreakInsns();
     void restoreBreakInsns();
+    bool isBreakPoint(uint16_t addr) const;
 };
 
 extern Pins Pins;
