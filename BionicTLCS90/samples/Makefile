@@ -2,7 +2,7 @@ ASM=asm
 
 .PHONY: clean
 
-all: echo.hex echoir.hex echoitr.hex \
+all: echo.hex echoir.hex echoitr.hex uart.hex uartir.hex uartitr.hex \
      arith.hex mandelbrot.hex
 
 %.hex:	%.asm

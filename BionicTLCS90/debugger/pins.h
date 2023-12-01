@@ -35,6 +35,7 @@ public:
     enum Device : uint8_t {
         NONE = 0,
         USART = 1,  // i8251
+        UART = 2,   // TLCS90
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
@@ -54,6 +55,9 @@ public:
 private:
     bool _freeRunning;
     uint8_t _writes;
+
+    void x1_cycle() const;
+    void x1_cycle_hi() const;
 
     Signals &prepareCycle();
     Signals &completeCycle(Signals &signals);
