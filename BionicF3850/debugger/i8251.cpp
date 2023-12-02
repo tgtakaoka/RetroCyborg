@@ -2,6 +2,8 @@
 
 #include <libcli.h>
 
+#include "pins.h"
+
 //#define DEBUG_INTR
 //#define DEBUG_STATUS
 //#define DEBUG_COMMAND
@@ -22,8 +24,8 @@ void I8251::reset() {
     _txData = _rxData = 0;
     negateRxIntr();
     negateTxIntr();
-    _rxVec = _txVec = INTR_NONE;
-    _rxIntr = _txIntr = INTR_NONE;
+    _rxVec = _txVec = 0;
+    _rxIntr = _txIntr = 0;
 }
 
 void I8251::enable(bool enabled, uint16_t baseAddr) {
@@ -39,10 +41,10 @@ void I8251::enable(bool enabled, uint16_t baseAddr) {
 }
 
 void I8251::assertRxIntr() {
-    if (_rxIntr == INTR_NONE)
+    if (_rxIntr == 0)
         return;
     _rxVec = _rxIntr;
-    Pins.assertIntr(_rxVec);
+    assertIntreq();
 #ifdef DEBUG_INTR
     cli.print(F("@@ Assert RX INTR "));
     cli.printlnHex(_rxIntr, 2);
@@ -50,10 +52,10 @@ void I8251::assertRxIntr() {
 }
 
 void I8251::assertTxIntr() {
-    if (_txIntr == INTR_NONE)
+    if (_txIntr == 0)
         return;
     _txVec = _txIntr;
-    Pins.assertIntr(_txVec);
+    assertIntreq();
 #ifdef DEBUG_INTR
     cli.print(F("@@ Assert TX INTR "));
     cli.printlnHex(intr, _txIntr);
@@ -61,27 +63,34 @@ void I8251::assertTxIntr() {
 }
 
 void I8251::negateRxIntr() {
-    if (_rxIntr == INTR_NONE)
+    if (_rxIntr == 0)
         return;
-    _rxVec = INTR_NONE;
+    _rxVec = 0;
 #ifdef DEBUG_INTR
     cli.print(F("@@ Negate RX INTR "));
     cli.printlnHex(_rxIntr, 2);
 #endif
-    if (_txVec != _rxIntr)
-        Pins.negateIntr(_rxIntr);
+    negateIntreq();
 }
 
 void I8251::negateTxIntr() {
-    if (_txIntr == INTR_NONE)
+    if (_txIntr == 0)
         return;
-    _txVec = INTR_NONE;
+    _txVec = 0;
 #ifdef DEBUG_INTR
     cli.print(F("@@ Negate TX INTR "));
     cli.printlnHex(_txIntr, 2);
 #endif
-    if (_rxVec != _txIntr)
-        Pins.negateIntr(_txIntr);
+    negateIntreq();
+}
+
+void I8251::assertIntreq() const {
+    Pins.assertIntreq();
+}
+
+void I8251::negateIntreq() const {
+    if (_rxVec == 0 && _txVec == 0)
+        Pins.negateIntreq();
 }
 
 void I8251::setRxReady() {
@@ -204,12 +213,12 @@ void I8251::write(uint8_t data, uint16_t addr) {
     }
 
     if (addr == _baseAddr + 2) {
-        const auto intr = IntrName(data);
+        const auto intr = data;
 #ifdef DEBUG_INTR
         cli.print(F("@@ SET RX INTR "));
         cli.printlnHex(data, 2);
 #endif
-        if (intr == INTR_NONE && _rxVec)
+        if (intr == 0 && _rxVec)
             negateRxIntr();  // negate old _rxVec
         _rxIntr = intr;
         if (intr && rxEnabled() && rxReady())
@@ -217,12 +226,12 @@ void I8251::write(uint8_t data, uint16_t addr) {
         return;
     }
     // addr == baseAddr + 3
-    const auto intr = IntrName(data);
+    const auto intr = data;
 #ifdef DEBUG_INTR
     cli.print(F("@@ SET TX INTR "));
     cli.printlnHex(data, 2);
 #endif
-    if (intr == INTR_NONE && _txVec)
+    if (intr == 0 && _txVec)
         negateTxIntr();  // negate old _txVec
     _txIntr = intr;
     if (intr && txEnabled() && txReady())

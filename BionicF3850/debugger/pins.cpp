@@ -6,146 +6,122 @@
 #include "config.h"
 #include "digital_fast.h"
 #include "i8251.h"
-#include "inst.h"
 #include "memory.h"
 #include "regs.h"
 #include "signals.h"
 #include "string_util.h"
-#include "tlcs90_uart_handler.h"
+
+#define DEBUG_BUS(e)
+//#define DEBUG_BUS(e) e
+#define DEBUG_STEP(e)
+//#define DEBUG_STEP(e) e
+#define DEBUG_EXEC(e)
+//#define DEBUG_EXEC(e) e
 
 extern libcli::Cli cli;
 
 class Pins Pins;
 I8251 Usart(Console);
-Tlcs90UartHandler UartH(Console);
 
 static constexpr bool debug_cycles = false;
 
 // clang-format off
 /*
- * TMP90C802 Bus cycle
- *          __    __    __    __    __    __
- *     X1 _|  |__|  |__|  |__|  |__|  |__|  |__|
- *                  \___________\           \___
- *    CLK __________/            \__________/
- *        ___ _______________ _______________ __
- * A0~A15 ___X_______________X_______________X__
- *        _______             __________________
- *   #RD         \___________/
- *       ________________________             __
- *   #WR                         \___________/
- *                        ___         _______
- *   DATA ---------------<___>-------<_______>--
- *        ______________________________________
- *  W#AIT _____________/ \_____________/ \______
+ * F3850 bus cycle
+ *        _    __    __    __    __    __    __    __    __    __    __    __    __ 
+ *   XTLY  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \
+ *        _|    __    __    __    __    __    __    __    __    __    __    __    __
+ *    PHI   \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  
+ *           \_______\               \_______\                           \_______\  
+ *  WRITE ___/        \______________/        \__________________________/        \_
+ *        _______________ _______________________ __________________________________
+ *   ROMC _______________X_______________________X__________________________________
+ *        _______________________ _______
+ *  DB RD _______________________X
+ *        _________ _______________________ ___________________________________ ____
+ *     DB _________X_|_____________________X_|_________________________________X_|__
  */
 // clang-format on
 
 #if defined(ARDUINO_TEENSY41)
-static constexpr auto x1_hi_ns = 74;
-static constexpr auto x1_lo_ns = 74;
+namespace {
+constexpr auto xtly_lo_ns = 224;
+constexpr auto xtly_hi_ns = 224;
+constexpr auto xtly_read_romc = 170;
+constexpr auto xtly_nowrite_romc = 84;
+constexpr auto xtly_idle_ns = 25;
+}  // namespace
 #endif
 
-static inline void x1_hi() __attribute__((always_inline));
-static inline void x1_hi() {
-    digitalWriteFast(PIN_X1, HIGH);
+static inline void xtly_hi() __attribute__((always_inline));
+static inline void xtly_hi() {
+    digitalWriteFast(PIN_XTLY, HIGH);
 }
 
-static inline void x1_lo() __attribute__((always_inline));
-static inline void x1_lo() {
-    digitalWriteFast(PIN_X1, LOW);
+static inline void xtly_lo() __attribute__((always_inline));
+static inline void xtly_lo() {
+    digitalWriteFast(PIN_XTLY, LOW);
 }
 
-void Pins::x1_cycle() const {
-    x1_lo();
-    delayNanoseconds(x1_lo_ns);
-    if (_freeRunning)
-        UartH.loop();
-    x1_hi();
-    delayNanoseconds(x1_hi_ns);
+static inline void xtly_cycle() __attribute__((always_inline));
+static inline void xtly_cycle() {
+    delayNanoseconds(xtly_hi_ns);
+    xtly_lo();
+    delayNanoseconds(xtly_lo_ns);
+    xtly_hi();
 }
 
-void Pins::x1_cycle_hi() const {
-    x1_lo();
-    delayNanoseconds(x1_lo_ns);
-    if (_freeRunning)
-        UartH.loop();
-    x1_hi();
-}
-
-static void toggle_debug() __attribute__((unused));
-static void toggle_debug() {
-    digitalToggleFast(PIN_RXD);
+static inline void xtly_cycle_lo() __attribute__((always_inline));
+static inline void xtly_cycle_lo() {
+    xtly_lo();
+    delayNanoseconds(xtly_lo_ns);
+    xtly_hi();
 }
 
 static void assert_debug() __attribute__((unused));
 static void assert_debug() {
-    digitalWriteFast(PIN_RXD, HIGH);
+    digitalWriteFast(PIN_IO00, LOW);
 }
 
 static void negate_debug() __attribute__((unused));
 static void negate_debug() {
-    digitalWriteFast(PIN_RXD, LOW);
+    digitalWriteFast(PIN_IO00, HIGH);
 }
 
-static inline uint8_t signal_clk() {
-    return digitalReadFast(PIN_CLK);
+static void toggle_debug() __attribute__((unused));
+static void toggle_debug() {
+    digitalToggleFast(PIN_IO00);
 }
 
-static inline uint8_t signal_rd() {
-    return digitalReadFast(PIN_RD);
+static inline uint8_t signal_phi() {
+    return digitalReadFast(PIN_PHI);
 }
 
-static inline uint8_t signal_wr() {
-    return digitalReadFast(PIN_WR);
+static inline uint8_t signal_write() {
+    return digitalReadFast(PIN_WRITE);
 }
 
-static void assert_nmi() __attribute__((unused));
-static void assert_nmi() {
-    digitalWriteFast(PIN_NMI, LOW);
+static inline uint8_t signal_icb() __attribute__((unused));
+static inline uint8_t signal_icb() {
+    return digitalReadFast(PIN_ICB);
 }
 
-static void negate_nmi() {
-    digitalWriteFast(PIN_NMI, HIGH);
+static void assert_intreq() __attribute__((unused));
+static void assert_intreq() {
+    digitalWriteFast(PIN_INTREQ, LOW);
 }
 
-static void assert_int0() __attribute__((unused));
-static void assert_int0() {
-    digitalWriteFast(PIN_INT0, HIGH);
+static void negate_intreq() {
+    digitalWriteFast(PIN_INTREQ, HIGH);
 }
 
-static void negate_int0() {
-    digitalWriteFast(PIN_INT0, LOW);
+static void assert_extres() {
+    negate_intreq();
+    digitalWriteFast(PIN_EXTRES, LOW);
 }
 
-static void assert_int1() __attribute__((unused));
-static void assert_int1() {
-    digitalWriteFast(PIN_INT1, HIGH);
-}
-
-static void negate_int1() {
-    digitalWriteFast(PIN_INT1, LOW);
-}
-
-static void assert_wait() __attribute__((unused));
-static void assert_wait() {
-    digitalWriteFast(PIN_WAIT, LOW);
-}
-
-static void negate_wait() {
-    digitalWriteFast(PIN_WAIT, HIGH);
-}
-
-static void assert_reset() {
-    negate_wait();
-    negate_nmi();
-    negate_int0();
-    negate_int1();
-    digitalWriteFast(PIN_RESET, LOW);
-}
-
-static void negate_reset() {
-    digitalWriteFast(PIN_RESET, HIGH);
+static void negate_extres() {
+    digitalWriteFast(PIN_EXTRES, HIGH);
 }
 
 static void turn_on_led() {
@@ -168,27 +144,25 @@ static uint8_t user_sw() {
 void Pins::begin() {
     // Set directions.
     busMode(DB, INPUT_PULLDOWN);
-    busMode(ADL, INPUT);
-    busMode(ADM, INPUT);
-    busMode(ADH, INPUT);
-    pinMode(PIN_RD, INPUT);
-    pinMode(PIN_WR, INPUT);
-    pinMode(PIN_CLK, INPUT);
-    pinMode(PIN_RESET, OUTPUT);
-    pinMode(PIN_X1, OUTPUT);
-    pinMode(PIN_NMI, OUTPUT);
-    pinMode(PIN_INT0, OUTPUT);
-    // pinMode(PIN_INT1, OUTPUT);
-    pinMode(PIN_WAIT, OUTPUT);
-    pinMode(PIN_TXD, INPUT);
-    pinMode(PIN_RXD, OUTPUT);
+    busMode(ROMC, INPUT);
+    busMode(IO0, INPUT);
+    busMode(IO1L, OUTPUT);
+    busMode(IO1H, OUTPUT);
+    pinMode(PIN_WRITE, INPUT);
+    pinMode(PIN_PHI, INPUT);
+    pinMode(PIN_EXTRES, OUTPUT);
+    pinMode(PIN_XTLY, OUTPUT);
+    pinMode(PIN_INTREQ, OUTPUT);
     pinMode(PIN_USRSW, INPUT_PULLUP);
     pinMode(PIN_USRLED, OUTPUT);
-    assert_reset();
+    assert_extres();
     turn_off_led();
 
+    negate_debug();
+    pinMode(PIN_IO00, OUTPUT);
+
     _freeRunning = false;
-    x1_hi();
+    xtly_lo();
     reset();
 
     setDeviceBase(Device::USART);
@@ -200,106 +174,80 @@ void Pins::begin() {
 
 void Pins::reset(bool show) {
     Signals::resetCycles();
-    assert_reset();
-    // #RESET input must be maintained at the "0" level for at least
-    // #10 systemn clock cycles (10 stated; 2usec at 10MHz).
-    for (auto i = 0; i < 10 * 2 || signal_clk() == LOW; ++i)
-        x1_cycle();
-    negate_reset();
-    while (true) {
-        x1_lo();
-        delayNanoseconds(x1_lo_ns - 10);
-        if (signal_clk() == LOW)
-            break;
-        x1_hi();
-        delayNanoseconds(x1_hi_ns);
-    }
+    assert_extres();
+    for (auto i = 0; i < 10 * 4; ++i)
+        xtly_cycle();
+    while (signal_write() == LOW)
+        xtly_cycle();
+    // WRITE=H
+    negate_extres();
+    delayNanoseconds(xtly_hi_ns);
 
-    _writes = 0;
-    Regs.reset(show);
+    cycle();  // IDLE
+    delayNanoseconds(xtly_idle_ns);
+    cycle();  // RESET PC0
+
     Regs.save(show);
 
     Usart.reset();
-    UartH.reset();
 }
 
-Signals &Pins::prepareCycle() {
-    if (signal_rd() && signal_wr()) {
-        while (signal_clk() == LOW)
-            x1_cycle();
-        x1_cycle_hi();
-    }
-    return Signals::currCycle().getAddr();
-}
-
-Signals &Pins::completeCycle(Signals &signals) {
-    negate_wait();
-    if (signals.read()) {
-        _writes = 0;
-        x1_cycle_hi();
-        if (signals.readRam()) {
-            signals.debug('m').data = Memory.read(signals.addr);
-        } else {
-            ;  // inject data from signals.data
-        }
-        signals.outData();
-        Signals::nextCycle();
-    } else if (signals.write()) {
-        ++_writes;
-        signals.getData();
-        x1_cycle_hi();
-        if (signals.writeRam()) {
-            if (signals.addr <= _rom_end && signals.addr >= _rom_begin) {
-                // ROM area, ignore write from CPU;
-            } else {
-                Memory.write(signals.addr, signals.debug('m').data);
-            }
-        } else {
-            ;  // capture data to signals.data
-        }
-        Signals::nextCycle();
-    } else {
-        x1_cycle();
-    }
-    x1_cycle_hi();
+Signals &Pins::cycle() {
+    auto &signals = Signals::currCycle();
+    xtly_cycle_lo();
+    while (signal_write() != LOW)
+        xtly_cycle();
+    // WRITE=L
+    DEBUG_BUS(toggle_debug());
     busMode(DB, INPUT_PULLDOWN);
+    DEBUG_BUS(toggle_debug());
+    xtly_cycle();
+    xtly_cycle();
+    const auto read = Regs.romc_read(signals.getRomc());
+    if (read) {
+        DEBUG_BUS(toggle_debug());
+        signals.outData();
+        DEBUG_BUS(toggle_debug());
+    }
+    delayNanoseconds(xtly_read_romc);
+    xtly_cycle_lo();
+    while (signal_write() == LOW)
+        xtly_cycle();
+    // WRITE=H
+    if (read) {
+        delayNanoseconds(xtly_nowrite_romc);
+    } else {
+        DEBUG_BUS(toggle_debug());
+        Regs.romc_write(signals.getData());
+        DEBUG_BUS(toggle_debug());
+    }
+    Signals::nextCycle();
     return signals;
 }
 
-void Pins::dummyCycles() {
-    while (true) {
-        auto &signals = prepareCycle();
-        if (signals.read() || signals.write())
-            break;
-        completeCycle(signals);
-    }
-}
-
 void Pins::execInst(const uint8_t *inst, uint8_t len) {
-    execute(inst, len, nullptr, nullptr, 0);
+    execute(inst, len, nullptr, 0);
 }
 
-uint8_t Pins::captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
-        uint8_t *buf, uint8_t max) {
-    return execute(inst, len, addr, buf, max);
+uint8_t Pins::captureWrites(
+        const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max) {
+    return execute(inst, len, buf, max);
 }
 
-uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
-        uint8_t *buf, uint8_t max) {
-    negate_wait();
+uint8_t Pins::execute(
+        const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max) {
     uint8_t inj = 0;
     uint8_t cap = 0;
+    DEBUG_EXEC(assert_debug());
     while (inj < len || cap < max) {
-        auto &signals = prepareCycle();
+        auto &signals = Signals::currCycle();
         if (cap < max)
             signals.capture();
         if (inj < len)
             signals.inject(inst[inj]);
-        completeCycle(signals);
+        cycle();
         if (signals.read()) {
             signals.debug('i');  // injected
-            if (inj == 0 && addr)
-                *addr = signals.addr;
             if (inj < len)
                 inj++;
         } else if (signals.write()) {
@@ -308,41 +256,26 @@ uint8_t Pins::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
                 buf[cap++] = signals.data;
         }
     }
-    dummyCycles();
-    assert_wait();
+    DEBUG_EXEC(negate_debug());
     return cap;
 }
 
 void Pins::idle() {
-    // CPU stops at #WAIT=LOW
-    x1_cycle();
-    x1_cycle();
-    x1_cycle();
-    x1_cycle_hi();
+    // Inject "BR $"
+    Signals::currCycle().inject(Regs::BR);
+    cycle();  // ROMC=0x00
+    delayNanoseconds(xtly_idle_ns);
+    Signals::currCycle().inject(0xFF);
+    cycle();  // ROMC=0x1C
+    delayNanoseconds(xtly_idle_ns);
+    Signals::currCycle().inject(0xFF);
+    cycle();  // ROMC=0x01
 }
 
 void Pins::loop() {
     if (_freeRunning) {
         Usart.loop();
-        completeCycle(prepareCycle());
-        if (_writes == 4) {
-            const auto &signals = prepareCycle();
-            if (signals.addr == 0x0010) {
-                // SWI; break point or hlat to system (A=0)
-                const auto &frame = signals.prev(4);
-                const auto pc = (frame.data << 8) + frame.next().data;
-                const auto a = frame.next(2).data;
-                const auto breakPoint = isBreakPoint(pc - 1);
-                if (breakPoint || a == 0) {
-                    restoreBreakInsns();
-                    Signals::disassembleCycles(signals.prev(7));
-                    Regs.breakPoint(frame);
-                    _freeRunning = false;
-                    Commands.halt(false);
-                    return;
-                }
-            }
-        } else if (user_sw() == LOW) {
+        if (!rawStep() || user_sw() == LOW) {
             restoreBreakInsns();
             Commands.halt(true);
             return;
@@ -354,77 +287,60 @@ void Pins::loop() {
 
 void Pins::run() {
     Regs.restore(debug_cycles);
-    suspend(false, true);  // step over possible break point
-    saveBreakInsns();
-    Regs.restore(debug_cycles);
     Signals::resetCycles();
+    rawStep();  // step over possible break point
+    saveBreakInsns();
     _freeRunning = true;
     turn_on_led();
 }
 
 void Pins::halt(bool show) {
     if (_freeRunning) {
-        suspend(show, true);
+        if (show)
+            Signals::disassembleCycles();
+        Regs.save(debug_cycles);
+        turn_off_led();
+        _freeRunning = false;
     }
-    turn_off_led();
-    _freeRunning = false;
 }
 
-void Pins::suspend(bool show, bool nmi) {
-    negate_wait();
-    auto assertNmi = nmi;
-    while (_writes < 4) {
-        auto &signals = prepareCycle();
-        completeCycle(signals);
-        // Interrupt; n:d:d:1:d:W:W:W:W:1
-        if (assertNmi) {
-            assertNmi = false;
-            assert_nmi();
-            _writes = 0;
-        }
+bool Pins::rawStep() {
+    const auto opc = Memory.read(Regs.nextIp());
+    const auto len = Regs::insnLen(opc);
+    if (len == 0) {
+        // Unknown instruction. Just return.
+        return false;
     }
-    const auto &stop = Signals::currCycle();
-    negate_nmi();
-    dummyCycles();
-    if (show)
-        Signals::disassembleCycles(nmi ? stop.prev(6) : stop);
-    Regs.interrupt(stop.prev(4), nmi);
+    DEBUG_STEP(toggle_debug());
+    const auto busCycles = Regs::busCycles(opc) + len;
+    for (auto i = 0; i < busCycles; ++i)
+        cycle();
+    DEBUG_STEP(toggle_debug());
+    return true;
 }
 
 void Pins::step(bool show) {
-    const auto opc = Memory.read(Regs.nextIp());
-    Inst inst;
-    if (opc == Inst::HALT || !inst.get(Regs.nextIp())) {
-        // HALT or unknown instruction. Just return.
-        return;
-    }
     Regs.restore(debug_cycles);
     Signals::resetCycles();
-    suspend(show, opc != Inst::SWI);
+    rawStep();
+    if (show)
+        Signals::printCycles();
+    Regs.save(debug_cycles);
 }
 
-void Pins::assertIntr(IntrName intr) {
-    if (intr == INTR_INT0)
-        assert_int0();
-    else if (intr == INTR_INT1)
-        assert_int1();
+void Pins::assertIntreq() {
+    assert_intreq();
 }
 
-void Pins::negateIntr(IntrName intr) {
-    if (intr == INTR_INT0)
-        negate_int0();
-    else if (intr == INTR_INT1)
-        negate_int1();
+void Pins::negateIntreq() {
+    negate_intreq();
 }
 
 static const char TEXT_USART[] PROGMEM = "USART";
-static const char TEXT_UART[] PROGMEM = "UART";
 
 Pins::Device Pins::parseDevice(const char *name) const {
     if (strcasecmp_P(name, TEXT_USART) == 0)
         return Device::USART;
-    if (strcasecmp_P(name, TEXT_UART) == 0)
-        return Device::UART;
     return Device::NONE;
 }
 
@@ -432,17 +348,12 @@ void Pins::getDeviceName(Pins::Device dev, char *name) const {
     *name = 0;
     if (dev == Device::USART)
         strcpy_P(name, TEXT_USART);
-    if (dev == Device::UART)
-        strcpy_P(name, TEXT_UART);
 }
 
 void Pins::setDeviceBase(Pins::Device dev, bool hasValue, uint16_t base) {
     switch (dev) {
     case Device::USART:
         setSerialDevice(Device::USART, hasValue ? base : USART_BASE_ADDR);
-        break;
-    case Device::UART:
-        setSerialDevice(Device::UART, hasValue ? base : 0xFFEB);
         break;
     default:
         break;
@@ -461,22 +372,11 @@ void Pins::printDevices() const {
     } else {
         cli.println(F("disabled"));
     }
-    cli.print(F("UART (TLCS90) "));
-    if (serial == Device::UART) {
-        cli.print(F("at "));
-        cli.printDec(baseAddr);
-        cli.println(F(" bps"));
-    } else {
-        cli.println(F("disabled"));
-    }
 }
 
 Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
     if (_serialDevice == Device::USART) {
         baseAddr = Usart.baseAddr();
-    }
-    if (_serialDevice == Device::UART) {
-        baseAddr = UartH.baudrate();
     }
     return _serialDevice;
 }
@@ -484,7 +384,6 @@ Pins::Device Pins::getSerialDevice(uint16_t &baseAddr) const {
 void Pins::setSerialDevice(Pins::Device device, uint16_t baseAddr) {
     _serialDevice = device;
     Usart.enable(device == Device::USART, baseAddr);
-    UartH.enable(device == Device::UART);
 }
 
 void Pins::setRomArea(uint16_t begin, uint16_t end) {
@@ -539,7 +438,7 @@ void Pins::printBreakPoints() const {
 void Pins::saveBreakInsns() {
     for (uint8_t i = 0; i < _breakNum; ++i) {
         _breakInsns[i] = Memory.read(_breakPoints[i]);
-        Memory.write(_breakPoints[i], Inst::SWI);
+        Memory.write(_breakPoints[i], Regs::UNKN);
     }
 }
 

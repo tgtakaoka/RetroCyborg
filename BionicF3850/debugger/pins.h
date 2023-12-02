@@ -6,12 +6,6 @@
 #include "config.h"
 #include "signals.h"
 
-enum IntrName : uint8_t {
-    INTR_NONE = 0,
-    INTR_INT0 = 0x28,  // INT0 vector
-    INTR_INT1 = 0x58,  // INT1 vector
-};
-
 class Pins {
 public:
     void begin();
@@ -26,16 +20,15 @@ public:
     void idle();
 
     void execInst(const uint8_t *inst, uint8_t len);
-    uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
-            uint8_t *buf, uint8_t max);
+    uint8_t captureWrites(
+            const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
 
-    void assertIntr(IntrName intr);
-    void negateIntr(IntrName intr);
+    void assertIntreq();
+    void negateIntreq();
 
     enum Device : uint8_t {
         NONE = 0,
         USART = 1,  // i8251
-        UART = 2,   // TLCS90
     };
     Device parseDevice(const char *name) const;
     void getDeviceName(Device dev, char *name) const;
@@ -54,17 +47,11 @@ public:
 
 private:
     bool _freeRunning;
-    uint8_t _writes;
 
-    void x1_cycle() const;
-    void x1_cycle_hi() const;
-
-    Signals &prepareCycle();
-    Signals &completeCycle(Signals &signals);
-    void dummyCycles();
-    void suspend(bool show, bool nmi);
-    uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
-            uint8_t *buf, uint8_t max);
+    Signals &cycle();
+    bool rawStep();
+    uint8_t execute(
+            const uint8_t *inst, uint8_t len, uint8_t *buf, uint8_t max);
 
     Device _serialDevice;
     void setDeviceBase(Device dev, bool hasValue, uint16_t base);

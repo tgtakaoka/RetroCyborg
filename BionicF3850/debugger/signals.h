@@ -6,30 +6,34 @@
 #include "config.h"
 
 struct Signals {
-    Signals &getAddr();
-    bool read() const { return _rd == 0; }
-    bool write() const { return _wr == 0; }
-    void getData();
+    Signals &getRomc();
+    Signals &getData();
     void outData();
     void clear();
+    bool read() const { return _read; }
+    bool write() const { return _write; }
+    bool fetch() const { return _fetch; }
+    void markFetch() { _fetch = true; }
+    void markRead(uint16_t addr);
+    void markWrite(uint16_t addr);
+    void markIoRead(uint8_t addr);
+    void markIoWrite(uint8_t addr);
     Signals &inject(uint8_t data);
     void capture();
-    void print() const;
     Signals &debug(char c);
+    void print() const;
 
     uint16_t addr;
     uint8_t data;
+    uint8_t romc;
 
-    bool readRam() const {
-        return _inject == false;
-    }
-    bool writeRam() const {
-        return _capture == false;
-    }
+    bool readRam() const { return _inject == false; }
+    bool writeRam() const { return _capture == false; }
 
     static void printCycles();
-    static void disassembleCycles(const Signals &end);
+    static void disassembleCycles();
     static Signals &currCycle();
+    static void resetTo(const Signals &to);
     static void resetCycles();
     static void nextCycle();
     const Signals &prev(uint8_t backward = 1) const;
@@ -37,8 +41,10 @@ struct Signals {
     uint8_t diff(const Signals &s) const;
 
 private:
-    uint8_t _rd;
-    uint8_t _wr;
+    bool _read;
+    bool _write;
+    bool _fetch;
+    bool _io;
     bool _inject;
     bool _capture;
     char _debug;

@@ -3,7 +3,6 @@
 #include <libcli.h>
 
 #include "digital_fast.h"
-#include "inst.h"
 #include "pins.h"
 #include "regs.h"
 #include "string_util.h"
@@ -19,114 +18,43 @@ uint8_t Signals::_cycles = 0;
 Signals Signals::_signals[MAX_CYCLES];
 
 void Signals::clear() {
+    _read = _write = _fetch = _io = false;
     _inject = _capture = false;
     _debug = ' ';
 }
 
 void Signals::printCycles() {
     const auto &get = _signals[_get];
+    LOG(cli.print(F("@@ printCycles: cycles=")));
+    LOG(cli.printDec(_cycles));
+    LOG(cli.print(F(" get=")));
+    LOG(cli.printlnDec(&get - _signals));
     for (auto i = 0; i < _cycles; ++i) {
-        get.next(i).print();
+        const auto &s = get.next(i);
+        s.print();
     }
     resetCycles();
 }
 
-bool matchAll(const Signals &begin, const Signals &end) {
-    const auto cycles = begin.diff(end);
-    const auto limit = cycles * 2 / 3;
-    const Signals *prefetch = nullptr;
-    LOG(cli.print(F("@@ matchAll: begin=")));
-    LOG(begin.print());
-    for (auto i = 0; i < limit;) {
-        const auto &s = begin.next(i);
-        LOG(cli.print(F("@@  i=")));
-        LOG(cli.printlnDec(i));
-        Inst inst;
-        const auto &bus = prefetch ? *prefetch : s;
-        if (bus.read() && inst.get(bus.addr)) {
-            if (inst.match(s, end, prefetch)) {
-                const auto len = inst.instLen - (prefetch ? 1 : 0);
-                i += len + inst.busCycles;
-                prefetch = &s.next(len + inst.prefetch);
-                continue;
-            }
-            LOG(cli.print(F("@@ prefetch=")));
-            LOG(cli.printlnHex(prefetch ? prefetch->addr : 0, 4));
-            prefetch = nullptr;
-            for (auto j = i; j < i + 4; ++j) {
-                const auto &n = begin.next(j);
-                if (n.read() && n.addr == bus.addr + 1 && inst.match(n, end, &bus)) {
-                    const auto len = inst.instLen - 1;
-                    i = j + len + inst.busCycles;
-                    prefetch = &n.next(len + inst.prefetch);
-                    break;
-                }
-            }
-            if (prefetch) {
-                LOG(cli.print(F("@@ next prefetch=")));
-                LOG(cli.printlnHex(prefetch->addr, 4));
-                continue;
-            }
-        }
-        LOG(cli.print(F("@@ matchAll: FALSE i=")));
-        LOG(cli.printlnDec(i));
-        return false;
-    }
-    LOG(cli.println(F("@@ matchAll: MATCH")));
-    return true;
-}
-
-const Signals &find_fetch(const Signals &begin, const Signals &end) {
-    const auto cycles = begin.diff(end);
-    const auto limit = cycles >= 10 ? 10 : cycles;
-    for (auto i = 0; i < limit; ++i) {
-        if (matchAll(begin.next(i), end))
-            return begin.next(i);
-    }
-    return end;
-}
-
-void Signals::disassembleCycles(const Signals &end) {
+void Signals::disassembleCycles() {
     const auto &get = _signals[_get];
-    const auto &begin = find_fetch(get, end);
-    const auto num = get.diff(begin);
-    for (auto i = 0; i < num; ++i) {
-        get.next(i).print();
-    }
-    const auto cycles = begin.diff(end);
-    const Signals *prefetch = nullptr;
-    for (auto i = 0; i < cycles;) {
-        const auto &s = begin.next(i);
-        Inst inst;
-        const auto &bus = prefetch ? *prefetch : s;
-        if (bus.read() && inst.get(bus.addr)) {
-            if (inst.match(s, end, prefetch)) {
-                Memory.disassemble(bus.addr, 1);
-                const auto len = inst.instLen - (prefetch ? 1 : 0);
-                for (auto j = 0; j < inst.busCycles; ++j)
-                    s.next(len + j).print();
-                i += len + inst.busCycles;
-                prefetch = &s.next(len + inst.prefetch);
-                continue;
-            }
-            prefetch = nullptr;
-            for (auto j = i; j < i + 4; ++j) {
-                const auto &n = begin.next(j);
-                if (n.read() && n.addr == bus.addr + 1 && inst.match(n, end, &bus)) {
-                    Memory.disassemble(bus.addr, 1);
-                    const auto len = inst.instLen - 1;
-                    for (auto j = 0; j < inst.busCycles; ++j)
-                        n.next(len + j).print();
-                    i = j + len + inst.busCycles;
-                    prefetch = &n.next(len + inst.prefetch);
-                    break;
-                }
-            }
-            if (prefetch)
-                continue;
+    LOG(cli.print(F("@@ disassembleCycles: cycles=")));
+    LOG(cli.printDec(_cycles));
+    LOG(cli.print(F(" get=")));
+    LOG(cli.printlnDec(&get - _signals));
+    for (auto i = 0; i < _cycles;) {
+        const auto &s = get.next(i);
+        const auto len = Regs::insnLen(s.data);
+        if (s.fetch() && len) {
+            Memory.disassemble(s.addr, 1);
+            const auto cycles = Regs::busCycles(s.data);
+            for (auto j = 0; j < cycles; ++j)
+                s.next(len + j).print();
+            i += len + cycles;
+        } else {
+            s.print();
+            ++i;
         }
-        s.print();
-        ++i;
     }
     resetCycles();
 }
@@ -164,20 +92,41 @@ void Signals::nextCycle() {
     _signals[_put].clear();
 }
 
-Signals &Signals::getAddr() {
-    addr = busRead(ADL) | busRead(ADM) | busRead(ADH);
-    _rd = digitalReadFast(PIN_RD);
-    _wr = digitalReadFast(PIN_WR);
+Signals &Signals::getRomc() {
+    romc = busRead(ROMC);
     return *this;
 }
 
-void Signals::getData() {
+Signals &Signals::getData() {
     data = busRead(DB);
+    return *this;
 }
 
 void Signals::outData() {
     busWrite(DB, data);
     busMode(DB, OUTPUT);
+}
+
+void Signals::markRead(uint16_t a) {
+    addr = a;
+    _read = true;
+}
+
+void Signals::markWrite(uint16_t a) {
+    addr = a;
+    _write = true;
+}
+
+void Signals::markIoRead(uint8_t a) {
+    addr = a;
+    _io = true;
+    _read = true;
+}
+
+void Signals::markIoWrite(uint8_t a) {
+    addr = a;
+    _io = true;
+    _write = true;
 }
 
 Signals &Signals::inject(uint8_t val) {
@@ -191,19 +140,36 @@ void Signals::capture() {
 }
 
 void Signals::print() const {
+    LOG(cli.printDec(this - _signals, -3));
     // clang-format off
     static char buffer[] = {
-        ' ', ' ',                  // _debug=0
-        ' ',                       // #RD/#WR=2
-        ' ', 'A', '=', 0, 0, 0, 0, // addr=6
-        ' ', 'D', '=', 0, 0,       // data=13
+        0, ' ',                    // _debug=0
+        0, 0, ' ',                 // romc=2
+        0, ' ',                    // read/write=5
+        'A', '=', 0, 0, 0, 0, ' ', // addr=9
+        'D', '=', 0, 0,            // data=16
         0,
     };
-    // clang-format off
+    // clang-format on
     buffer[0] = _debug;
-    buffer[2] = (_rd == 0) ? 'R' : (_wr == 0 ? 'W' : ' ');
-    outHex16(buffer + 6, addr);
-    outHex8(buffer + 13, data);
+    outHex8(buffer + 2, romc);
+    if (_read || _write) {
+        buffer[5] = _read ? 'R' : 'W';
+        if (_io) {
+            buffer[9] = 'I';
+            buffer[10] = ' ';
+            outHex8(buffer + 11, addr);
+        } else {
+            outHex16(buffer + 9, addr);
+        }
+    } else {
+        buffer[5] = ' ';
+        buffer[9] = '_';
+        buffer[10] = '_';
+        buffer[11] = '_';
+        buffer[12] = '_';
+    }
+    outHex8(buffer + 16, data);
     cli.println(buffer);
 }
 

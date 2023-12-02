@@ -8,17 +8,28 @@
 #include "signals.h"
 
 struct Regs {
+    uint16_t _pc0;
+    uint16_t _pc1;
+    uint16_t _dc0;
+    uint16_t _dc1;
+
+    bool romc_read(Signals &signals);
+    bool romc_write(Signals &signals);
+    uint8_t read_reg(uint8_t addr);
+    void write_reg(uint8_t addr, uint8_t val);
+    uint8_t read_io(uint8_t addr);
+    void write_io(uint8_t addr, uint8_t val);
+
     void print() const;
-    void reset(bool show = false);
     void save(bool show = false);
     void restore(bool show = false);
-    void interrupt(const Signals &signals, bool nmi);
-    void breakPoint(const Signals &signals);
+    static uint8_t insnLen(uint8_t insn);
+    static uint8_t busCycles(uint8_t insn);
 
     const char *cpu() const;
     const char *cpuName() const;
 
-    uint16_t nextIp() const { return _pc; }
+    uint16_t nextIp() const { return _pc0; }
     uint32_t maxAddr() const { return UINT16_MAX; }
     void printRegList() const;
     char validUint8Reg(const char *word) const;
@@ -26,38 +37,23 @@ struct Regs {
     char validUint32Reg(const char *word) const { return 0; }
     void setRegValue(char reg, uint32_t value);
 
-private:
-    uint16_t _pc;
-    uint16_t _sp;
-    uint16_t _ix;
-    uint16_t _iy;
-    struct reg {
-        uint8_t a;
-        uint8_t f;
-        uint8_t b;
-        uint8_t c;
-        uint8_t d;
-        uint8_t e;
-        uint8_t h;
-        uint8_t l;
-        uint16_t bc() const { return r16(b, c); }
-        uint16_t de() const { return r16(d, e); }
-        uint16_t hl() const { return r16(h, l); }
-        void setbc(uint16_t v) {
-            b = hi(v);
-            c = lo(v);
-        }
-        void setde(uint16_t v) {
-            d = hi(v);
-            e = lo(v);
-        }
-        void sethl(uint16_t v) {
-            h = hi(v);
-            l = lo(v);
-        }
-    } _main, _alt;
+    static constexpr uint8_t BR = 0x90;
+    static constexpr uint8_t UNKN = 0x2F;
 
-    void saveRegs();
+private:
+    uint8_t _isar;
+    uint8_t _a;
+    uint8_t _w;
+    uint8_t _r[16];
+    uint8_t _ioaddr;
+    uint16_t _delay;
+
+    static constexpr uint8_t HU = 10;
+    static constexpr uint8_t HL = 11;
+    static constexpr uint8_t KU = 12;
+    static constexpr uint8_t KL = 13;
+    static constexpr uint8_t QU = 14;
+    static constexpr uint8_t QL = 15;
 
     static constexpr uint8_t hi(const uint16_t v) {
         return static_cast<uint8_t>(v >> 8);
@@ -65,9 +61,15 @@ private:
     static constexpr uint8_t lo(const uint16_t v) {
         return static_cast<uint8_t>(v);
     }
-    static constexpr uint16_t r16(const uint8_t hi, const uint8_t lo) {
+    static constexpr uint16_t uint16(const uint8_t hi, const uint8_t lo) {
         return static_cast<uint16_t>(hi) << 8 | lo;
     }
+
+    uint8_t isl() const { return _isar & 7; }
+    uint8_t isu() const { return (_isar >> 3) & 7; }
+    void set_isl(uint8_t val) { _isar = isu() | (val & 7); }
+    void set_isu(uint8_t val) { _isar = ((val & 7) << 3) | isl(); }
+    void update_r(uint8_t num, uint8_t val);
 };
 
 extern Regs Regs;
@@ -79,20 +81,15 @@ struct Memory : libasm::DisMemory {
 
     uint8_t read(uint16_t addr, const char *space = nullptr) const;
     void write(uint16_t addr, uint8_t data, const char *space = nullptr);
-    uint8_t raw_read(uint16_t addr) const;
-    void raw_write(uint16_t addr, uint8_t data);
-    uint8_t internal_read(uint16_t addr) const;
-    void internal_write(uint16_t addr, uint8_t data) const;
     void write(uint16_t addr, const uint8_t *data, uint8_t len);
 
     static constexpr auto memory_size = 0x10000;
-    static bool is_internal(uint16_t addr);
 
     uint16_t disassemble(uint16_t addr, uint16_t numInsn);
     uint16_t assemble(uint16_t addr, const char *line);
 
 private:
-    uint8_t nextByte() { return raw_read(address()); }
+    uint8_t nextByte() { return read(address()); }
 
     uint8_t memory[memory_size];
 };
