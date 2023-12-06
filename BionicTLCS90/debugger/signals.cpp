@@ -39,15 +39,37 @@ bool matchAll(const Signals &begin, const Signals &end) {
     LOG(begin.print());
     for (auto i = 0; i < limit;) {
         const auto &s = begin.next(i);
+        LOG(cli.print(F("@@  i=")));
+        LOG(cli.printlnDec(i));
         Inst inst;
-        const auto pre = prefetch ? 1 : 0;
-        if (inst.get(prefetch ? prefetch->addr : s.addr) &&
-                inst.match(s, end, prefetch)) {
-            i += inst.instLen - pre + inst.busCycles;
-            prefetch = &s.next(inst.instLen - pre + inst.prefetch);
-            continue;
+        const auto &bus = prefetch ? *prefetch : s;
+        if (bus.read() && inst.get(bus.addr)) {
+            if (inst.match(s, end, prefetch)) {
+                const auto len = inst.instLen - (prefetch ? 1 : 0);
+                i += len + inst.busCycles;
+                prefetch = &s.next(len + inst.prefetch);
+                continue;
+            }
+            LOG(cli.print(F("@@ prefetch=")));
+            LOG(cli.printlnHex(prefetch ? prefetch->addr : 0, 4));
+            prefetch = nullptr;
+            for (auto j = i; j < i + 4; ++j) {
+                const auto &n = begin.next(j);
+                if (n.read() && n.addr == bus.addr + 1 && inst.match(n, end, &bus)) {
+                    const auto len = inst.instLen - 1;
+                    i = j + len + inst.busCycles;
+                    prefetch = &n.next(len + inst.prefetch);
+                    break;
+                }
+            }
+            if (prefetch) {
+                LOG(cli.print(F("@@ next prefetch=")));
+                LOG(cli.printlnHex(prefetch->addr, 4));
+                continue;
+            }
         }
-        LOG(cli.println(F("@@ matchAll: FALSE")));
+        LOG(cli.print(F("@@ matchAll: FALSE i=")));
+        LOG(cli.printlnDec(i));
         return false;
     }
     LOG(cli.println(F("@@ matchAll: MATCH")));
@@ -76,19 +98,35 @@ void Signals::disassembleCycles(const Signals &end) {
     for (auto i = 0; i < cycles;) {
         const auto &s = begin.next(i);
         Inst inst;
-        const auto pre = prefetch ? 1 : 0;
-        const auto instAddr = prefetch ? prefetch->addr : s.addr;
-        if (inst.get(instAddr)) {
-            inst.match(s, end, prefetch);
-            Memory.disassemble(instAddr, 1);
-            for (auto j = 0; j < inst.busCycles; ++j)
-                s.next(inst.instLen - pre + j).print();
-            i += inst.instLen - pre + inst.busCycles;
-            prefetch = &s.next(inst.instLen - pre + inst.prefetch);
-        } else {
-            s.print();
-            ++i;
+        const auto &bus = prefetch ? *prefetch : s;
+        if (bus.read() && inst.get(bus.addr)) {
+            if (inst.match(s, end, prefetch)) {
+                Memory.disassemble(bus.addr, 1);
+                const auto len = inst.instLen - (prefetch ? 1 : 0);
+                for (auto j = 0; j < inst.busCycles; ++j)
+                    s.next(len + j).print();
+                i += len + inst.busCycles;
+                prefetch = &s.next(len + inst.prefetch);
+                continue;
+            }
+            prefetch = nullptr;
+            for (auto j = i; j < i + 4; ++j) {
+                const auto &n = begin.next(j);
+                if (n.read() && n.addr == bus.addr + 1 && inst.match(n, end, &bus)) {
+                    Memory.disassemble(bus.addr, 1);
+                    const auto len = inst.instLen - 1;
+                    for (auto j = 0; j < inst.busCycles; ++j)
+                        n.next(len + j).print();
+                    i = j + len + inst.busCycles;
+                    prefetch = &n.next(len + inst.prefetch);
+                    break;
+                }
+            }
+            if (prefetch)
+                continue;
         }
+        s.print();
+        ++i;
     }
     resetCycles();
 }
