@@ -19,6 +19,7 @@
   ? - print version.
 */
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -31,6 +32,7 @@
 #include "memory.h"
 #include "pins.h"
 #include "regs.h"
+#include "unio_eeprom.h"
 
 using State = libcli::State;
 extern libcli::Cli cli;
@@ -66,38 +68,47 @@ static uint8_t mem_buffer[16];
 
 static char str_buffer[40];
 
-static void memoryDump(
-        uint32_t addr, uint16_t len, const char *space = nullptr) {
+static void dump(uint32_t addr, uint16_t len, const uint8_t *buffer) {
     const auto start = addr;
     const auto end = addr + len;
-    for (addr &= ~0xF; addr < end; addr += 16) {
+    addr &= ~0xF;
+    for (auto i = 0; i < 16; i++) {
+        const auto a = addr + i;
+        if (a < start || a >= end) {
+            cli.print(F("   "));
+        } else {
+            cli.print(' ');
+            cli.printHex(buffer[i], 2);
+        }
+    }
+    cli.print(' ');
+    for (auto i = 0; i < 16; i++) {
+        const auto a = addr + i;
+        if (a < start || a >= end) {
+            cli.print(' ');
+        } else {
+            char data = buffer[i];
+            if (!isprint(data))
+                data = '.';
+            cli.print(data);
+        }
+    }
+    cli.println();
+}
+
+static void memoryDump(
+        uint32_t addr, uint16_t len, const char *space = nullptr) {
+    auto start = addr;
+    const auto end = addr + len;
+    for (addr &= ~0xF; addr < end; addr += 16, start = addr) {
         cli.printHex(addr, 4);
         cli.print(':');
         for (auto i = 0; i < 16; i++) {
             const auto a = addr + i;
-            if (a < start || a >= end) {
-                cli.print(F("   "));
-            } else {
-                const auto data = Memory.read(a, space);
-                cli.print(' ');
-                cli.printHex(data, 2);
-            }
+            if (a >= start && a < end)
+                mem_buffer[i] = Memory.read(a, space);
         }
-        cli.print(' ');
-        for (auto i = 0; i < 16; i++) {
-            const auto a = addr + i;
-            if (a < start || a >= end) {
-                cli.print(' ');
-            } else {
-                const char data = Memory.read(a, space);
-                if (isprint(data)) {
-                    cli.print(data);
-                } else {
-                    cli.print('.');
-                }
-            }
-        }
-        cli.println();
+        dump(start, end, mem_buffer);
     }
 }
 
@@ -539,6 +550,27 @@ static void handleClearBreak(char *line, uintptr_t extra, State state) {
     printPrompt();
 }
 
+static void printIdentity() {
+    extern unio::UnioBus unioBus;
+    unio::Eeprom rom{unioBus};
+    uint8_t buffer[16];
+    const auto valid = rom.read(0, sizeof(buffer), buffer);
+    const auto *identity = reinterpret_cast<const char *>(buffer);
+    cli.print(F("* Bionic"));
+    if (valid) {
+        cli.print(identity);
+    } else {
+        cli.print(F("?????"));
+    }
+    if (strcasecmp(identity, Regs.cpuName())) {
+        cli.print(F(" (CPU: "));
+        cli.print(Regs.cpuName());
+        cli.print(')');
+    }
+    cli.println(F(" * " VERSION_TEXT));
+    cli.println(USAGE);
+}
+
 void Commands::exec(char c) {
     switch (c) {
     case 'R':
@@ -633,10 +665,7 @@ void Commands::exec(char c) {
         cli.readWord(handleIo, 0, str_buffer, sizeof(str_buffer));
         return;
     case '?':
-        cli.print(F("* Bionic"));
-        cli.print(Regs.cpuName());
-        cli.println(F(" * " VERSION_TEXT));
-        cli.println(USAGE);
+        printIdentity();
         break;
     case '\r':
         cli.println();

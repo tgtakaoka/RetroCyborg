@@ -49,8 +49,8 @@
 #define PIN_PC2 32    /* P7.12 */
 #define PIN_RESET 28  /* P8.18 */
 #define PIN_XTAL 30   /* P8.23 */
-#define PIN_USRSW 35  /* P7.28 */
-#define PIN_USRLED 34 /* P7.29 */
+#define PIN_USRSW 24  /* P6.12 */
+#define PIN_USRLED 25 /* P6.13 */
 /**
  * For LILBUG's trace, Timer ouput (P21/PC1) is connected to #NMI on board.
  */

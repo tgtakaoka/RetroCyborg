@@ -62,8 +62,8 @@
 #define PIN_WAIT 32   /* P7.12 */
 #define PIN_RESET 28  /* P8.18 */
 #define PIN_RTS 31    /* P8.22 */
-#define PIN_USRSW 35  /* P7.28 */
-#define PIN_USRLED 34 /* P7.29 */
+#define PIN_USRSW 24  /* P6.12 */
+#define PIN_USRLED 25 /* P6.13 */
 #endif
 
 #endif

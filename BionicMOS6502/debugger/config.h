@@ -70,8 +70,8 @@
 #define PIN_RES 28    /* P8.18 */
 #define PIN_BE 31     /* P8.22 */
 #define PIN_VP 30     /* P8.23 */
-#define PIN_USRSW 35  /* P7.28 */
-#define PIN_USRLED 34 /* P7.29 */
+#define PIN_USRSW 24  /* P6.12 */
+#define PIN_USRLED 25 /* P6.13 */
 #endif
 
 #endif
