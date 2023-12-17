@@ -46,8 +46,6 @@ static constexpr bool debug_cycles = false;
  *  - BUS data is sampled at rising edge of c7 with hodling time 200ns.
  */
 
-#if defined(ARDUINO_TEENSY35)
-#endif
 #if defined(ARDUINO_TEENSY41)
 static constexpr auto clock_hi_ns = 120;
 static constexpr auto clock_lo_ns = 120;

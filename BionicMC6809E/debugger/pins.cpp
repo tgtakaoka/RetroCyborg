@@ -39,17 +39,6 @@ static constexpr bool debug_cycles = false;
  * - Write data gets valid after 200ns of rising Q edge.
  */
 
-#if defined(ARDUINO_TEENSY35)
-static constexpr auto raw_e_lo_q_lo_ns = 0;
-static constexpr auto e_lo_q_lo_ns = 0;
-static constexpr auto e_lo_q_hi_ns = 100;
-static constexpr auto e_hi_q_hi_novma_ns = 0;
-static constexpr auto e_hi_q_lo_novma_ns = 0;
-static constexpr auto e_hi_q_hi_write_ns = 0;
-static constexpr auto e_hi_q_lo_write_ns = 0;
-static constexpr auto e_hi_q_hi_read_ns = 0;
-static constexpr auto e_hi_q_lo_read_ns = 0;
-#endif
 #if defined(ARDUINO_TEENSY41)
 static constexpr auto raw_e_lo_q_lo_ns = 30;
 static constexpr auto e_lo_q_lo_ns = 0;

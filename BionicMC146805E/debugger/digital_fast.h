@@ -3,20 +3,6 @@
 
 #define __concat2__(a, b) a##b
 
-#if defined(ARDUINO_TEENSY35)
-#define __GPIO__(port) __concat2__(GPIO, port)
-#define __DDR__(port) __concat2__(port, _PDDR)
-#define __OUT__(port) __concat2__(port, _PDOR)
-#define __SET__(port) __concat2__(port, _PSOR)
-#define __CLR__(port) __concat2__(port, _PCOR)
-#define __IN__(port) __concat2__(port, _PDIR)
-#define GPIO(name) __GPIO__(PORT_##name)
-#define PDDR(name) __DDR__(GPIO(name))
-#define POUT(name) __OUT__(GPIO(name))
-#define PSET(name) __SET__(GPIO(name))
-#define PCLR(name) __CLR__(GPIO(name))
-#define PIN(name) __IN__(GPIO(name))
-#endif
 #if defined(ARDUINO_TEENSY41)
 #define __GPIO__(port) __concat2__(GPIO, port)
 #define __DDR__(port) __concat2__(port, _GDIR)

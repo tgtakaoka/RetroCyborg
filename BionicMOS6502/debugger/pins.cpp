@@ -35,12 +35,6 @@ static constexpr bool debug_cycles = false;
  * - edges from PHI1O to PHI2O are about 8ns.
  */
 
-#if defined(ARDUINO_TEENSY35)
-static constexpr auto phi0_raw_lo_ns = 200;
-static constexpr auto phi0_lo_ns = 30;
-static constexpr auto phi0_read_hi_ns = 500;
-static constexpr auto phi0_write_hi_ns = 500;
-#endif
 #if defined(ARDUINO_TEENSY41)
 static constexpr auto phi0_raw_lo_ns = 195;
 static constexpr auto phi0_lo_ns = 30;

@@ -44,10 +44,6 @@ static constexpr bool debug_cycles = false;
  * - #RST rising edge to 1st #BREQ takes ~14 XIN cycles.
  */
 
-#if defined(ARDUINO_TEENSY35)
-static constexpr auto xin_hi_ns = 125;
-static constexpr auto xin_lo_ns = 115;
-#endif
 #if defined(ARDUINO_TEENSY41)
 static constexpr auto xin_hi_ns = 125;
 static constexpr auto xin_lo_ns = 115;

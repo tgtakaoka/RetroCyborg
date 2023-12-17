@@ -36,24 +36,6 @@ static constexpr bool debug_cycles = false;
  * - Write data gets valid after 200ns of rising Q edge.
  */
 
-#if defined(ARDUINO_TEENSY35)
-static constexpr auto extal_hi_ns = 120;
-static constexpr auto extal_lo_ns = 120;
-static constexpr auto delay_extal_e_ns = 60;
-static constexpr auto c1_lo_ns = 0;
-static constexpr auto c1_hi_ns = 45;
-static constexpr auto c2_lo_ns = 45;
-static constexpr auto c2_hi_ns = 115;
-static constexpr auto c3_read_lo_ns = 5;
-static constexpr auto c3_read_hi_ns = 0;
-static constexpr auto c4_read_lo_ns = 0;
-static constexpr auto c4_read_hi_ns = 0;
-static constexpr auto c3_write_lo_ns = 5;
-static constexpr auto c3_write_hi_ns = 0;
-static constexpr auto c4_write_lo_ns = 0;
-static constexpr auto c4_write_hi_ns = 0;
-static constexpr auto next_c1_lo_ns = 0;
-#endif
 #if defined(ARDUINO_TEENSY41)
 static constexpr auto extal_hi_ns = 103;
 static constexpr auto extal_lo_ns = 33;

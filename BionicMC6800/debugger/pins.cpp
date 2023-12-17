@@ -41,13 +41,6 @@ static constexpr bool debug_cycles = false;
  * - Write data gets valid after 225ns of rising DBE edge.
  */
 
-#if defined(ARDUINO_TEENSY35)
-static constexpr auto dbe_negate_ns = 70;
-static constexpr auto phi1_hi_ns = 50;
-static constexpr auto phi2_novma_hi_ns = 20;
-static constexpr auto phi2_write_hi_ns = 0;
-static constexpr auto phi2_read_hi_ns = 0;
-#endif
 #if defined(ARDUINO_TEENSY41)
 static constexpr auto dbe_negate_ns = 120;
 static constexpr auto phi1_hi_ns = 180;

@@ -15,61 +15,6 @@
 #define W65C816S_ABORT PIN_PHI1O
 #define W65C816S_MX PIN_SO
 
-#if defined(ARDUINO_TEENSY35)
-#define PORT_D D      /* GPIOD */
-#define D_gp 0        /* PTD00-PTD07 */
-#define D_gm 0xFF     /* PTD00-PTD07 */
-#define D_vp 0        /* D0-D7 */
-#define PIN_D0 2      /* PTD00 */
-#define PIN_D1 14     /* PTD01 */
-#define PIN_D2 7      /* PTD02 */
-#define PIN_D3 8      /* PTD03 */
-#define PIN_D4 6      /* PTD04 */
-#define PIN_D5 20     /* PTD05 */
-#define PIN_D6 21     /* PTD06 */
-#define PIN_D7 5      /* PTD07 */
-#define PORT_AL C     /* GPIOC */
-#define AL_gp 0       /* PTC00-PTC11 */
-#define AL_gm 0xFFF   /* PTC00-PTC11 */
-#define AL_vp 0       /* A0-A11 */
-#define PIN_AL0 15    /* PTC00 */
-#define PIN_AL1 22    /* PTC01 */
-#define PIN_AL2 23    /* PTC02 */
-#define PIN_AL3 9     /* PTC03 */
-#define PIN_AL4 10    /* PTC04 */
-#define PIN_AL5 13    /* PTC05 */
-#define PIN_AL6 11    /* PTC06 */
-#define PIN_AL7 12    /* PTC07 */
-#define PIN_AL8 35    /* PTC08 */
-#define PIN_AL9 36    /* PTC09 */
-#define PIN_AL10 37   /* PTC10 */
-#define PIN_AL11 38   /* PTC11 */
-#define PORT_AH A     /* GPIOA */
-#define AH_gp 12      /* PTA12 */
-#define AH_gm 0xF     /* PTA12-PTA15 */
-#define AH_vp 12      /* A12-A15 */
-#define PIN_AH12 3    /* PTA12 */
-#define PIN_AH13 4    /* PTA13 */
-#define PIN_AH14 26   /* PTA14 */
-#define PIN_AH15 27   /* PTA15 */
-#define PIN_E 16      /* PTB00 */
-#define PIN_RW 17     /* PTB01 */
-#define PIN_IRQ 19    /* PTB02 */
-#define PIN_NMI 18    /* PTB03 */
-#define PIN_ML 0      /* PTB00 */
-#define PIN_SO 1      /* PTB01 */
-#define PIN_PHI0 29   /* PTB18 */
-#define PIN_PHI2O 30  /* PTB19 */
-#define PIN_PHI1O 33  /* PTE24 */
-#define PIN_SYNC 34   /* PTE25 */
-#define PIN_RDY 24    /* PTE26 */
-#define PIN_RES 25    /* PTA05 */
-#define PIN_BE 28     /* PTA16 */
-#define PIN_VP 39     /* PTA17 */
-#define PIN_USRSW 31  /* PTB10 */
-#define PIN_USRLED 32 /* PTB11 */
-#endif
-
 #if defined(ARDUINO_TEENSY41)
 #define PORT_D 6      /* GPIO6 */
 #define D_gp 16       /* P6.16-P6.23 */

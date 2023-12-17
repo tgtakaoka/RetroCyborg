@@ -9,63 +9,6 @@
 
 #define ACIA_BASE_ADDR 0xDF00
 
-#if defined(ARDUINO_TEENSY35)
-#define PORT_BUS D    /* GPIOD */
-#define DBUS_gp 0     /* PTD00-PTD07 */
-#define DBUS_gm 0xFF  /* PTD00-PTD07 */
-#define DBUS_vp 0     /* B0-B7 */
-#define PIN_DBUS0 2   /* PTD00 */
-#define PIN_DBUS1 14  /* PTD01 */
-#define PIN_DBUS2 7   /* PTD02 */
-#define PIN_DBUS3 8   /* PTD03 */
-#define PIN_DBUS4 6   /* PTD04 */
-#define PIN_DBUS5 20  /* PTD05 */
-#define PIN_DBUS6 21  /* PTD06 */
-#define PIN_DBUS7 5   /* PTD07 */
-#define PORT_MA C     /* GPIOC */
-#define MA_gp 0       /* PTC00-PTC04 */
-#define MA_gm 0xFF    /* PTC00-PTC07 */
-#define MA_vp 0       /* MA0-MA7 */
-#define PIN_MA0 15    /* PTC00 */
-#define PIN_MA1 22    /* PTC01 */
-#define PIN_MA2 23    /* PTC02 */
-#define PIN_MA3 9     /* PTC03 */
-#define PIN_MA4 10    /* PTC04 */
-#define PIN_MA5 13    /* PTC05 */
-#define PIN_MA6 12    /* PTC06 */
-#define PIN_MA7 11    /* PTC07 */
-#define PORT_N C      /* GPIOC */
-#define N_gp 8        /* PTC08-PTC10 */
-#define N_gm 0x07     /* PTC08-PTC10 */
-#define N_vp 0        /* N0-N2 */
-#define PIN_N0 35     /* PTC08 */
-#define PIN_N1 36     /* PTC09 */
-#define PIN_N2 37     /* PTC10 */
-#define PIN_Q 38      /* PTC11 */
-#define PORT_EF A     /* GPIOA */
-#define EF_gp 12      /* PTA12-PTA15 */
-#define EF_gm 0xF     /* PTA12-PTA15 */
-#define EF_vp 0       /* #EF1-#EF4 */
-#define PIN_EF1 3     /* PTA12 */
-#define PIN_EF2 4     /* PTA13 */
-#define PIN_EF3 26    /* PTA13 */
-#define PIN_EF4 27    /* PTA13 */
-#define PIN_TPA 16    /* PTB00 */
-#define PIN_TPB 17    /* PTB01 */
-#define PIN_INTR 19   /* PTB02 */
-#define PIN_SC0 0     /* PTB16 */
-#define PIN_SC1 1     /* PTB17 */
-#define PIN_CLOCK 29  /* PTB18 */
-#define PIN_MRD 33    /* PTE24 */
-#define PIN_MWR 34    /* PTE25 */
-#define PIN_WAIT 24   /* PTE26 */
-#define PIN_CLEAR 25  /* PTA05 */
-#define PIN_DMAIN 28  /* PTA16 */
-#define PIN_DMAOUT 39 /* PTA17 */
-#define PIN_USRSW 31  /* PTB10 */
-#define PIN_USRLED 32 /* PTB11 */
-#endif
-
 #if defined(ARDUINO_TEENSY41)
 #define PORT_DBUS 6   /* GPIO6 */
 #define DBUS_gp 16    /* P6.16-P6.23 */

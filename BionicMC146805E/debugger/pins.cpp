@@ -36,25 +36,6 @@ static constexpr bool debug_cycles = false;
  * - R/W is valid before rising edge of c1.
  */
 
-#if defined(ARDUINO_TEENSY35)
-static constexpr auto osc1_hi_ns = 100;
-static constexpr auto osc1_lo_ns = 100;
-static constexpr auto delay_osc1_asds_ns = 100;
-static constexpr auto raw_c1_lo_ns = 0;
-static constexpr auto c1_lo_ns = 0;
-static constexpr auto c1_hi_ns = 80;
-static constexpr auto c2_lo_ns = 40;
-static constexpr auto c2_hi_ns = 0;
-static constexpr auto c3_lo_ns = 30;
-static constexpr auto c3_hi_ns = 0;
-static constexpr auto c4_read_lo_ns = 0;
-static constexpr auto c4_read_hi_ns = 0;
-static constexpr auto c5_read_lo_ns = 0;
-static constexpr auto c4_write_lo_ns = 0;
-static constexpr auto c4_write_hi_ns = 0;
-static constexpr auto c5_write_lo_ns = 0;
-static constexpr auto c5_hi_ns = 0;
-#endif
 #if defined(ARDUINO_TEENSY41)
 static constexpr auto osc1_hi_ns = 84;
 static constexpr auto osc1_lo_ns = 76;
