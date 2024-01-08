@@ -1,0 +1,788 @@
+          0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+          0 :                            cpu     z86c
+          0 :                            option  "reg-alias", "disable"
+          0 :
+          0 :                            include "z8.inc"
+(1)       0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+(1)       0 :                    ;;; Z8
+(1)       0 : =FC                FLAGS:  equ     252               ; R/W: Flags register
+(1)       0 : =80                F_CARRY:        equ     %(2)10000000 ; set to 1 if carry
+(1)       0 : =40                F_ZERO:         equ     %(2)01000000 ; set to 1 if zero
+(1)       0 : =20                F_SIGN:         equ     %(2)00100000 ; set to 1 if negative
+(1)       0 : =10                F_OVERFLOW:     equ     %(2)00010000 ; set to 1 if overflow
+(1)       0 : =8                 F_DECIMAL_ADJ:  equ     %(2)00001000 ; decimal adjust
+(1)       0 : =4                 F_HALF_CARRY:   equ     %(2)00000100 ; set to 1 if carry from bit-3
+(1)       0 : =2                 F_USER2:        equ     %(2)00000010 ; User flag F2
+(1)       0 : =1                 F_USER1:        equ     %(2)00000001 ; User flah F1
+(1)       0 :                    ;;; Interrupt vectors
+(1)       0 : =0                 VEC_IRQ0:       equ     %0000   ; IRQ0
+(1)       0 : =2                 VEC_IRQ1:       equ     %0002   ; IRQ1
+(1)       0 : =4                 VEC_IRQ2:       equ     %0004   ; IRQ2/Tin
+(1)       0 : =6                 VEC_IRQ3:       equ     %0006   ; IRQ3/Serial in
+(1)       0 : =8                 VEC_IRQ4:       equ     %0008   ; IRQ4/Serial out/T0
+(1)       0 : =A                 VEC_IRQ5:       equ     %000A   ; IRQ5/T1
+(1)       0 :                    ;;; Reset origin
+(1)       0 : =C                 ORG_RESET:      equ     %000C   ; RESET
+(1)       0 :                    ;;; I/O Ports
+(1)       0 : =2                 PORT2:          equ     2       ; Port 2
+(1)       0 : =3                 PORT3:          equ     3       ; Port 3
+(1)       0 : =F7                P3M:            equ     247       ; W/O: Port 3 Mode Register
+(1)       0 : =80                P3M_PARITY:     equ     %(2)10000000 ; 1=Parity on
+(1)       0 : =40                P3M_SERIAL:     equ     %(2)01000000 ; 1=P30 is serial in, P37 is serial out
+(1)       0 : =1                 P3M_P2PUSHPULL: equ     %(2)00000001 ; 1=Port 2 is push-pull, 0=open drain
+(1)       0 : =F6                P2M:            equ     246       ; W/O: Port 2 Mode Register, 0=output, 1=input
+(1)       0 : =F8                P01M:           equ     248       ; W/O: Port 0 and 1 Mode Register
+(1)       0 : =82                P01M_P0ADDR:    equ     %(2)10000010 ; Port 0 is A8~A15
+(1)       0 : =10                P01M_P1DATA:    equ     %(2)00010000 ; Port 1 is AD0~AD7
+(1)       0 : =4                 P01M_INTERNAL:  equ     %(2)00000100 ; Stack is on internal memory
+(1)       0 :                    ;;; Interrupt
+(1)       0 : =F9                IPR:    equ     249             ; W/O: Interrupt Priority
+(1)       0 : =1                 IPR_CAB:        equ     %(2)000001 ; C > A > B
+(1)       0 : =8                 IPR_ABC:        equ     %(2)001000 ; A > B > C
+(1)       0 : =9                 IPR_ACB:        equ     %(2)001001 ; A > C > B
+(1)       0 : =10                IPR_BCA:        equ     %(2)010000 ; B > C > A
+(1)       0 : =11                IPR_CBA:        equ     %(2)010001 ; C > B > A
+(1)       0 : =18                IPR_BAC:        equ     %(2)011000 ; B > A > C
+(1)       0 : =0                 IPR_A53:        equ     %(2)000000 ; A: IRQ5 > IRQ3
+(1)       0 : =20                IPR_A35:        equ     %(2)100000 ; A: IRQ3 > IRQ5
+(1)       0 : =0                 IPR_B20:        equ     %(2)000000 ; B: IRQ2 > IRQ0
+(1)       0 : =4                 IPR_B02:        equ     %(2)000100 ; B: IRQ0 > IRQ2
+(1)       0 : =0                 IPR_C14:        equ     %(2)000000 ; C: IRQ0 > IRQ4
+(1)       0 : =2                 IPR_C41:        equ     %(2)000010 ; C: IRQ4 > IRQ0
+(1)       0 : =FB                IMR:    equ     251             ; R/W: Interrupt Mask
+(1)       0 : =80                IMR_ENABLE:     equ     %(2)10000000 ; Interrupt enable
+(1)       0 : =1                 IMR_IRQ0:       equ     (1 SHL 0)
+(1)       0 : =2                 IMR_IRQ1:       equ     (1 SHL 1)
+(1)       0 : =4                 IMR_IRQ2:       equ     (1 SHL 2)
+(1)       0 : =8                 IMR_IRQ3:       equ     (1 SHL 3)
+(1)       0 : =10                IMR_IRQ4:       equ     (1 SHL 4)
+(1)       0 : =20                IMR_IRQ5:       equ     (1 SHL 5)
+(1)       0 : =FA                IRQ:    equ     250             ; R/W: Interrupt Request
+(1)       0 : =1                 IRQ_IRQ0:       equ     IMR_IRQ0
+(1)       0 : =2                 IRQ_IRQ1:       equ     IMR_IRQ1
+(1)       0 : =4                 IRQ_IRQ2:       equ     IMR_IRQ2
+(1)       0 : =8                 IRQ_IRQ3:       equ     IMR_IRQ3
+(1)       0 : =10                IRQ_IRQ4:       equ     IMR_IRQ4
+(1)       0 : =20                IRQ_IRQ5:       equ     IMR_IRQ5
+(1)       0 :                    ;;; Counter/Timers
+(1)       0 : =F5                PRE0:   equ     245             ; W/O: Prescaler 0 register
+(1)       0 : =1                 PRE0_MODULO:    equ     %(2)00000001 ; 1=Modulo-N, 0=Single-pass
+(1)       0 : =FC                PRE0_gm:        equ     %(2)11111100 ; Modulo mask
+(1)       0 : =2                 PRE0_gp:        equ     2         ; Modulo bit position
+(1)       0 : =F3                PRE1:   equ     243               ; W/O: Prescaler 1 register
+(1)       0 : =1                 PRE1_MODULO:    equ     %(2)00000001 ; 1=Modulo-N, 0=SinglePass
+(1)       0 : =2                 PRE1_INTERNAL:  equ     %(2)00000010 ; 1=T1 internal, 0=T1 external
+(1)       0 : =FC                PRE1_gm:        equ     %(2)11111100 ; Modulo mask
+(1)       0 : =2                 PRE1_gp:        equ     2         ; Modulo bit position
+(1)       0 : =F2                T1:     equ     242               ; R/W: Counter/Timer 1 Register
+(1)       0 : =F4                T0:     equ     244               ; R/W: Counter/Timer 0 Register
+(1)       0 : =F1                TMR:    equ     241               ; R/W: Timer Mode Register
+(1)       0 : =1                 TMR_LOAD_T0:    equ     %(2)00000001 ; 1=Load T0
+(1)       0 : =2                 TMR_ENABLE_T0:  equ     %(2)00000010 ; 1=Enable T0
+(1)       0 : =4                 TMR_LOAD_T1:    equ     %(2)00000100 ; 1=Load T1
+(1)       0 : =8                 TMR_ENABLE_T1:  equ     %(2)00001000 ; 1=Enable T1
+(1)       0 : =0                 TMR_TOUT_OFF:   equ     %(2)00000000 ; TOUT off
+(1)       0 : =40                TMR_TOUT_T0:    equ     %(2)01000000 ; TOUT=T0
+(1)       0 : =80                TMR_TOUT_T1:    equ     %(2)10000000 ; TOUT=T1
+(1)       0 : =C0                TMR_TOUT_CLOCK: equ     %(2)11000000 ; TOUT=internal clock
+(1)       0 :                    ;;;
+(1)       0 : =F0                SIO:    equ     240             ; R/W: Serial I/O Register
+(1)       0 : =FD                RP:     equ     253             ; R/W: Register pointer
+(1)       0 : =FE                SPH:    equ     254             ; R/W: Stack Pointer High
+(1)       0 : =FF                SPL:    equ     255             ; R/W: Stack Pointer Low
+          0 :
+          0 :                    ;;; i8251 Universal Synchronous/Asynchronous Receiver/Transmitter
+          0 : =FF00              USART:  equ     %FF00
+          0 : =FF00              USARTD: equ     USART+0         ; Data register
+          0 : =FF01              USARTS: equ     USART+1         ; Status register
+          0 : =FF01              USARTC: equ     USART+1         ; Control register
+          0 :                            include "i8251.inc"
+(1)       0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+(1)       0 :                    ;;; i8251 USART device emulator.
+(1)       0 : =6                 MODE_STOP_gp:   equ     6
+(1)       0 : =C0                MODE_STOP_gm:   equ     %(2)11000000
+(1)       0 : =40                MODE_STOP1_gc:  equ     (1 SHL MODE_STOP_gp)
+(1)       0 : =80                MODE_STOP15_gc: equ     (2 SHL MODE_STOP_gp)
+(1)       0 : =C0                MODE_STOP2_gc:  equ     (3 SHL MODE_STOP_gp)
+(1)       0 : =20                MODE_EVEN_bm:   equ     %(2)00100000
+(1)       0 : =10                MODE_PARITY_bm: equ     %(2)00010000
+(1)       0 : =2                 MODE_LEN_gp:    equ     2
+(1)       0 : =C                 MODE_LEN_gm:    equ     %(2)00001100
+(1)       0 : =0                 MODE_LEN5_gc:   equ     (0 SHL MODE_LEN_gp)
+(1)       0 : =4                 MODE_LEN6_gc:   equ     (1 SHL MODE_LEN_gp)
+(1)       0 : =8                 MODE_LEN7_gc:   equ     (2 SHL MODE_LEN_gp)
+(1)       0 : =C                 MODE_LEN8_gc:   equ     (3 SHL MODE_LEN_gp)
+(1)       0 : =0                 MODE_BAUD_gp:   equ     0
+(1)       0 : =3                 MODE_BAUD_gm:   equ     %(2)00000011
+(1)       0 : =1                 MODE_BAUD_X1:   equ     (1 SHL MODE_BAUD_gp)
+(1)       0 : =2                 MODE_BAUD_X16:  equ     (2 SHL MODE_BAUD_gp)
+(1)       0 : =3                 MODE_BAUD_X64:  equ     (3 SHL MODE_BAUD_gp)
+(1)       0 :                    ;;; Bit Definition of command register
+(1)       0 : =80                CMD_EH_bm:      equ     %(2)10000000   ; Enter hunt mode
+(1)       0 : =40                CMD_IR_bm:      equ     %(2)01000000   ; Internal Reset
+(1)       0 : =20                CMD_RTS_bm:     equ     %(2)00100000   ; Request To Send
+(1)       0 : =10                CMD_ER_bm:      equ     %(2)00010000   ; Error Reset
+(1)       0 : =8                 CMD_SBRK_bm:    equ     %(2)00001000   ; Send Break
+(1)       0 : =4                 CMD_RxEN_bm:    equ     %(2)00000100   ; Receive Enable
+(1)       0 : =2                 CMD_DTR_bm:     equ     %(2)00000010   ; Data Terminal Ready
+(1)       0 : =1                 CMD_TxEN_bm:    equ     %(2)00000001   ; Transmit enable
+(1)       0 :                    ;;; Bit definition of status register
+(1)       0 : =80                ST_DSR_bm:      equ     %(2)10000000   ; Data Set Ready
+(1)       0 : =40                ST_BRK_bm:      equ     %(2)01000000   ; BREAK detected
+(1)       0 : =20                ST_FE_bm:       equ     %(2)00100000   ; Framing Error
+(1)       0 : =10                ST_OE_bm:       equ     %(2)00010000   ; Iverrun Error
+(1)       0 : =8                 ST_PE_bm:       equ     %(2)00001000   ; Parity Error
+(1)       0 : =4                 ST_TxEMPTY_bm:  equ     %(2)00000100   ; Transmitter empty
+(1)       0 : =2                 ST_RxRDY_bm:    equ     %(2)00000010   ; Receiver ready
+(1)       0 : =1                 ST_TxRDY_bm:    equ     %(2)00000001   ; Transmitter ready
+(1)       0 :                    ;;; Interrupt name for receive/transmit interrupt
+(1)       0 : =0                 INTR_NONE:      equ     0
+(1)       0 : =1                 INTR_IRQ0:      equ     1
+(1)       0 : =2                 INTR_IRQ1:      equ     2
+(1)       0 : =3                 INTR_IRQ2:      equ     3
+          0 :                    ;;; Async 1stop 8data x16
+          0 : =4E                ASYNC_MODE:     equ     MODE_STOP1_gc LOR MODE_LEN8_gc LOR MODE_BAUD_X16
+          0 :                    ;;; RTS/DTR, error reset, Rx enable, Tx enable
+          0 : =37                RX_EN_TX_EN:    equ     CMD_RTS_bm LOR CMD_DTR_bm LOR CMD_ER_bm LOR CMD_RxEN_bm LOR CMD_TxEN_bm
+          0 :
+       1000 :                            org     %1000
+       1000 : =1000              stack:  equ     $
+       1000 :
+          C :                            org     ORG_RESET
+          C : 8D 01 00                   jp      init_config
+          F :
+        100 :                            org     %0100
+        100 :                    init_config:
+        100 : 31 F0                      srp     #%F0
+        102 :                            setrp   %F0
+        102 :                            ;; Stack is on external memory
+        102 : 8C 92                      ld      P01M, #P01M_P0ADDR LOR P01M_P1DATA
+        104 : 6C FF                      ld      P2M, #%FF       ; Port 2 is input
+        106 : EC 10                      ld      SPH, #HIGH stack
+        108 : FC 00                      ld      SPL, #LOW stack
+        10A :
+        10A :                    init_usart:
+        10A : 31 10                      srp     #%10
+        10C :                            setrp   %10
+        10C : CC FF                      ld      r12, #HIGH USARTC
+        10E : DC 01                      ld      r13, #LOW USARTC
+        110 : B0 E0                      clr     r0
+        112 : 92 0C                      lde     @rr12, r0
+        114 : 92 0C                      lde     @rr12, r0
+        116 : 92 0C                      lde     @rr12, r0       ; safest way to sync mode
+        118 : 0C 40                      ld      r0, #CMD_IR_bm
+        11A : 92 0C                      lde     @rr12, r0       ; reset
+        11C : FF                         nop
+        11D : FF                         nop
+        11E : 0C 4E                      ld      r0, #ASYNC_MODE
+        120 : 92 0C                      lde     @rr12, r0       ; async 1stop 8data x16
+        122 : FF                         nop
+        123 : FF                         nop
+        124 : 0C 37                      ld      r0, #RX_EN_TX_EN
+        126 : 92 0C                      lde     @rr12, r0 ; RTS/DTR, error reset, Rx enable, Tx enable
+        128 : 8C FF                      ld      r8, #HIGH USARTD
+        12A : 9C 00                      ld      r9, #LOW USARTD
+        12C :
+        12C : D6 10 00                   call      arith
+        12F : 7F                         halt
+        130 :
+        130 :                    putchar:
+        130 : 70 E0                      push    r0
+        132 : A0 E8                      incw    rr8
+        134 :                    putchar_loop:   
+        134 : 82 08                      lde     r0, @rr8
+        136 : 76 E0 01                   tm      r0, #ST_TxRDY_bm
+        139 : 6B F9                      jr      z, putchar_loop
+        13B : 50 E0                      pop     r0
+        13D : 80 E8                      decw    rr8
+        13F : 92 08                      lde     @rr8, r0
+        141 : AF                         ret
+        142 :
+        142 :                    newline:
+        142 : 70 E0                      push    r0
+        144 : 0C 0D                      ld      r0, #%0D
+        146 : D6 01 30                   call    putchar
+        149 : 0C 0A                      ld      r0, #%0A
+        14B : D6 01 30                   call    putchar
+        14E : 50 E0                      pop     r0
+        150 : AF                         ret
+        151 :
+        151 :                    putspace:
+        151 : 70 E0                      push    r0
+        153 : 0C 20                      ld      r0, #' '
+        155 : D6 01 30                   call    putchar
+        158 : 50 E0                      pop     r0
+        15A : AF                         ret
+        15B :
+        15B :                    putflags:
+        15B : 18 FC                      ld      r1, FLAGS
+        15D : 76 E1 F0                   tm      r1, #F_CARRY LOR F_ZERO LOR F_SIGN LOR F_OVERFLOW
+        160 : EB 01                      jr      nz, putflags_spc
+        162 : AF                         ret
+        163 :                    putflags_spc:
+        163 : D6 01 51                   call    putspace
+        166 : 19 FC                      ld      FLAGS, r1
+        168 : FB 05                      jr      nc, putflags_nc
+        16A : 0C 43                      ld      r0, #'C'
+        16C : D6 01 30                   call    putchar
+        16F :                    putflags_nc:
+        16F : 19 FC                      ld      FLAGS, r1
+        171 : EB 05                      jr      nz, putflags_nz
+        173 : 0C 5A                      ld      r0, #'Z'
+        175 : D6 01 30                   call    putchar
+        178 :                    putflags_nz:
+        178 : 19 FC                      ld      FLAGS, r1
+        17A : DB 05                      jr      pl, putflags_pl
+        17C : 0C 53                      ld      r0, #'S'
+        17E : D6 01 30                   call    putchar
+        181 :                    putflags_pl:
+        181 : 19 FC                      ld      FLAGS, r1
+        183 : CB 05                      jr      nov, putflags_nov
+        185 : 0C 56                      ld      r0, #'V'
+        187 : D6 01 30                   call    putchar
+        18A :                    putflags_nov:
+        18A : AF                         ret
+        18B :
+        18B :                    expr:
+        18B : 70 E0                      push    r0
+        18D : 08 40                      ld      r0, a
+        18F : 18 41                      ld      r1, a+1
+        191 : D6 12 1F                   call    print_int16
+        194 : D6 01 51                   call    putspace
+        197 : 50 E0                      pop     r0
+        199 : D6 01 30                   call    putchar
+        19C : D6 01 51                   call    putspace
+        19F : 08 42                      ld      r0, b
+        1A1 : 18 43                      ld      r1, b+1
+        1A3 : 8D 12 1F                   jp      print_int16
+        1A6 :
+        1A6 :                    answer:
+        1A6 : D6 01 51                   call    putspace
+        1A9 : 0C 3D                      ld      r0, #'='
+        1AB : D6 01 30                   call    putchar
+        1AE : D6 01 51                   call    putspace
+        1B1 : 08 40                      ld      r0, a
+        1B3 : 18 41                      ld      r1, a+1
+        1B5 : D6 12 1F                   call    print_int16
+        1B8 : 8D 01 42                   jp      newline
+        1BB :
+        1BB :                    comp:
+        1BB : 4C 40                      ld      r4, #a
+        1BD : 5C 42                      ld      r5, #b
+        1BF : D6 12 6A                   call    cmpsi2
+        1C2 : 70 FC                      push    FLAGS
+        1C4 : AB 08                      jr      gt, comp_gt
+        1C6 : 6B 0A                      jr      eq, comp_eq
+        1C8 : 1B 0C                      jr      lt, comp_lt
+        1CA : 0C 3F                      ld      r0, #'?'
+        1CC : 8B 0A                      jr      comp_out
+        1CE :                    comp_gt:
+        1CE : 0C 3E                      ld      r0, #'>'
+        1D0 : 8B 06                      jr      comp_out
+        1D2 :                    comp_eq:
+        1D2 : 0C 3D                      ld      r0, #'='
+        1D4 : 8B 02                      jr      comp_out
+        1D6 :                    comp_lt:
+        1D6 : 0C 3C                      ld      r0, #'<'
+        1D8 :                    comp_out:
+        1D8 : D6 01 8B                   call    expr
+        1DB : 50 FC                      pop     FLAGS
+        1DD : D6 01 5B                   call    putflags
+        1E0 : 8D 01 42                   jp      newline
+        1E3 :
+         40 :                            org     %40
+         40 :                    a:      ds      2
+         42 :                    b:      ds      2
+         44 :
+       1000 :                            org     %1000
+       1000 :
+       1000 :                    arith:
+       1000 : 4C 40                      ld      r4, #a
+       1002 : 5C 42                      ld      r5, #b
+       1004 :
+       1004 : E6 40 00                   ld      a, #0
+       1007 : E6 41 00                   ld      a+1, #0
+       100A : E6 42 92                   ld      b, #HIGH -28000
+       100D : E6 43 A0                   ld      b+1, #LOW -28000
+       1010 : 0C 2D                      ld      r0, #'-'
+       1012 : D6 01 8B                   call    expr
+       1015 : D6 12 35                   call    negsi2
+       1018 : D6 01 A6                   call    answer          ; 28000
+       101B :
+       101B : E6 40 00                   ld      a, #0
+       101E : E6 41 00                   ld      a+1, #0
+       1021 : E6 42 6D                   ld      b, #HIGH 28000
+       1024 : E6 43 60                   ld      b+1, #LOW 28000
+       1027 : 0C 2D                      ld      r0, #'-'
+       1029 : D6 01 8B                   call    expr
+       102C : D6 12 35                   call    negsi2
+       102F : D6 01 A6                   call    answer          ; -28000
+       1032 :
+       1032 : E6 40 46                   ld      a, #HIGH 18000
+       1035 : E6 41 50                   ld      a+1, #LOW 18000
+       1038 : E6 42 6D                   ld      b, #HIGH 28000
+       103B : E6 43 60                   ld      b+1, #LOW 28000
+       103E : 0C 2B                      ld      r0, #'+'
+       1040 : D6 01 8B                   call    expr
+       1043 : D6 12 46                   call    addsi2
+       1046 : D6 01 A6                   call    answer          ; -19536
+       1049 :
+       1049 : E6 40 46                   ld      a, #HIGH 18000
+       104C : E6 41 50                   ld      a+1, #LOW 18000
+       104F : E6 42 B9                   ld      b, #HIGH -18000
+       1052 : E6 43 B0                   ld      b+1, #LOW -18000
+       1055 : 0C 2B                      ld      r0, #'+'
+       1057 : D6 01 8B                   call    expr
+       105A : D6 12 46                   call    addsi2
+       105D : D6 01 A6                   call    answer          ; 0
+       1060 :
+       1060 : E6 40 92                   ld      a, #HIGH -28000
+       1063 : E6 41 A0                   ld      a+1, #LOW -28000
+       1066 : 0C 2B                      ld      r0, #'+'
+       1068 : D6 01 8B                   call    expr
+       106B : D6 12 46                   call    addsi2
+       106E : D6 01 A6                   call    answer          ; 29536
+       1071 :
+       1071 : E6 40 46                   ld      a, #HIGH 18000
+       1074 : E6 41 50                   ld      a+1, #LOW 18000
+       1077 : E6 42 92                   ld      b, #HIGH -28000
+       107A : E6 43 A0                   ld      b+1, #LOW -28000
+       107D : 0C 2D                      ld      r0, #'-'
+       107F : D6 01 8B                   call    expr
+       1082 : D6 12 58                   call    subsi2
+       1085 : D6 01 A6                   call    answer          ; -19536
+       1088 :
+       1088 : E6 40 46                   ld      a, #HIGH 18000
+       108B : E6 41 50                   ld      a+1, #LOW 18000
+       108E : E6 42 B9                   ld      b, #HIGH -18000
+       1091 : E6 43 B0                   ld      b+1, #LOW -18000
+       1094 : 0C 2D                      ld      r0, #'-'
+       1096 : D6 01 8B                   call    expr
+       1099 : D6 12 58                   call    subsi2
+       109C : D6 01 A6                   call    answer          ; 29536
+       109F :
+       109F : E6 40 92                   ld      a, #HIGH -28000
+       10A2 : E6 41 A0                   ld      a+1, #LOW -28000
+       10A5 : 0C 2D                      ld      r0, #'-'
+       10A7 : D6 01 8B                   call    expr
+       10AA : D6 12 58                   call    subsi2
+       10AD : D6 01 A6                   call    answer          ; -10000
+       10B0 :
+       10B0 : E6 40 01                   ld      a, #HIGH 300
+       10B3 : E6 41 2C                   ld      a+1, #LOW 300
+       10B6 : E6 42 FF                   ld      b, #HIGH -200
+       10B9 : E6 43 38                   ld      b+1, #LOW -200
+       10BC : 0C 2A                      ld      r0, #'*'
+       10BE : D6 01 8B                   call    expr
+       10C1 : D6 12 C4                   call    mulsi2
+       10C4 : D6 01 A6                   call    answer          ; 5536
+       10C7 :
+       10C7 : E6 40 00                   ld      a, #HIGH 100
+       10CA : E6 41 64                   ld      a+1, #LOW 100
+       10CD : E6 42 FE                   ld      b, #HIGH -300
+       10D0 : E6 43 D4                   ld      b+1, #LOW -300
+       10D3 : 0C 2A                      ld      r0, #'*'
+       10D5 : D6 01 8B                   call    expr
+       10D8 : D6 12 C4                   call    mulsi2
+       10DB : D6 01 A6                   call    answer          ; -30000
+       10DE :
+       10DE : E6 40 FF                   ld      a, #HIGH -200
+       10E1 : E6 41 38                   ld      a+1, #LOW -200
+       10E4 : E6 42 FF                   ld      b, #HIGH -100
+       10E7 : E6 43 9C                   ld      b+1, #LOW -100
+       10EA : 0C 2A                      ld      r0, #'*'
+       10EC : D6 01 8B                   call    expr
+       10EF : D6 12 C4                   call    mulsi2
+       10F2 : D6 01 A6                   call    answer          ; 20000
+       10F5 :
+       10F5 : E6 40 FF                   ld      a, #HIGH -200
+       10F8 : E6 41 38                   ld      a+1, #LOW -200
+       10FB : E6 42 00                   ld      b, #HIGH 100
+       10FE : E6 43 64                   ld      b+1, #LOW 100
+       1101 : 0C 2F                      ld      r0, #'/'
+       1103 : D6 01 8B                   call    expr
+       1106 : D6 13 38                   call    divsi2
+       1109 : D6 01 A6                   call    answer          ; -2
+       110C :
+       110C : E6 40 75                   ld      a, #HIGH 30000
+       110F : E6 41 30                   ld      a+1, #LOW 30000
+       1112 : 0C 2F                      ld      r0, #'/'
+       1114 : D6 01 8B                   call    expr
+       1117 : D6 13 38                   call    divsi2
+       111A : D6 01 A6                   call    answer          ; 30
+       111D :
+       111D : E6 40 8A                   ld      a, #HIGH -30000
+       1120 : E6 41 D0                   ld      a+1, #LOW -30000
+       1123 : E6 42 FF                   ld      b, #HIGH -200
+       1126 : E6 43 38                   ld      b+1, #LOW -200
+       1129 : 0C 2F                      ld      r0, #'/'
+       112B : D6 01 8B                   call    expr
+       112E : D6 13 38                   call    divsi2
+       1131 : D6 01 A6                   call    answer          ; 150
+       1134 :
+       1134 : E6 40 8A                   ld      a, #HIGH -30000
+       1137 : E6 41 D0                   ld      a+1, #LOW -30000
+       113A : E6 42 00                   ld      b, #HIGH 78
+       113D : E6 43 4E                   ld      b+1, #LOW 78
+       1140 : 0C 2F                      ld      r0, #'/'
+       1142 : D6 01 8B                   call    expr
+       1145 : D6 13 38                   call    divsi2
+       1148 : D6 01 A6                   call    answer          ; -384
+       114B :
+       114B : E6 40 13                   ld      a, #HIGH 5000
+       114E : E6 41 88                   ld      a+1, #LOW 5000
+       1151 : E6 42 0F                   ld      b, #HIGH 4000
+       1154 : E6 43 A0                   ld      b+1, #LOW 4000
+       1157 : D6 01 BB                   call    comp
+       115A :
+       115A : E6 42 13                   ld      b, #HIGH 5000
+       115D : E6 43 88                   ld      b+1, #LOW 5000
+       1160 : D6 01 BB                   call    comp
+       1163 :
+       1163 : E6 40 0F                   ld      a, #HIGH 4000
+       1166 : E6 41 A0                   ld      a+1, #LOW 4000
+       1169 : D6 01 BB                   call    comp
+       116C :
+       116C : E6 40 EC                   ld      a, #HIGH -5000
+       116F : E6 41 78                   ld      a+1, #LOW -5000
+       1172 : E6 42 F0                   ld      b, #HIGH -4000
+       1175 : E6 43 60                   ld      b+1, #LOW -4000
+       1178 : D6 01 BB                   call    comp
+       117B :
+       117B : E6 42 EC                   ld      b, #HIGH -5000
+       117E : E6 43 78                   ld      b+1, #LOW -5000
+       1181 : D6 01 BB                   call    comp
+       1184 :
+       1184 : E6 40 F0                   ld      a, #HIGH -4000
+       1187 : E6 41 60                   ld      a+1, #LOW -4000
+       118A : D6 01 BB                   call    comp
+       118D :
+       118D : E6 40 7F                   ld      a, #HIGH 32700
+       1190 : E6 41 BC                   ld      a+1, #LOW 32700
+       1193 : E6 42 7F                   ld      b, #HIGH 32600
+       1196 : E6 43 58                   ld      b+1, #LOW 32600
+       1199 : D6 01 BB                   call    comp
+       119C :
+       119C : E6 42 7F                   ld      b, #HIGH 32700
+       119F : E6 43 BC                   ld      b+1, #LOW 32700
+       11A2 : D6 01 BB                   call    comp
+       11A5 :
+       11A5 : E6 40 7F                   ld      a, #HIGH 32600
+       11A8 : E6 41 58                   ld      a+1, #LOW 32600
+       11AB : D6 01 BB                   call    comp
+       11AE :
+       11AE : E6 40 80                   ld      a, #HIGH -32700
+       11B1 : E6 41 44                   ld      a+1, #LOW -32700
+       11B4 : E6 42 80                   ld      b, #HIGH -32600
+       11B7 : E6 43 A8                   ld      b+1, #LOW -32600
+       11BA : D6 01 BB                   call    comp
+       11BD :
+       11BD : E6 42 80                   ld      b, #HIGH -32700
+       11C0 : E6 43 44                   ld      b+1, #LOW -32700
+       11C3 : D6 01 BB                   call    comp
+       11C6 :
+       11C6 : E6 40 80                   ld      a, #HIGH -32600
+       11C9 : E6 41 A8                   ld      a+1, #LOW -32600
+       11CC : D6 01 BB                   call    comp
+       11CF :
+       11CF : E6 40 46                   ld      a, #HIGH 18000
+       11D2 : E6 41 50                   ld      a+1, #LOW 18000
+       11D5 : E6 42 92                   ld      b, #HIGH -28000
+       11D8 : E6 43 A0                   ld      b+1, #LOW -28000
+       11DB : D6 01 BB                   call    comp
+       11DE :
+       11DE : E6 42 46                   ld      b, #HIGH 18000
+       11E1 : E6 43 50                   ld      b+1, #LOW 18000
+       11E4 : D6 01 BB                   call    comp
+       11E7 :
+       11E7 : E6 40 92                   ld      a, #HIGH -28000
+       11EA : E6 41 A0                   ld      a+1, #LOW -28000
+       11ED : D6 01 BB                   call    comp
+       11F0 :
+       11F0 : AF                         ret
+       11F1 :
+       11F1 :                            include "arith.inc"
+(1)    11F1 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+(1)    11F1 :                            cpu     z86c
+(1)    11F1 :                            option  optimize-index, on
+(1)    11F1 :
+(1)    11F1 :                    ;;; Print unsigned 16-bit integer as decimal
+(1)    11F1 :                    ;;; @param rr0: value
+(1)    11F1 :                    ;;; @clobber rr0 rr12 rr14
+(1)    11F1 :                    print_uint16:
+(1)    11F1 : A0 E0                      incw    rr0
+(1)    11F3 : 80 E0                      decw    rr0
+(1)    11F5 : EB 06                      jr      nz, print_uint16_inner
+(1)    11F7 : 0C 30                      ld      r0, #'0'
+(1)    11F9 : D6 01 30                   call    putchar
+(1)    11FC :                    print_uint16_end:
+(1)    11FC : AF                         ret
+(1)    11FD :                    print_uint16_inner:
+(1)    11FD : A0 E0                      incw    rr0
+(1)    11FF : 80 E0                      decw    rr0
+(1)    1201 : 6B F9                      jr      z, print_uint16_end
+(1)    1203 : E8 E0                      ld      r14, r0
+(1)    1205 : F8 E1                      ld      r15, r1
+(1)    1207 : CC 00                      ld      r12, #HIGH 10
+(1)    1209 : DC 0A                      ld      r13, #LOW 10
+(1)    120B : D6 12 F7                   call    udiv16
+(1)    120E : 70 EF                      push    r15
+(1)    1210 : 08 EC                      ld      r0, r12
+(1)    1212 : 18 ED                      ld      r1, r13
+(1)    1214 : D6 11 FD                   call    print_uint16_inner
+(1)    1217 : 50 E0                      pop     r0
+(1)    1219 : 06 E0 30                   add     r0, #'0'
+(1)    121C : 8D 01 30                   jp      putchar
+(1)    121F :
+(1)    121F :                    ;;; Print signed 16-bit integer as decimal
+(1)    121F :                    ;;; @param rr0: value
+(1)    121F :                    ;;; @clobber rr0
+(1)    121F :                    print_int16:
+(1)    121F : 42 00                      or      r0, r0
+(1)    1221 : DB CE                      jr      pl, print_uint16
+(1)    1223 : 70 E0                      push    r0
+(1)    1225 : 0C 2D                      ld      r0, #'-'
+(1)    1227 : D6 01 30                   call    putchar
+(1)    122A : 50 E0                      pop     r0
+(1)    122C : 60 E1                      com     r1
+(1)    122E : 60 E0                      com     r0
+(1)    1230 : A0 E0                      incw    rr0
+(1)    1232 : 8D 11 F1                   jp      print_uint16
+(1)    1235 :
+(1)    1235 :                    ;;; Negation; result = -value
+(1)    1235 :                    ;;; @param @r4: result
+(1)    1235 :                    ;;; @param @r5: value
+(1)    1235 :                    ;;; @clobber r14, r15
+(1)    1235 :                    negsi2:
+(1)    1235 : E3 E5                      ld      r14, 0(r5)
+(1)    1237 : C7 F5 01                   ld      r15, 1(r5)
+(1)    123A : 60 EE                      com     r14
+(1)    123C : 60 EF                      com     r15
+(1)    123E : A0 EE                      incw    rr14
+(1)    1240 : F3 4E                      ld      0(r4), r14
+(1)    1242 : D7 F4 01                   ld      1(r4), r15
+(1)    1245 : AF                         ret
+(1)    1246 :
+(1)    1246 :                    ;;; Signed addition: summand += addend
+(1)    1246 :                    ;;; @param @r4: summand
+(1)    1246 :                    ;;; @param @r5: addend
+(1)    1246 :                    ;;; @clobber r14, r15
+(1)    1246 :                    addsi2:
+(1)    1246 : E3 E4                      ld      r14, 0(r4)
+(1)    1248 : C7 F4 01                   ld      r15, 1(r4)
+(1)    124B : 5E                         inc     r5
+(1)    124C : 03 F5                      add     r15, @r5
+(1)    124E : 00 E5                      dec     r5
+(1)    1250 : 13 E5                      adc     r14, @r5
+(1)    1252 : F3 4E                      ld      0(r4), r14
+(1)    1254 : D7 F4 01                   ld      1(r4), r15
+(1)    1257 : AF                         ret
+(1)    1258 :
+(1)    1258 :                    ;;; Singed subtraction: minuend -= subtrahend
+(1)    1258 :                    ;;; @param @r4: minuend
+(1)    1258 :                    ;;; @param @r5: subtrahend
+(1)    1258 :                    ;;; @clobber r14, r15
+(1)    1258 :                    subsi2:
+(1)    1258 : E3 E4                      ld      r14, 0(r4)
+(1)    125A : C7 F4 01                   ld      r15, 1(r4)
+(1)    125D : 5E                         inc     r5
+(1)    125E : 23 F5                      sub     r15, @r5
+(1)    1260 : 00 E5                      dec     r5
+(1)    1262 : 33 E5                      sbc     r14, @r5
+(1)    1264 : F3 4E                      ld      0(r4), r14
+(1)    1266 : D7 F4 01                   ld      1(r4), r15
+(1)    1269 : AF                         ret
+(1)    126A :
+(1)    126A :                    ;;; Signed comparison: minuend - subtrahend
+(1)    126A :                    ;;; @param @r4: minuend
+(1)    126A :                    ;;; @param @r5: subtrahend
+(1)    126A :                    ;;; @clobber r14, r15
+(1)    126A :                    cmpsi2:
+(1)    126A : E3 E4                      ld      r14, 0(r4)
+(1)    126C : C7 F4 01                   ld      r15, 1(r4)
+(1)    126F : 5E                         inc     r5
+(1)    1270 : 23 F5                      sub     r15, @r5
+(1)    1272 : 00 E5                      dec     r5
+(1)    1274 : 33 E5                      sbc     r14, @r5        ; rr14=@r4-@r5
+(1)    1276 : D6 12 7A                   call    addsub_flags    ; set C,Z,S,V
+(1)    1279 : AF                         ret
+(1)    127A :
+(1)    127A :                    ;;; Set add/sub flags
+(1)    127A :                    ;;; @param @r4: operand 1
+(1)    127A :                    ;;; @param @r5: operand 2
+(1)    127A :                    ;;; @param rr14: result
+(1)    127A :                    ;;; @param FLAGS
+(1)    127A :                    ;;; @return FLAGS: C, Z, S, V
+(1)    127A :                    addsub_flags:
+(1)    127A : 70 EF                      push    r15
+(1)    127C : 70 EE                      push    r14
+(1)    127E : 70 ED                      push    r13
+(1)    1280 : D8 FC                      ld      r13, FLAGS
+(1)    1282 : 46 ED 50                   or      r13, #F_ZERO LOR F_OVERFLOW ; set Z, V
+(1)    1285 : 42 FE                      or      r15, r14
+(1)    1287 : 6B 03                      jr      z, addsub_flags_z
+(1)    1289 : B6 ED 40                   xor     r13, #F_ZERO    ; clear Z
+(1)    128C :                    addsub_flags_z:
+(1)    128C : B3 E4                      xor     r14, @r4
+(1)    128E : B3 E5                      xor     r14, @r5        ; r14:7 carry into S
+(1)    1290 : FB 03                      jr      nc, addsub_flags_nc
+(1)    1292 : B6 EE 80                   xor     r14, #%80       ; r14:7=C^(carry into S)
+(1)    1295 :                    addsub_flags_nc:
+(1)    1295 : 5B 03                      jr      mi, addsub_flags_v
+(1)    1297 : B6 ED 10                   xor     r13, #F_OVERFLOW ; clear V
+(1)    129A :                    addsub_flags_v:
+(1)    129A : D9 FC                      ld      FLAGS, r13
+(1)    129C : 50 ED                      pop     r13
+(1)    129E : 50 EE                      pop     r14
+(1)    12A0 : 50 EF                      pop     r15
+(1)    12A2 : AF                         ret
+(1)    12A3 :
+(1)    12A3 :                    ;;; Unsigned multiplication: result = multiplicand * multiplier
+(1)    12A3 :                    ;;; @param rr14: multiplicand
+(1)    12A3 :                    ;;; @param rr12: multiplier
+(1)    12A3 :                    ;;; @return rr14: result
+(1)    12A3 :                    ;;; @clobber r10-r15
+(1)    12A3 :                    umul16:
+(1)    12A3 : A8 EE                      ld      r10, r14        ; rr10=multiplicand
+(1)    12A5 : B8 EF                      ld      r11, r15
+(1)    12A7 : EC 00                      ld      r14, #0         ; result=0
+(1)    12A9 : FC 00                      ld      r15, #0
+(1)    12AB : 8B 10                      jr      umul16_check
+(1)    12AD :                    umul16_loop:
+(1)    12AD : CF                         rcf                     ; multiplier >>= 1
+(1)    12AE : C0 EC                      rrc     r12
+(1)    12B0 : C0 ED                      rrc     r13
+(1)    12B2 : FB 04                      jr      nc, umul16_next ; if lsb(multiplier) == 0
+(1)    12B4 : 02 FB                      add     r15, r11
+(1)    12B6 : 12 EA                      adc     r14, r10        ; result += multiplicand
+(1)    12B8 :                    umul16_next:
+(1)    12B8 : CF                         rcf                     ; multiplicand <<= 1
+(1)    12B9 : 10 EB                      rlc     r11
+(1)    12BB : 10 EA                      rlc     r10
+(1)    12BD :                    umul16_check:
+(1)    12BD : A0 EC                      incw    rr12
+(1)    12BF : 80 EC                      decw    rr12
+(1)    12C1 : EB EA                      jr      nz, umul16_loop ; while multiplier != 0
+(1)    12C3 :                    umul16_end:
+(1)    12C3 : AF                         ret
+(1)    12C4 :
+(1)    12C4 :                    ;;; Signed multiplication: multiplicand *= multiplier
+(1)    12C4 :                    ;;; @param @r4: multiplicand
+(1)    12C4 :                    ;;; @param @r5: multiplier
+(1)    12C4 :                    ;;; @clobber r10-r15
+(1)    12C4 :                    mulsi2:
+(1)    12C4 : E3 E4                      ld      r14, 0(r4)
+(1)    12C6 : C7 F4 01                   ld      r15, 1(r4)
+(1)    12C9 : E3 C5                      ld      r12, 0(r5)
+(1)    12CB : C7 D5 01                   ld      r13, 1(r5)
+(1)    12CE : 42 CC                      or      r12, r12
+(1)    12D0 : DB 06                      jr      pl, mulsi2_abs_muliplicand
+(1)    12D2 : 60 EC                      com     r12
+(1)    12D4 : 60 ED                      com     r13
+(1)    12D6 : A0 EC                      incw    rr12            ; multiplicand = -multiplicand
+(1)    12D8 :                    mulsi2_abs_muliplicand:
+(1)    12D8 : 42 EE                      or      r14, r14
+(1)    12DA : DB 06                      jr      pl, mulsi2_multiply
+(1)    12DC : 60 EE                      com     r14
+(1)    12DE : 60 EF                      com     r15
+(1)    12E0 : A0 EE                      incw    rr14            ; multiplier = -multiplier
+(1)    12E2 :                    mulsi2_multiply:
+(1)    12E2 : D6 12 A3                   call    umul16          ; result = multiplicand * multiplier
+(1)    12E5 : E3 C4                      ld      r12, @r4
+(1)    12E7 : B3 C5                      xor     r12, @r5        ; r12=sign(@r4)^sign(@r5)
+(1)    12E9 : DB 06                      jr      pl, mulsi2_end
+(1)    12EB : 60 EE                      com     r14
+(1)    12ED : 60 EF                      com     r15
+(1)    12EF : A0 EE                      incw    rr14            ; result = -result
+(1)    12F1 :                    mulsi2_end:
+(1)    12F1 : F3 4E                      ld      0(r4), r14
+(1)    12F3 : D7 F4 01                   ld      1(r4), r15
+(1)    12F6 : AF                         ret
+(1)    12F7 :
+(1)    12F7 :                    ;;; Unsigned division: dividend / divisor = quotient ... reminder
+(1)    12F7 :                    ;;; @praram rr14: dividend
+(1)    12F7 :                    ;;; @praram rr12: divisor
+(1)    12F7 :                    ;;; @return rr14: reminder
+(1)    12F7 :                    ;;; @return rr12: quotient
+(1)    12F7 :                    ;;; @clobber r10-r15
+(1)    12F7 :                    udiv16:
+(1)    12F7 : 70 E9                      push    r9
+(1)    12F9 : A0 EC                      incw    rr12
+(1)    12FB : 80 EC                      decw    rr12
+(1)    12FD : 6D 13 35                   jp      z, udiv16_end
+(1)    1300 : 9C 01                      ld      r9, #1          ; r9=bits
+(1)    1302 : 8D 13 0B                   jp      udiv16_prep
+(1)    1305 :                    udiv16_prep_loop:
+(1)    1305 : CF                         rcf                     ; divisor <<= 1
+(1)    1306 : 10 ED                      rlc     r13
+(1)    1308 : 10 EC                      rlc     r12
+(1)    130A : 9E                         inc     r9
+(1)    130B :                    udiv16_prep:                    ; while msb(divisor) == 0
+(1)    130B : 42 CC                      or      r12, r12
+(1)    130D : DB F6                      jr      pl, udiv16_prep_loop
+(1)    130F : AC 00                      ld      r10, #0
+(1)    1311 : BC 00                      ld      r11, #0         ; rr10=quotient
+(1)    1313 : 8D 13 20                   jp      udiv16_enter_loop
+(1)    1316 :                    udiv16_loop:
+(1)    1316 : CF                         rcf                     ; divisor >>= 1
+(1)    1317 : C0 EC                      rrc     r12
+(1)    1319 : C0 ED                      rrc     r13
+(1)    131B : CF                         rcf                     ; quotient <<= 1
+(1)    131C : 10 EB                      rlc     r11
+(1)    131E : 10 EA                      rlc     r10
+(1)    1320 :                    udiv16_enter_loop:
+(1)    1320 : 22 FD                      sub     r15, r13        ; dividend -= divisor
+(1)    1322 : 32 EC                      sbc     r14, r12
+(1)    1324 : 7D 13 2B                   jp      c, udiv16_readd ; if dividend < 0
+(1)    1327 : BE                         inc     r11             ; quotient |= 1
+(1)    1328 : 8D 13 2F                   jp      udiv16_next
+(1)    132B :                    udiv16_readd:
+(1)    132B : 02 FD                      add     r15, r13        ; dividend += divisor
+(1)    132D : 12 EC                      adc     r14, r12        ; FLAG.D is always cleared
+(1)    132F :                    udiv16_next:
+(1)    132F : 9A E5                      djnz    r9, udiv16_loop ; rr14=reminder
+(1)    1331 : C8 EA                      ld      r12, r10        ; rr12=quotient
+(1)    1333 : D8 EB                      ld      r13, r11
+(1)    1335 :                    udiv16_end:
+(1)    1335 : 50 E9                      pop     r9
+(1)    1337 : AF                         ret
+(1)    1338 :
+(1)    1338 :                    ;;; Signed division: dividend *= divisor
+(1)    1338 :                    ;;; @param @r4: dividend
+(1)    1338 :                    ;;; @param @r5: divisor
+(1)    1338 :                    ;;; @clobber r10-r15
+(1)    1338 :                    divsi2:
+(1)    1338 : E3 E4                      ld      r14, 0(r4)
+(1)    133A : C7 F4 01                   ld      r15, 1(r4)
+(1)    133D : E3 C5                      ld      r12, 0(r5)
+(1)    133F : C7 D5 01                   ld      r13, 1(r5)
+(1)    1342 : 42 EE                      or      r14, r14
+(1)    1344 : DB 06                      jr      pl, divsi2_abs_dividend
+(1)    1346 : 60 EE                      com     r14
+(1)    1348 : 60 EF                      com     r15
+(1)    134A : A0 EE                      incw    rr14            ; dividend = -dividend
+(1)    134C :                    divsi2_abs_dividend:
+(1)    134C : 42 CC                      or      r12, r12
+(1)    134E : DB 06                      jr      pl, divsi2_divide
+(1)    1350 : 60 EC                      com     r12
+(1)    1352 : 60 ED                      com     r13
+(1)    1354 : A0 EC                      incw    rr12            ; divisor = -divisor
+(1)    1356 :                    divsi2_divide:
+(1)    1356 : D6 12 F7                   call    udiv16
+(1)    1359 : E3 E4                      ld      r14, @r4
+(1)    135B : B3 E5                      xor     r14, @r5        ; r14=sign(@r4)^sign(@r5)
+(1)    135D : DB 06                      jr      pl, divsi2_end
+(1)    135F : 60 EC                      com     r12
+(1)    1361 : 60 ED                      com     r13
+(1)    1363 : A0 EC                      incw    rr12            ; dividend = = -dividend
+(1)    1365 :                    divsi2_end:
+(1)    1365 : F3 4C                      ld      0(r4), r12
+(1)    1367 : D7 D4 01                   ld      1(r4), r13
+(1)    136A : AF                         ret
+(1)    136B :
+(1)    136B :                    ;;; Local Variables:
+(1)    136B :                    ;;; mode: asm
+(1)    136B :                    ;;; End:
+(1)    136B :                    ;;; vim: set ft=asm et ts=4 sw=4:
+       136B :
+       136B :                            end
