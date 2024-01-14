@@ -11,7 +11,7 @@ namespace ins8070 {
 bool Signals::fetch() const {
     // check at least 5 bus cycles.
     // this may not work for SSM instruction.
-    if (write() || _cycles < 6)
+    if (write() || get()->diff(this) < 6)
         return false;
     InstIns8070 inst;
     const auto end = next();
