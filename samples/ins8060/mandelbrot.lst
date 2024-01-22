@@ -1,0 +1,1480 @@
+          0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+          0 :                            cpu     ins8060
+          0 :                            include "ins8060.inc"
+(1)       0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+(1)       0 :                    ;;; INS8060
+(1)       0 :                    ;;; Status Register
+(1)       0 : =80                S_CY    =       X'80           ; Carry bit
+(1)       0 : =80                S_L     =       X'80           ; Link bit
+(1)       0 : =40                S_OV    =       X'40           ; Overflow bit
+(1)       0 : =20                S_SB    =       X'20           ; Sense B bit
+(1)       0 : =10                S_SA    =       X'10           ; Sense A bit
+(1)       0 : =8                 S_IE    =       X'08           ; Interrupt Enable bit
+(1)       0 : =4                 S_F2    =       X'04           ; Flag 2 bit
+(1)       0 : =2                 S_F1    =       X'02           ; Flag 1 bit
+(1)       0 : =1                 S_F0    =       X'01           ; flag 0 bit
+(1)       0 :
+(1)       0 :                    ;;; Dynamic Offset by E register
+(1)       0 : =80                OFFSET_E        =       X'80    ; offset by E register
+(1)       0 :
+(1)       0 :                    ;;; Transfer locations
+(1)       0 : =1                 ORG_RESTART     =       X'0001  ; Restart transfer location
+          0 :
+          0 :                    ;;; MC6850 Asynchronous Communication Interface Adapter
+          0 : =DF00              ACIA    =       X'DF00
+          0 :                            include "mc6850.inc"
+(1)       0 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+(1)       0 :
+(1)       0 :                    ;;; MC6850
+(1)       0 :                    ;;; Asynchronous Communication Interface Adapter
+(1)       0 :
+(1)       0 :                    ;;; Control register
+(1)       0 : =DF00              ACIA_control    =       ACIA+0
+(1)       0 :                            ;; Counter Divider Select Bits
+(1)       0 : =3                 CDS_gm          =       X'03   ; Group mask
+(1)       0 : =0                 CDS_DIV1_gc     =       X'00   ; /1
+(1)       0 : =1                 CDS_DIV16_gc    =       X'01   ; /16
+(1)       0 : =2                 CDS_DIV64_gc    =       X'02   ; /64
+(1)       0 : =3                 CDS_RESET_gc    =       X'03   ; Master Reset
+(1)       0 :                            ;; Word Select Bits
+(1)       0 : =1C                WSB_gm          =       X'1C   ; Group mask
+(1)       0 : =0                 WSB_7E2_gc      =       X'00   ; 7 Bits + Even Parity + 2 Stop Bits
+(1)       0 : =4                 WSB_7O2_gc      =       X'04   ; 7 bits + Odd Parity  + 2 Stop Bits
+(1)       0 : =8                 WSB_7E1_gc      =       X'08   ; 7 bits + Even Parity + 1 Stop Bits
+(1)       0 : =C                 WSB_7O1_gc      =       X'0C   ; 7 bits + Odd Parity  + 1 Stop Bits
+(1)       0 : =10                WSB_8N2_gc      =       X'10   ; 8 bits + No Parity   + 2 Stop Bits
+(1)       0 : =14                WSB_8N1_gc      =       X'14   ; 8 bits + No Parity   + 1 Stop Bits
+(1)       0 : =18                WSB_8E1_gc      =       X'18   ; 8 bits + Even Parity + 1 Stop Bits
+(1)       0 : =1C                WSB_8O1_gc      =       X'1C   ; 8 bits + Odd Parity  + 1 Stop Bits
+(1)       0 :                            ;; Transmit Control Bits
+(1)       0 : =60                TCB_gm          =       X'60   ; Group mask
+(1)       0 : =0                 TCB_DI_gc       =       X'00   ; RTS=Low,  Tx Interrupt Disabled
+(1)       0 : =20                TCB_EI_gc       =       X'20   ; RTS=Low,  Tx Interrupt Enabled
+(1)       0 : =40                TCB_RTS_gc      =       X'40   ; RTS=High, Tx Interrupt Disabled
+(1)       0 : =60                TCB_BREAK_gc    =       X'60   ; RTS=Low,  Tx Interrupt Disabled
+(1)       0 :                                                    ; Transmit Break Level
+(1)       0 : =80                RIEB_bm         =       X'80   ; Receive Interrupt Enable Bit mask
+(1)       0 :
+(1)       0 :                    ;;; Status register
+(1)       0 : =DF00              ACIA_status     =       ACIA+0
+(1)       0 : =1                 RDRF_bm         =       X'01   ; Receive Data Register Full
+(1)       0 : =2                 TDRE_bm         =       X'02   ; Transmit Data Register Empty
+(1)       0 : =4                 DCDF_bm         =       X'04   ; Data Carrier Detect Flag
+(1)       0 : =8                 CTSF_bm         =       X'08   ; Clear To Send Flag
+(1)       0 : =10                FERR_bm         =       X'10   ; Frame Error Flag
+(1)       0 : =20                OVRN_bm         =       X'20   ; Receiver Overrun Flag
+(1)       0 : =40                PERR_bm         =       X'40   ; Parity Error Flag
+(1)       0 : =80                IRQF_bm         =       X'80   ; Interrupt Request Flag
+(1)       0 :
+(1)       0 :                    ;;; Data register
+(1)       0 : =DF01              ACIA_data       =       ACIA+1  ; Data register
+          0 : =0                 ACIA_C  =       0               ; ACIA control offset
+          0 : =0                 ACIA_S  =       0               ; ACIA status offset
+          0 : =1                 ACIA_D  =       1               ; ACIA data register offset
+          0 :
+          0 : =10                rx_queue_size   =       16
+          0 : =30                tx_queue_size   =       48
+          0 : =94                RX_INT_TX_NO    =       WSB_8N1_gc|RIEB_bm
+          0 : =B4                RX_INT_TX_INT   =       WSB_8N1_gc|RIEB_bm|TCB_EI_gc
+          0 :
+       2000 :                            .=      X'2000
+       2000 :                    rx_queue:
+       2010 :                            .=      .+rx_queue_size
+       2010 :                    tx_queue:
+       2040 :                            .=      .+tx_queue_size
+       2040 :
+          1 :                            .=      ORG_RESTART
+          1 : C4 FF                      ldi     L(stack)
+          3 : 32                         xpal    P2
+          4 : C4 0F                      ldi     H(stack)
+          6 : 36                         xpah    P2
+          7 : C4 F3                      ldi     L(ADDR(isr_sensea))
+          9 : 33                         xpal    P3              ; setup interrupt entry P3
+          A : C4 16                      ldi     H(ADDR(isr_sensea))
+          C : 37                         xpah    P3
+          D : C4 FF                      ldi     L(ADDR(initialize))
+          F : 31                         xpal    P1
+         10 : C4 1F                      ldi     H(ADDR(initialize))
+         12 : 35                         xpah    P1
+         13 : 3D                         xppc    P1
+         14 :
+       1000 :                            .=      X'1000
+       1000 : =FFF               stack   =       .-1
+       1000 :                    initialize:
+       1000 : C4 20                      ldi     L(ADDR(queue_init))
+       1002 : 31                         xpal    P1
+       1003 : C4 16                      ldi     H(ADDR(queue_init))
+       1005 : 35                         xpah    P1              ; P1=queue_init
+       1006 : C4 10                      ldi     rx_queue_size
+       1008 : 3D                         xppc    P1              ; call queue_init
+       1009 : 00 20                      .dbyte  rx_queue
+       100B : C4 30                      ldi     tx_queue_size
+       100D : 3D                         xppc    P1              ; call queue init
+       100E : 10 20                      .dbyte  tx_queue
+       1010 :
+       1010 :                            ;; initialize ACIA
+       1010 : C4 00                      ldi     L(ACIA)
+       1012 : 31                         xpal    P1
+       1013 : C4 DF                      ldi     H(ACIA)
+       1015 : 35                         xpah    P1
+       1016 : C4 03                      ldi     CDS_RESET_gc    ; Master reset
+       1018 : C9 00                      st      ACIA_C(P1)
+       101A : C4 94                      ldi     RX_INT_TX_NO    ; 8 bits + No Parity + 1 Stop Bits
+       101C :                                                    ; Transmit, Receive interrupts disabled
+       101C : C9 00                      st      ACIA_C(P1)      ;
+       101E : 05                         ien                     ; enable interrupt
+       101F :
+       101F : C4 ED                      ldi     L(ADDR(mandelbrot))
+       1021 : 31                         xpal    P1
+       1022 : C4 10                      ldi     H(ADDR(mandelbrot))
+       1024 : 35                         xpah    P1
+       1025 : 3D                         xppc    P1              ; call mandelbrot
+       1026 : 00                         halt
+       1027 :
+       1027 :                            include "mandelbrot.inc"
+(1)    1027 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+(1)    1027 :
+(1)    1027 : 32 00              cF:     .dbyte  50              ; constant
+(1)    1029 : F4 FF              c_12:   .dbyte  -12
+(1)    102B : CF FF              c_49:   .dbyte  -49
+(1)    102D : E5 00              c229:   .dbyte  229
+(1)    102F : 64 00              c100:   .dbyte  100
+(1)    1031 : A0 01              c416:   .dbyte  416
+(1)    1033 : 1E 00              c30:    .dbyte  30
+(1)    1035 : 0D 00              c13:    .dbyte  13
+(1)    1037 : 00 00              vY:     .dbyte  0
+(1)    1039 : 00 00              vX:     .dbyte  0
+(1)    103B : 00 00              vC:     .dbyte  0
+(1)    103D : 00 00              vD:     .dbyte  0
+(1)    103F : 00 00              vI:     .dbyte  0
+(1)    1041 : 00 00              vA:     .dbyte  0
+(1)    1043 : 00 00              vB:     .dbyte  0
+(1)    1045 : 00 00              vS:     .dbyte  0
+(1)    1047 : 00 00              vP:     .dbyte  0
+(1)    1049 : 00 00              vQ:     .dbyte  0
+(1)    104B : 00 00              vT0:    .dbyte  0
+(1)    104D : 00 00              vT1:    .dbyte  0
+(1)    104F : 00 00              vT2:    .dbyte  0
+(1)    1051 :
+(1)    1051 :                    ;;; Assign value: v1 = v2
+(1)    1051 :                    ;;;   xppc   P1
+(1)    1051 :                    ;;;   .dbyte &v2
+(1)    1051 :                    ;;;   .dbyte &v1
+(1)    1051 :                    ;;; @local P[1:0] &v2, v2
+(1)    1051 :                    ;;; @local P[3:2] &v1
+(1)    1051 :                    ;;; @local P[5:4] return address
+(1)    1051 :                    assign_exit:
+(1)    1051 : C6 04                      ld      @4(P2)          ; discard locals
+(1)    1053 : C6 01                      ld      @1(P2)
+(1)    1055 : 31                         xpal    P1
+(1)    1056 : C6 01                      ld      @1(P2)
+(1)    1058 : 35                         xpah    P1
+(1)    1059 : 3D                         xppc    P1              ; return
+(1)    105A :                    assign:
+(1)    105A : C5 01                      ld      @1(P1)          ; point &v2
+(1)    105C : C5 01                      ld      @1(P1)
+(1)    105E : CE FA                      st      @-6(P2)         ; P2[1:0]=&v2
+(1)    1060 : C5 01                      ld      @1(P1)
+(1)    1062 : CA 01                      st      1(P2)
+(1)    1064 : C5 01                      ld      @1(P1)
+(1)    1066 : CA 02                      st      2(P2)           ; P2[3:2]=&v1
+(1)    1068 : C1 00                      ld      0(P1)           ; P1=return address
+(1)    106A : CA 03                      st      3(P2)
+(1)    106C : C2 00                      ld      0(P2)           ; P2[1:0]=&v2
+(1)    106E : 31                         xpal    P1
+(1)    106F : CA 04                      st      4(P2)           ; P2[5:4]=return address
+(1)    1071 : C2 01                      ld      1(P2)
+(1)    1073 : 35                         xpah    P1              ; P1=&v2
+(1)    1074 : CA 05                      st      5(P2)
+(1)    1076 : C1 00                      ld      0(P1)
+(1)    1078 : CA 00                      st      0(P2)           ; P2[1:0]=v2
+(1)    107A : C1 01                      ld      1(P1)
+(1)    107C : CA 01                      st      1(P2)
+(1)    107E : C2 02                      ld      2(P2)           ; P2[3:2]=&v1
+(1)    1080 : 31                         xpal    P1
+(1)    1081 : C2 03                      ld      3(P2)
+(1)    1083 : 35                         xpah    P1              ; P1=&v1
+(1)    1084 : C2 00                      ld      0(P2)           ; P2[1:0]=v2
+(1)    1086 : C9 00                      st      0(P1)
+(1)    1088 : C2 01                      ld      1(P2)
+(1)    108A : C9 01                      st      1(P1)
+(1)    108C : 90 C3                      jmp     assign_exit
+(1)    108E :
+(1)    108E :                    ;;; Print variable "vname=value "
+(1)    108E :                    ;;;   xppc   P1
+(1)    108E :                    ;;;   .byte  vname
+(1)    108E :                    ;;;   .dbyte &value
+(1)    108E :                    ;;; @local P[1:0] &value
+(1)    108E :                    ;;; @local P[3:2] return address
+(1)    108E :                    print_exit:
+(1)    108E : C6 02                      ld      @2(P2)          ; discard local
+(1)    1090 : C6 01                      ld      @1(P2)
+(1)    1092 : 31                         xpal    P1
+(1)    1093 : C6 01                      ld      @1(P2)
+(1)    1095 : 35                         xpah    P1
+(1)    1096 : 3D                         xppc    P1              ; return
+(1)    1097 :                    print:
+(1)    1097 : C5 01                      ld      @1(P1)          ; point vname
+(1)    1099 : C5 01                      ld      @1(P1)
+(1)    109B : 01                         xae                     ; E=vname
+(1)    109C : C5 01                      ld      @1(P1)
+(1)    109E : CE FC                      st      @-4(P2)         ; P2[1:0]=&value
+(1)    10A0 : C1 00                      ld      0(P1)           ; P1=return address
+(1)    10A2 : CA 01                      st      1(P2)
+(1)    10A4 : C2 00                      ld      0(P2)           ; P2[1:0]=&value
+(1)    10A6 : 31                         xpal    P1
+(1)    10A7 : CA 02                      st      2(P2)           ; P2[3:2]=return address
+(1)    10A9 : C2 01                      ld      1(P2)
+(1)    10AB : 35                         xpah    P1              ; P1=&value
+(1)    10AC : CA 03                      st      3(P2)
+(1)    10AE : C1 00                      ld      0(P1)           ; vDEBUG=value
+(1)    10B0 : C8 24                      st      vDEBUG
+(1)    10B2 : C1 01                      ld      1(P1)
+(1)    10B4 : C8 21                      st      vDEBUG+1
+(1)    10B6 : C4 F0                      ldi     L(ADDR(putchar))
+(1)    10B8 : 31                         xpal    P1
+(1)    10B9 : C4 15                      ldi     H(ADDR(putchar))
+(1)    10BB : 35                         xpah    P1              ; P1=ADDR(putchar)
+(1)    10BC : 40                         lde                     ; A=vname
+(1)    10BD : 3D                         xppc    P1              ; print vname
+(1)    10BE : C4 3D                      ldi     '='
+(1)    10C0 : 3D                         xppc    P1              ; print '='
+(1)    10C1 : C4 D1                      ldi     L(ADDR(print_int16))
+(1)    10C3 : 31                         xpal    P1
+(1)    10C4 : C4 12                      ldi     H(ADDR(print_int16))
+(1)    10C6 : 35                         xpah    P1
+(1)    10C7 : 3D                         xppc    P1
+(1)    10C8 : D5 10                      .dbyte  vDEBUG
+(1)    10CA : C4 F0                      ldi     L(ADDR(putchar))
+(1)    10CC : 31                         xpal    P1
+(1)    10CD : C4 15                      ldi     H(ADDR(putchar))
+(1)    10CF : 35                         xpah    P1              ; P1=ADDR(putchar)
+(1)    10D0 : C4 20                      ldi     ' '
+(1)    10D2 : 3D                         xppc    P1              ; print space
+(1)    10D3 : 90 B9                      jmp     print_exit
+(1)    10D5 : 02 00              vDEBUG: .dbyte  2
+(1)    10D7 :
+(1)    10D7 :                    newline:
+(1)    10D7 : C4 F0                      ldi     L(ADDR(putchar))
+(1)    10D9 : 31                         xpal    P1
+(1)    10DA : CE FE                      st      @-2(P2)
+(1)    10DC : C4 15                      ldi     H(ADDR(putchar))
+(1)    10DE : 35                         xpah    P1
+(1)    10DF : CA 01                      st      1(P2)
+(1)    10E1 : C4 0D                      ldi     X'0D
+(1)    10E3 : 3D                         xppc    P1              ; print CR
+(1)    10E4 : C4 0A                      ldi     X'0A
+(1)    10E6 : 3D                         xppc    P1              ; print LF
+(1)    10E7 : C6 01                      ld      @1(P2)
+(1)    10E9 : 31                         xpal    P1
+(1)    10EA : C6 01                      ld      @1(P2)
+(1)    10EC : 35                         xpah    P1
+(1)    10ED : 3D                         xppc    P1              ; return
+(1)    10EE :
+(1)    10EE :
+(1)    10EE :                    mandelbrot:
+(1)    10EE : C4 10                      ldi     H(ADDR(assign))
+(1)    10F0 : 35                         xpah    P1
+(1)    10F1 : CE FF                      st      @-1(P2)
+(1)    10F3 : C4 59                      ldi     L(ADDR(assign))
+(1)    10F5 : 31                         xpal    P1
+(1)    10F6 : CE FF                      st      @-1(P2)         ; save return address
+(1)    10F8 :
+(1)    10F8 : 3D                         xppc    P1              ; Y=-12
+(1)    10F9 : 29 10                      .dbyte  c_12
+(1)    10FB : 37 10                      .dbyte  vY
+(1)    10FD :                    loop_y:
+(1)    10FD : C4 59                      ldi     L(ADDR(assign))
+(1)    10FF : 31                         xpal    P1
+(1)    1100 : C4 10                      ldi     H(ADDR(assign))
+(1)    1102 : 35                         xpah    P1
+(1)    1103 : 3D                         xppc    P1              ; X=-49
+(1)    1104 : 2B 10                      .dbyte  c_49
+(1)    1106 : 39 10                      .dbyte  vX
+(1)    1108 :                    loop_x:
+(1)    1108 : C4 59                      ldi     L(ADDR(assign))
+(1)    110A : 31                         xpal    P1
+(1)    110B : C4 10                      ldi     H(ADDR(assign))
+(1)    110D : 35                         xpah    P1              ; P1=ADDR(assign)
+(1)    110E : 3D                         xppc    P1              ; C=X
+(1)    110F : 39 10                      .dbyte  vX
+(1)    1111 : 3B 10                      .dbyte  vC
+(1)    1113 : 3D                         xppc    P1              ; D=Y
+(1)    1114 : 37 10                      .dbyte  vY
+(1)    1116 : 3D 10                      .dbyte  vD
+(1)    1118 : C4 37                      ldi     L(ADDR(mulsi2))
+(1)    111A : 31                         xpal    P1
+(1)    111B : C4 14                      ldi     H(ADDR(mulsi2))
+(1)    111D : 35                         xpah    P1              ; P1=ADDR(mulsi2)
+(1)    111E : 3D                         xppc    P1              ; C=X*229
+(1)    111F : 2D 10                      .dbyte  c229
+(1)    1121 : 3B 10                      .dbyte  vC
+(1)    1123 : 3D                         xppc    P1              ; D=Y*416
+(1)    1124 : 31 10                      .dbyte  c416
+(1)    1126 : 3D 10                      .dbyte  vD
+(1)    1128 : C4 F1                      ldi     L(ADDR(divsi2))
+(1)    112A : 31                         xpal    P1
+(1)    112B : C4 14                      ldi     H(ADDR(divsi2))
+(1)    112D : 35                         xpah    P1              ; P1=ADDR(divsi2)
+(1)    112E : 3D                         xppc    P1              ; C=X*229/100
+(1)    112F : 2F 10                      .dbyte  c100
+(1)    1131 : 3B 10                      .dbyte  vC
+(1)    1133 : 3D                         xppc    P1              ; D=Y*416/100
+(1)    1134 : 2F 10                      .dbyte  c100
+(1)    1136 : 3D 10                      .dbyte  vD
+(1)    1138 : C4 59                      ldi     L(ADDR(assign))
+(1)    113A : 31                         xpal    P1
+(1)    113B : C4 10                      ldi     H(ADDR(assign))
+(1)    113D : 35                         xpah    P1              ; P1=ADDR(assign)
+(1)    113E : 3D                         xppc    P1              ; A=C
+(1)    113F : 3B 10                      .dbyte  vC
+(1)    1141 : 41 10                      .dbyte  vA
+(1)    1143 : 3D                         xppc    P1              ; B=D
+(1)    1144 : 3D 10                      .dbyte  vD
+(1)    1146 : 43 10                      .dbyte  vB
+(1)    1148 : C4 3F                      ldi     L(vI)
+(1)    114A : 31                         xpal    P1
+(1)    114B : C4 10                      ldi     H(vI)
+(1)    114D : 35                         xpah    P1              ; P1=&vI
+(1)    114E : C4 00                      ldi     0
+(1)    1150 : C9 00                      st      0(P1)           ; I=0
+(1)    1152 : C9 01                      st      1(P1)
+(1)    1154 :
+(1)    1154 :                            ;; ldi     L(ADDR(print))
+(1)    1154 :                            ;; xpal    P1
+(1)    1154 :                            ;; ldi     H(ADDR(print))
+(1)    1154 :                            ;; xpah    P1              ; P1=ADDR(print)
+(1)    1154 :                            ;; xppc    P1              ; print Y
+(1)    1154 :                            ;; .byte   'Y'
+(1)    1154 :                            ;; .dbyte  vY
+(1)    1154 :                            ;; xppc    P1              ; print X
+(1)    1154 :                            ;; .byte   'X'
+(1)    1154 :                            ;; .dbyte  vX
+(1)    1154 :                            ;; xppc    P1              ; print C
+(1)    1154 :                            ;; .byte   'C'
+(1)    1154 :                            ;; .dbyte  vC
+(1)    1154 :                            ;; xppc    P1              ; print D
+(1)    1154 :                            ;; .byte   'D'
+(1)    1154 :                            ;; .dbyte  vD
+(1)    1154 :                            ;; ldi     L(ADDR(newline))
+(1)    1154 :                            ;; xpal    P1
+(1)    1154 :                            ;; ldi     H(ADDR(newline))
+(1)    1154 :                            ;; xpah    P1              ; P1=ADDR(newline)
+(1)    1154 :                            ;; xppc    P1
+(1)    1154 :
+(1)    1154 :                    loop_i:
+(1)    1154 : C4 59                      ldi     L(ADDR(assign))
+(1)    1156 : 31                         xpal    P1
+(1)    1157 : C4 10                      ldi     H(ADDR(assign))
+(1)    1159 : 35                         xpah    P1              ; P1=ADDR(assign)
+(1)    115A : 3D                         xppc    P1              ; T0=B
+(1)    115B : 43 10                      .dbyte  vB
+(1)    115D : 4B 10                      .dbyte  vT0
+(1)    115F : 3D                         xppc    P1              ; S=B
+(1)    1160 : 43 10                      .dbyte  vB
+(1)    1162 : 45 10                      .dbyte  vS
+(1)    1164 : 3D                         xppc    P1              ; T1=B
+(1)    1165 : 43 10                      .dbyte  vB
+(1)    1167 : 4D 10                      .dbyte  vT1
+(1)    1169 : 3D                         xppc    P1              ; T2=A
+(1)    116A : 41 10                      .dbyte  vA
+(1)    116C : 4F 10                      .dbyte  vT2
+(1)    116E : C4 F1                      ldi     L(ADDR(divsi2))
+(1)    1170 : 31                         xpal    P1
+(1)    1171 : C4 14                      ldi     H(ADDR(divsi2))
+(1)    1173 : 35                         xpah    P1              ; P1=ADDR(divsi2)
+(1)    1174 : 3D                         xppc    P1              ; T0=B/F
+(1)    1175 : 27 10                      .dbyte  cF
+(1)    1177 : 4B 10                      .dbyte  vT0
+(1)    1179 : C4 59                      ldi     L(ADDR(assign))
+(1)    117B : 31                         xpal    P1
+(1)    117C : C4 10                      ldi     H(ADDR(assign))
+(1)    117E : 35                         xpah    P1              ; P1=ADDR(assign)
+(1)    117F : 3D                         xppc    P1              ; Q=T0=B/F
+(1)    1180 : 4B 10                      .dbyte  vT0
+(1)    1182 : 49 10                      .dbyte  vQ
+(1)    1184 : C4 37                      ldi     L(ADDR(mulsi2))
+(1)    1186 : 31                         xpal    P1
+(1)    1187 : C4 14                      ldi     H(ADDR(mulsi2))
+(1)    1189 : 35                         xpah    P1              ; P1=ADDR(mulsi2)
+(1)    118A : 3D                         xppc    P1              ; T0=(B/F)*F=Q*F
+(1)    118B : 27 10                      .dbyte  cF
+(1)    118D : 4B 10                      .dbyte  vT0
+(1)    118F : 3D                         xppc    P1              ; T1=B*B
+(1)    1190 : 4D 10                      .dbyte  vT1
+(1)    1192 : 4D 10                      .dbyte  vT1
+(1)    1194 : 3D                         xppc    P1              ; T2=A*A
+(1)    1195 : 4F 10                      .dbyte  vT2
+(1)    1197 : 4F 10                      .dbyte  vT2
+(1)    1199 : C4 98                      ldi     L(ADDR(subsi2))
+(1)    119B : 31                         xpal    P1
+(1)    119C : C4 13                      ldi     H(ADDR(subsi2))
+(1)    119E : 35                         xpah    P1              ; P1=ADDR(subsi2)
+(1)    119F : 3D                         xppc    P1              ; S=B-Q*F
+(1)    11A0 : 4B 10                      .dbyte  vT0
+(1)    11A2 : 45 10                      .dbyte  vS
+(1)    11A4 : 3D                         xppc    P1              ; T2=A*A-B*B
+(1)    11A5 : 4D 10                      .dbyte  vT1
+(1)    11A7 : 4F 10                      .dbyte  vT2
+(1)    11A9 : C4 59                      ldi     L(ADDR(assign))
+(1)    11AB : 31                         xpal    P1
+(1)    11AC : C4 10                      ldi     H(ADDR(assign))
+(1)    11AE : 35                         xpah    P1              ; P1=ADDR(assign)
+(1)    11AF : 3D                         xppc    P1              ; T0=A
+(1)    11B0 : 41 10                      .dbyte  vA
+(1)    11B2 : 4B 10                      .dbyte  vT0
+(1)    11B4 : 3D                         xppc    P1              ; B=A
+(1)    11B5 : 41 10                      .dbyte  vA
+(1)    11B7 : 43 10                      .dbyte  vB
+(1)    11B9 : C4 37                      ldi     L(ADDR(mulsi2))
+(1)    11BB : 31                         xpal    P1
+(1)    11BC : C4 14                      ldi     H(ADDR(mulsi2))
+(1)    11BE : 35                         xpah    P1              ; P1=ADDR(mulsi2)
+(1)    11BF : 3D                         xppc    P1              ; T0=A*S
+(1)    11C0 : 45 10                      .dbyte  vS
+(1)    11C2 : 4B 10                      .dbyte  vT0
+(1)    11C4 : 3D                         xppc    P1              ; B=A*Q
+(1)    11C5 : 49 10                      .dbyte  vQ
+(1)    11C7 : 43 10                      .dbyte  vB
+(1)    11C9 : C4 F1                      ldi     L(ADDR(divsi2))
+(1)    11CB : 31                         xpal    P1
+(1)    11CC : C4 14                      ldi     H(ADDR(divsi2))
+(1)    11CE : 35                         xpah    P1              ; P1=ADDR(divsi2)
+(1)    11CF : 3D                         xppc    P1              ; T2=(A*A-B*B)/F
+(1)    11D0 : 27 10                      .dbyte  cF
+(1)    11D2 : 4F 10                      .dbyte  vT2
+(1)    11D4 : 3D                         xppc    P1              ; T0=A*S/F
+(1)    11D5 : 27 10                      .dbyte  cF
+(1)    11D7 : 4B 10                      .dbyte  vT0
+(1)    11D9 : C4 56                      ldi     L(ADDR(addsi2))
+(1)    11DB : 31                         xpal    P1
+(1)    11DC : C4 13                      ldi     H(ADDR(addsi2))
+(1)    11DE : 35                         xpah    P1              ; P1=ADDR(addsi2)
+(1)    11DF : 3D                         xppc    P1              ; T2=(A*A-B*B)/F+C
+(1)    11E0 : 3B 10                      .dbyte  vC
+(1)    11E2 : 4F 10                      .dbyte  vT2
+(1)    11E4 : 3D                         xppc    P1              ; B=A*Q+A*S/F
+(1)    11E5 : 4B 10                      .dbyte  vT0
+(1)    11E7 : 43 10                      .dbyte  vB
+(1)    11E9 : 3D                         xppc    P1              ; B=2*(A*Q+A*S/F)
+(1)    11EA : 43 10                      .dbyte  vB
+(1)    11EC : 43 10                      .dbyte  vB
+(1)    11EE : 3D                         xppc    P1              ; B=2*(A*Q+A*S/F)+D
+(1)    11EF : 3D 10                      .dbyte  vD
+(1)    11F1 : 43 10                      .dbyte  vB
+(1)    11F3 : C4 59                      ldi     L(ADDR(assign))
+(1)    11F5 : 31                         xpal    P1
+(1)    11F6 : C4 10                      ldi     H(ADDR(assign))
+(1)    11F8 : 35                         xpah    P1              ; P1=ADDR(assign)
+(1)    11F9 : 3D                         xppc    P1              ; A=T2
+(1)    11FA : 4F 10                      .dbyte  vT2
+(1)    11FC : 41 10                      .dbyte  vA
+(1)    11FE : 3D                         xppc    P1              ; P=A
+(1)    11FF : 41 10                      .dbyte  vA
+(1)    1201 : 47 10                      .dbyte  vP
+(1)    1203 : 3D                         xppc    P1              ; Q=B
+(1)    1204 : 43 10                      .dbyte  vB
+(1)    1206 : 49 10                      .dbyte  vQ
+(1)    1208 : C4 F1                      ldi     L(ADDR(divsi2))
+(1)    120A : 31                         xpal    P1
+(1)    120B : C4 14                      ldi     H(ADDR(divsi2))
+(1)    120D : 35                         xpah    P1              ; P1=ADDR(divsi2)
+(1)    120E : 3D                         xppc    P1              ; P=A/F
+(1)    120F : 27 10                      .dbyte  cF
+(1)    1211 : 47 10                      .dbyte  vP
+(1)    1213 : 3D                         xppc    P1              ; Q=B/F
+(1)    1214 : 27 10                      .dbyte  cF
+(1)    1216 : 49 10                      .dbyte  vQ
+(1)    1218 :
+(1)    1218 :                            ;; ldi     L(ADDR(putchar))
+(1)    1218 :                            ;; xpal    P1
+(1)    1218 :                            ;; ldi     H(ADDR(putchar))
+(1)    1218 :                            ;; xpah    P1              ; P1=ADDR(putchar)
+(1)    1218 :                            ;; ldi     ' '
+(1)    1218 :                            ;; xppc    P1              ; print space
+(1)    1218 :                            ;; ldi     L(ADDR(print))
+(1)    1218 :                            ;; xpal    P1
+(1)    1218 :                            ;; ldi     H(ADDR(print))
+(1)    1218 :                            ;; xpah    P1              ; P1=ADDR(print)
+(1)    1218 :                            ;; xppc    P1              ; print I
+(1)    1218 :                            ;; .byte   'I'
+(1)    1218 :                            ;; .dbyte  vI
+(1)    1218 :                            ;; xppc    P1              ; print A
+(1)    1218 :                            ;; .byte   'A'
+(1)    1218 :                            ;; .dbyte  vA
+(1)    1218 :                            ;; xppc    P1              ; print B
+(1)    1218 :                            ;; .byte   'B'
+(1)    1218 :                            ;; .dbyte  vB
+(1)    1218 :                            ;; xppc    P1              ; print P
+(1)    1218 :                            ;; .byte   'P'
+(1)    1218 :                            ;; .dbyte  vP
+(1)    1218 :                            ;; xppc    P1              ; print Q
+(1)    1218 :                            ;; .byte   'Q'
+(1)    1218 :                            ;; .dbyte  vQ
+(1)    1218 :                            ;; ldi     L(ADDR(newline))
+(1)    1218 :                            ;; xpal    P1
+(1)    1218 :                            ;; ldi     H(ADDR(newline))
+(1)    1218 :                            ;; xpah    P1              ; P1=ADDR(newline)
+(1)    1218 :                            ;; xppc    P1              ; newline
+(1)    1218 :
+(1)    1218 : C4 37                      ldi     L(ADDR(mulsi2))
+(1)    121A : 31                         xpal    P1
+(1)    121B : C4 14                      ldi     H(ADDR(mulsi2))
+(1)    121D : 35                         xpah    P1              ; P1=ADDR(mulsi2)
+(1)    121E : 3D                         xppc    P1              ; Q=Q*Q
+(1)    121F : 49 10                      .dbyte  vQ
+(1)    1221 : 49 10                      .dbyte  vQ
+(1)    1223 : 3D                         xppc    P1              ; P=P*P
+(1)    1224 : 47 10                      .dbyte  vP
+(1)    1226 : 47 10                      .dbyte  vP
+(1)    1228 : C4 56                      ldi     L(ADDR(addsi2))
+(1)    122A : 31                         xpal    P1
+(1)    122B : C4 13                      ldi     H(ADDR(addsi2))
+(1)    122D : 35                         xpah    P1              ; P1=ADDR(addsi2)
+(1)    122E : 3D                         xppc    P1              ; P=P*P+Q*Q
+(1)    122F : 49 10                      .dbyte  vQ
+(1)    1231 : 47 10                      .dbyte  vP
+(1)    1233 : C4 47                      ldi     L(vP)
+(1)    1235 : 31                         xpal    P1
+(1)    1236 : C4 10                      ldi     H(vP)
+(1)    1238 : 35                         xpah    P1              ; P1=&vP
+(1)    1239 : C1 01                      ld      1(P1)           ; H(vP)
+(1)    123B : 9C 1F                      jnz     next_i
+(1)    123D : 03                         scl                     ; clear borrow
+(1)    123E : C4 04                      ldi     4
+(1)    1240 : F9 00                      cad     0(P1)           ; 4-L(vP)
+(1)    1242 : 94 18                      jp      next_i          ; branch if 4<P*P+Q*Q
+(1)    1244 :                    print_i:
+(1)    1244 : C4 3F                      ldi     L(vI)
+(1)    1246 : 31                         xpal    P1
+(1)    1247 : C4 10                      ldi     H(vI)
+(1)    1249 : 35                         xpah    P1              ; P1=&vI
+(1)    124A : C1 00                      ld      0(P1)
+(1)    124C : 03                         scl                     ; clear borrow
+(1)    124D : FC 0A                      cai     10              ; A=I-10
+(1)    124F : 94 06                      jp      print_i_hex
+(1)    1251 : C1 00                      ld      0(P1)
+(1)    1253 : DC 30                      ori     '0'
+(1)    1255 : 90 1B                      jmp     print_char
+(1)    1257 :                    print_i_hex:
+(1)    1257 : 02                         ccl
+(1)    1258 : F4 41                      adi     'A'
+(1)    125A : 90 16                      jmp     print_char
+(1)    125C :                    next_i:
+(1)    125C : C4 3F                      ldi     L(vI)
+(1)    125E : 31                         xpal    P1
+(1)    125F : C4 10                      ldi     H(vI)
+(1)    1261 : 35                         xpah    P1              ; P1=&vI
+(1)    1262 : A9 00                      ild     0(P1)           ; I+=1
+(1)    1264 : 03                         scl                     ; clear borrow
+(1)    1265 : FC 10                      cai     16              ; I-16
+(1)    1267 : 94 07                      jp      print_space     ; branch if I >= 16
+(1)    1269 : C4 53                      ldi     L(ADDR(loop_i))
+(1)    126B : 31                         xpal    P1
+(1)    126C : C4 11                      ldi     H(ADDR(loop_i))
+(1)    126E : 35                         xpah    P1
+(1)    126F : 3D                         xppc    P1              ; jump to loop_i
+(1)    1270 :                    print_space:
+(1)    1270 : C4 20                      ldi     ' '
+(1)    1272 :                    print_char:
+(1)    1272 : 01                         xae                     ; E=char
+(1)    1273 : C4 F0                      ldi     L(ADDR(putchar))
+(1)    1275 : 31                         xpal    P1
+(1)    1276 : C4 15                      ldi     H(ADDR(putchar))
+(1)    1278 : 35                         xpah    P1
+(1)    1279 : 40                         lde
+(1)    127A : 3D                         xppc    P1              ; print char
+(1)    127B :
+(1)    127B :                            ;; ldi     '@'
+(1)    127B :                            ;; xppc    P1              ; print '@='
+(1)    127B :                            ;; ldi     '='
+(1)    127B :                            ;; xppc    P1
+(1)    127B :                            ;; lde
+(1)    127B :                            ;; xppc    P1
+(1)    127B :                            ;; ldi     L(ADDR(newline))
+(1)    127B :                            ;; xpal    P1
+(1)    127B :                            ;; ldi     H(ADDR(newline))
+(1)    127B :                            ;; xpah    P1              ; P1=ADDR(newline)
+(1)    127B :                            ;; xppc    P1
+(1)    127B :
+(1)    127B : C4 CF                      ldi     L(ADDR(getchar))
+(1)    127D : 31                         xpal    P1
+(1)    127E : C4 15                      ldi     H(ADDR(getchar))
+(1)    1280 : 35                         xpah    P1              ; P1=ADDR(getchar)
+(1)    1281 : 3D                         xppc    P1
+(1)    1282 : 98 04                      jz      next_x
+(1)    1284 : 40                         lde
+(1)    1285 : 9C 01                      jnz     next_x
+(1)    1287 : 00                         halt                    ; halt to system
+(1)    1288 :
+(1)    1288 :                    next_x:
+(1)    1288 : C4 39                      ldi     L(vX)
+(1)    128A : 31                         xpal    P1
+(1)    128B : C4 10                      ldi     H(vX)
+(1)    128D : 35                         xpah    P1              ; P1=&X
+(1)    128E : A9 00                      ild     0(P1)           ; L(X)++
+(1)    1290 : 9C 02                      jnz     check_x
+(1)    1292 : A9 01                      ild     1(P1)           ; H(X)++
+(1)    1294 :                    check_x:
+(1)    1294 : C1 01                      ld      1(P1)           ; H(X)
+(1)    1296 : 9C 07                      jnz     jump_loop_x     ; branch if X<0
+(1)    1298 : 03                         scl                     ; clear borrow
+(1)    1299 : C1 00                      ld      0(P1)           ; L(X)
+(1)    129B : FC 1E                      cai     30              ; X-30
+(1)    129D : 94 07                      jp      next_y          ; branch if X>=30
+(1)    129F :                    jump_loop_x:
+(1)    129F : C4 07                      ldi     L(ADDR(loop_x))
+(1)    12A1 : 31                         xpal    P1
+(1)    12A2 : C4 11                      ldi     H(ADDR(loop_x))
+(1)    12A4 : 35                         xpah    P1
+(1)    12A5 : 3D                         xppc    P1              ; jump to loop_x
+(1)    12A6 :                    next_y:
+(1)    12A6 : C4 D6                      ldi     L(ADDR(newline))
+(1)    12A8 : 31                         xpal    P1
+(1)    12A9 : C4 10                      ldi     H(ADDR(newline))
+(1)    12AB : 35                         xpah    P1              ; P1=ADDR(newline)
+(1)    12AC : 3D                         xppc    P1
+(1)    12AD : C4 37                      ldi     L(vY)
+(1)    12AF : 31                         xpal    P1
+(1)    12B0 : C4 10                      ldi     H(vY)
+(1)    12B2 : 35                         xpah    P1              ; P1=&Y
+(1)    12B3 : A9 00                      ild     0(P1)           ; L(Y)++
+(1)    12B5 : 9C 02                      jnz     check_y
+(1)    12B7 : A9 01                      ild     1(P1)           ; H(Y)++
+(1)    12B9 :                    check_y:
+(1)    12B9 : C1 01                      ld      1(P1)           ; H(Y)
+(1)    12BB : 9C 07                      jnz     jump_loop_y     ; branch if Y<0
+(1)    12BD : 03                         scl                     ; clear borrow
+(1)    12BE : C1 00                      ld      0(P1)           ; L(Y)
+(1)    12C0 : FC 0D                      cai     13              ; Y-13
+(1)    12C2 : 94 07                      jp      mandelbrot_end  ; branch if Y>=13
+(1)    12C4 :                    jump_loop_y:
+(1)    12C4 : C4 FC                      ldi     L(ADDR(loop_y))
+(1)    12C6 : 31                         xpal    P1
+(1)    12C7 : C4 10                      ldi     H(ADDR(loop_y))
+(1)    12C9 : 35                         xpah    P1
+(1)    12CA : 3D                         xppc    P1              ; jump to loop_y
+(1)    12CB :
+(1)    12CB :                    mandelbrot_end:
+(1)    12CB : C6 01                      ld      @1(P2)
+(1)    12CD : 31                         xpal    P1
+(1)    12CE : C6 01                      ld      @1(P2)
+(1)    12D0 : 35                         xpah    P1
+(1)    12D1 : 3D                         xppc    P1              ; return
+       12D2 :                            include "arith.inc"
+(1)    12D2 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+(1)    12D2 :
+(1)    12D2 :                    ;;; Print int16_t value
+(1)    12D2 :                    ;;;   xppc   P1
+(1)    12D2 :                    ;;;   .dbyte &value
+(1)    12D2 :                    ;;; @local P2[1:0] &value
+(1)    12D2 :                    ;;; @local P2[7:0] buffer
+(1)    12D2 :                    ;;; @local P2[9:8] return address
+(1)    12D2 :                    print_int16:
+(1)    12D2 : C5 01                      ld      @1(P1)          ; point &value
+(1)    12D4 : C5 01                      ld      @1(P1)
+(1)    12D6 : CE F6                      st      @-10(P2)        ; P2[1:0]=&value
+(1)    12D8 : C1 00                      ld      0(P1)           ; P1=return address
+(1)    12DA : CA 01                      st      1(P2)
+(1)    12DC : 35                         xpah    P1
+(1)    12DD : CA 09                      st      9(P2)           ; P2[9:8]=return address
+(1)    12DF : C2 00                      ld      0(P2)
+(1)    12E1 : 31                         xpal    P1              ; P1=&value
+(1)    12E2 : CA 08                      st      8(P2)
+(1)    12E4 : C1 00                      ld      0(P1)
+(1)    12E6 : C8 21                      st      vPRINT
+(1)    12E8 : C1 01                      ld      1(P1)
+(1)    12EA : C8 1E                      st      vPRINT+1        ; vPRINT=value
+(1)    12EC : 94 1C                      jp      print_uint16    ; branch if value >= 0
+(1)    12EE : 03                         scl                     ; clear borrow
+(1)    12EF : C4 00                      ldi     0
+(1)    12F1 : F8 16                      cad     vPRINT
+(1)    12F3 : C8 14                      st      vPRINT
+(1)    12F5 : C4 00                      ldi     0
+(1)    12F7 : F8 11                      cad     vPRINT+1
+(1)    12F9 : C8 0F                      st      vPRINT+1        ; negate vPRINT
+(1)    12FB : C4 F0                      ldi     L(ADDR(putchar))
+(1)    12FD : 31                         xpal    P1
+(1)    12FE : C4 15                      ldi     H(ADDR(putchar))
+(1)    1300 : 35                         xpah    P1
+(1)    1301 : C4 2D                      ldi     '-'
+(1)    1303 : 3D                         xppc    P1              ; print '-'
+(1)    1304 : 90 04                      jmp     print_uint16
+(1)    1306 :                    ;;; Print uint16_t value
+(1)    1306 :                    ;;; @param vPRINT value
+(1)    1306 :                    ;;; @local P2[7:0] buffer
+(1)    1306 :                    ;;; @local P2[9:8] return address
+(1)    1306 :                    ;;; @clobber E
+(1)    1306 : 0A 00              vPRINT10:       .dbyte  10      ; constant 10
+(1)    1308 : 00 00              vPRINT:         .dbyte  0
+(1)    130A :                    print_uint16:
+(1)    130A : C4 00                      ldi     0
+(1)    130C : CA 00                      st      0(P2)           ; buffer[0]=0
+(1)    130E : C4 01                      ldi     1
+(1)    1310 : 01                         xae                     ; E=1
+(1)    1311 :                    print_uint16_loop:
+(1)    1311 : C4 F1                      ldi     L(ADDR(divsi2))
+(1)    1313 : 31                         xpal    P1
+(1)    1314 : C4 14                      ldi     H(ADDR(divsi2))
+(1)    1316 : 35                         xpah    P1
+(1)    1317 : 3D                         xppc    P1              ; calculate vPRINT/=10
+(1)    1318 : 06 13                      .dbyte  vPRINT10
+(1)    131A : 08 13                      .dbyte  vPRINT
+(1)    131C : C4 14                      ldi     H(vREMINDER)
+(1)    131E : 35                         xpah    P1
+(1)    131F : C4 DF                      ldi     L(vREMINDER)
+(1)    1321 : 31                         xpal    P1              ; P1=&vREMINDER
+(1)    1322 : C1 00                      ld      0(P1)           ; L(vREMINDER)
+(1)    1324 : DC 30                      ori     '0'
+(1)    1326 : CA 80                      st      E(P2)           ; buffer[E]=digit
+(1)    1328 : 02                         ccl
+(1)    1329 : C4 01                      ldi     1
+(1)    132B : 70                         ade
+(1)    132C : 01                         xae                     ; ++E
+(1)    132D : C0 DA                      ld      vPRINT
+(1)    132F : D8 D9                      or      vPRINT+1
+(1)    1331 : 9C DE                      jnz     print_uint16_loop ; while vPRINT!=0
+(1)    1333 : C4 F0                      ldi     L(ADDR(putchar))
+(1)    1335 : 31                         xpal    P1
+(1)    1336 : C4 15                      ldi     H(ADDR(putchar))
+(1)    1338 : 35                         xpah    P1              ; P1=ADDR(putchar)
+(1)    1339 :                    print_uint16_putdigit:
+(1)    1339 : 40                         lde
+(1)    133A : 03                         scl                     ; clear borrow
+(1)    133B : FC 01                      cai     1
+(1)    133D : 01                         xae                     ; --E
+(1)    133E : C2 80                      ld      E(P2)
+(1)    1340 : 98 03                      jz      print_int16_return
+(1)    1342 : 3D                         xppc    P1              ; print digit
+(1)    1343 : 90 F4                      jmp     print_uint16_putdigit
+(1)    1345 :                    print_int16_return:
+(1)    1345 : C6 08                      ld      @8(P2)          ; discard locals
+(1)    1347 : C6 01                      ld      @1(P2)
+(1)    1349 : 31                         xpal    P1
+(1)    134A : C6 01                      ld      @1(P2)
+(1)    134C : 35                         xpah    P1
+(1)    134D : 3D                         xppc    P1              ; return
+(1)    134E :
+(1)    134E :                    ;;; Add: summand += addend
+(1)    134E :                    ;;;   xppc   P1
+(1)    134E :                    ;;;   .dbyte &addend
+(1)    134E :                    ;;;   .dbyte &summand
+(1)    134E :                    ;;; @local P2[1:0] &addend, addend
+(1)    134E :                    ;;; @local P2[3:2] &summand
+(1)    134E :                    ;;; @local P2[5:4] return address
+(1)    134E :                    addsi2_exit:
+(1)    134E : C6 04                      ld      @4(P2)          ; discard locals
+(1)    1350 : C6 01                      ld      @1(P2)
+(1)    1352 : 31                         xpal    P1
+(1)    1353 : C6 01                      ld      @1(P2)
+(1)    1355 : 35                         xpah    P1
+(1)    1356 : 3D                         xppc    P1              ; return
+(1)    1357 :                    addsi2:
+(1)    1357 : C5 01                      ld      @1(P1)          ; point to &addend
+(1)    1359 : C5 01                      ld      @1(P1)
+(1)    135B : CE FA                      st      @-6(P2)         ; P2[1:0]=&addend
+(1)    135D : C5 01                      ld      @1(P1)
+(1)    135F : CA 01                      st      1(P2)
+(1)    1361 : C5 01                      ld      @1(P1)
+(1)    1363 : CA 02                      st      2(P2)           ; P2[3:2]=&summand
+(1)    1365 : C1 00                      ld      0(P1)           ; P1=return address
+(1)    1367 : CA 03                      st      3(P2)
+(1)    1369 : C2 00                      ld      0(P2)           ; P2[1:0]=&addend
+(1)    136B : 31                         xpal    P1
+(1)    136C : CA 04                      st      4(P2)           ; P2[5:4]=return address
+(1)    136E : C2 01                      ld      1(P2)
+(1)    1370 : 35                         xpah    P1              ; P1=&addend
+(1)    1371 : CA 05                      st      5(P2)
+(1)    1373 : C1 00                      ld      0(P1)
+(1)    1375 : CA 00                      st      0(P2)           ; P2[1:0]=addend
+(1)    1377 : C1 01                      ld      1(P1)
+(1)    1379 : CA 01                      st      1(P2)
+(1)    137B : C2 02                      ld      2(P2)           ; P2[3:2]=&summand
+(1)    137D : 31                         xpal    P1
+(1)    137E : C2 03                      ld      3(P2)
+(1)    1380 : 35                         xpah    P1              ; P1=&summand
+(1)    1381 : 02                         ccl                     ; clear carry
+(1)    1382 : C1 00                      ld      0(P1)
+(1)    1384 : F2 00                      add     0(P2)           ; L(summand+addend)
+(1)    1386 : C9 00                      st      0(P1)
+(1)    1388 : C1 01                      ld      1(P1)
+(1)    138A : F2 01                      add     1(P2)           ; L(summand+addend)
+(1)    138C : C9 01                      st      1(P1)
+(1)    138E : 90 BE                      jmp     addsi2_exit
+(1)    1390 :
+(1)    1390 :                    ;;; Subtract: minuend -= subtrahend
+(1)    1390 :                    ;;;   xppc   P1
+(1)    1390 :                    ;;;   .dbyte &subtrahend
+(1)    1390 :                    ;;;   .dbyte &minuend
+(1)    1390 :                    ;;; @local P2[1:0] &subtrahend, subtrahend
+(1)    1390 :                    ;;; @local P2[3:2] &minuend
+(1)    1390 :                    ;;; @local P2[5:4] return address
+(1)    1390 :                    subsi2_exit:
+(1)    1390 : C6 04                      ld      @4(P2)          ; discard locals
+(1)    1392 : C6 01                      ld      @1(P2)
+(1)    1394 : 31                         xpal    P1
+(1)    1395 : C6 01                      ld      @1(P2)
+(1)    1397 : 35                         xpah    P1
+(1)    1398 : 3D                         xppc    P1              ; return
+(1)    1399 :                    subsi2:
+(1)    1399 : C5 01                      ld      @1(P1)          ; point to &subtrahend
+(1)    139B : C5 01                      ld      @1(P1)
+(1)    139D : CE FA                      st      @-6(P2)         ; P2[1:0]=&subtrahend
+(1)    139F : C5 01                      ld      @1(P1)
+(1)    13A1 : CA 01                      st      1(P2)
+(1)    13A3 : C5 01                      ld      @1(P1)
+(1)    13A5 : CA 02                      st      2(P2)           ; P2[3:2]=&minuend
+(1)    13A7 : C1 00                      ld      0(P1)           ; P1=return address
+(1)    13A9 : CA 03                      st      3(P2)
+(1)    13AB : C2 00                      ld      0(P2)           ; P2[1:0]=&subtrahend
+(1)    13AD : 31                         xpal    P1
+(1)    13AE : CA 04                      st      4(P2)           ; P2[5:4]=return address
+(1)    13B0 : C2 01                      ld      1(P2)
+(1)    13B2 : 35                         xpah    P1              ; P1=&subtrahend
+(1)    13B3 : CA 05                      st      5(P2)
+(1)    13B5 : C1 00                      ld      0(P1)
+(1)    13B7 : CA 00                      st      0(P2)           ; P2[1:0]=subtrahend
+(1)    13B9 : C1 01                      ld      1(P1)
+(1)    13BB : CA 01                      st      1(P2)
+(1)    13BD : C2 02                      ld      2(P2)           ; P2[3:2]=&minuend
+(1)    13BF : 31                         xpal    P1
+(1)    13C0 : C2 03                      ld      3(P2)
+(1)    13C2 : 35                         xpah    P1              ; P1=&minuend
+(1)    13C3 : 03                         scl                     ; clear borrow
+(1)    13C4 : C1 00                      ld      0(P1)
+(1)    13C6 : FA 00                      cad     0(P2)           ; L(minuend-subtrahend)
+(1)    13C8 : C9 00                      st      0(P1)
+(1)    13CA : C1 01                      ld      1(P1)
+(1)    13CC : FA 01                      cad     1(P2)           ; H(minuend-subtrahend)
+(1)    13CE : C9 01                      st      1(P1)
+(1)    13D0 : 90 BE                      jmp     subsi2_exit
+(1)    13D2 :
+(1)    13D2 :                    ;;; Signed compare: A = sign(minuend - subtrahend)
+(1)    13D2 :                    ;;;   xppc   P1
+(1)    13D2 :                    ;;;   .dbyte &subtrahend
+(1)    13D2 :                    ;;;   .dbyte &minuend
+(1)    13D2 :                    ;;; @return A=0  JZ
+(1)    13D2 :                    ;;;         A=1  JP
+(1)    13D2 :                    ;;;         A=-1
+(1)    13D2 :                    ;;; @local P2[1:0] &subtrahend, subtrahend
+(1)    13D2 :                    ;;; @local P2[3:2] &minuend, minuend - subtrahend
+(1)    13D2 :                    ;;; @local P2[5:4] return address
+(1)    13D2 :                    ;;; @local P2[6]   sign(minuend - subtrahend)
+(1)    13D2 :                    cmpsi2_exit:
+(1)    13D2 : CA 06                      st      6(P2)           ; save sign(minuend-subtrahend)
+(1)    13D4 : C6 04                      ld      @4(P2)          ; discard locals
+(1)    13D6 : C6 01                      ld      @1(P2)
+(1)    13D8 : 31                         xpal    P1
+(1)    13D9 : C6 01                      ld      @1(P2)
+(1)    13DB : 35                         xpah    P1
+(1)    13DC : C6 01                      ld      @1(P2)          ; sign(minuend-subtrahend)
+(1)    13DE : 3D                         xppc    P1              ; return
+(1)    13DF :                    cmpsi2:
+(1)    13DF : C5 01                      ld      @1(P1)          ; point to &subtrahend
+(1)    13E1 : C5 01                      ld      @1(P1)
+(1)    13E3 : CE F9                      st      @-7(P2)         ; P2[1:0]=&subtrahend
+(1)    13E5 : C5 01                      ld      @1(P1)
+(1)    13E7 : CA 01                      st      1(P2)
+(1)    13E9 : C5 01                      ld      @1(P1)
+(1)    13EB : CA 02                      st      2(P2)           ; P2[3:2]=&minuend
+(1)    13ED : C1 00                      ld      0(P1)           ; P1=return address
+(1)    13EF : CA 03                      st      3(P2)
+(1)    13F1 : C2 00                      ld      0(P2)           ; P2[1:0]=&subtrahend
+(1)    13F3 : 31                         xpal    P1
+(1)    13F4 : CA 04                      st      4(P2)           ; P2[5:4]=return address
+(1)    13F6 : C2 01                      ld      1(P2)
+(1)    13F8 : 35                         xpah    P1              ; P1=&subtrahend
+(1)    13F9 : CA 05                      st      5(P2)
+(1)    13FB : C1 00                      ld      0(P1)
+(1)    13FD : CA 00                      st      0(P2)           ; P2[1:0]=subtrahend
+(1)    13FF : C1 01                      ld      1(P1)
+(1)    1401 : CA 01                      st      1(P2)
+(1)    1403 : C2 02                      ld      2(P2)           ; P2[3:2]=&minuend
+(1)    1405 : 31                         xpal    P1
+(1)    1406 : C2 03                      ld      3(P2)
+(1)    1408 : 35                         xpah    P1              ; P1=&minuend
+(1)    1409 : 03                         scl                     ; clear borrow
+(1)    140A : C1 00                      ld      0(P1)
+(1)    140C : FA 00                      cad     0(P2)           ; L(minuend-subtrahend)
+(1)    140E : CA 02                      st      2(P2)           ; P2[3:2]=minuend-subtrahend
+(1)    1410 : C1 01                      ld      1(P1)
+(1)    1412 : FA 01                      cad     1(P2)
+(1)    1414 : CA 03                      st      3(P2)
+(1)    1416 : DA 02                      or      2(P2)
+(1)    1418 : 98 B8                      jz      cmpsi2_exit     ; branch if result==0 with A=0
+(1)    141A : 06                         csa
+(1)    141B : D4 40                      ani     S_OV
+(1)    141D : 9C 08                      jnz     cmpsi2_ov       ; branch if V=1
+(1)    141F : C2 03                      ld      3(P2)           ; H(minuend-subtrahend)
+(1)    1421 : 94 08                      jp      cmpsi2_gt       ; V=0, N=0
+(1)    1423 :                    cmpsi2_lt:
+(1)    1423 : C4 FF                      ldi     -1              ; V=0, N=1
+(1)    1425 : 90 AB                      jmp     cmpsi2_exit
+(1)    1427 :                    cmpsi2_ov:
+(1)    1427 : C2 01                      ld      1(P2)           ; H(result)
+(1)    1429 : 94 F8                      jp      cmpsi2_lt       ; V=1, N=0
+(1)    142B :                    cmpsi2_gt:                      ; V=1, N=1
+(1)    142B : C4 01                      ldi     1
+(1)    142D : 90 A3                      jmp     cmpsi2_exit
+(1)    142F :
+(1)    142F :                    ;;; Signed multiply; multiplicand *= multiplier
+(1)    142F :                    ;;;   xppc   P1
+(1)    142F :                    ;;;   .dbyte &multiplier
+(1)    142F :                    ;;;   .dbyte &multiplicand
+(1)    142F :                    ;;; @local P2[1:0] multiplier, &multiplier
+(1)    142F :                    ;;; @local P2[3:2] multiplicand, &multiplicand
+(1)    142F :                    ;;; @local P2[4]   H(multiplicand ^ multiplier)
+(1)    142F :                    ;;; @local P2[6:5] return address
+(1)    142F :                    mulsi2_exit:
+(1)    142F : C6 05                      ld      @5(P2)          ; discard locals
+(1)    1431 : C6 01                      ld      @1(P2)
+(1)    1433 : 31                         xpal    P1
+(1)    1434 : C6 01                      ld      @1(P2)
+(1)    1436 : 35                         xpah    P1
+(1)    1437 : 3D                         xppc    P1              ; return
+(1)    1438 :                    mulsi2:
+(1)    1438 : C5 01                      ld      @1(P1)          ; point to &multiplier
+(1)    143A : C5 01                      ld      @1(P1)
+(1)    143C : CE F9                      st      @-7(P2)         ; P2[1:0]=&multiplier
+(1)    143E : C5 01                      ld      @1(P1)
+(1)    1440 : CA 01                      st      1(P2)
+(1)    1442 : C5 01                      ld      @1(P1)
+(1)    1444 : CA 02                      st      2(P2)           ; P2[3:2]=&multiplicand
+(1)    1446 : C1 00                      ld      0(P1)
+(1)    1448 : CA 03                      st      3(P2)
+(1)    144A : C2 00                      ld      0(P2)           ; P2[1:0]=&multiplier
+(1)    144C : 31                         xpal    P1
+(1)    144D : CA 05                      st      5(P2)           ; P2[6:5]=return address
+(1)    144F : C2 01                      ld      1(P2)
+(1)    1451 : 35                         xpah    P1              ; P1=&multiplier
+(1)    1452 : CA 06                      st      6(P2)
+(1)    1454 : C1 00                      ld      0(P1)
+(1)    1456 : CA 00                      st      0(P2)           ; P2[1:0]=multiplier
+(1)    1458 : C1 01                      ld      1(P1)
+(1)    145A : CA 01                      st      1(P2)
+(1)    145C : C2 02                      ld      2(P2)           ; P2[3:2]=&multiplicand
+(1)    145E : 31                         xpal    P1
+(1)    145F : C2 03                      ld      3(P2)
+(1)    1461 : 35                         xpah    P1              ; P1=&multiplicand
+(1)    1462 : C1 00                      ld      0(P1)
+(1)    1464 : CA 02                      st      2(P2)           ; P2[3:2]=multiplicand
+(1)    1466 : C1 01                      ld      1(P1)
+(1)    1468 : CA 03                      st      3(P2)
+(1)    146A : E2 01                      xor     1(P2)           ; P2[1]=H(multiplier)
+(1)    146C : CA 04                      st      4(P2)           ; P2[4]=H(multiplicand^multiplier)
+(1)    146E : C2 01                      ld      1(P2)           ; H(multiplier)
+(1)    1470 : 94 0D                      jp      mulsi2_multiplicand
+(1)    1472 : 03                         scl                     ; clear borrow
+(1)    1473 : C4 00                      ldi     0
+(1)    1475 : FA 00                      cad     0(P2)
+(1)    1477 : CA 00                      st      0(P2)
+(1)    1479 : C4 00                      ldi     0
+(1)    147B : FA 01                      cad     1(P2)
+(1)    147D : CA 01                      st      1(P2)           ; negate multiplier
+(1)    147F :                    mulsi2_multiplicand:
+(1)    147F : C2 03                      ld      3(P2)           ; H(multiplicand)
+(1)    1481 : 94 11                      jp      umul16
+(1)    1483 : 03                         scl                     ; clear borrow
+(1)    1484 : C4 00                      ldi     0
+(1)    1486 : FA 02                      cad     2(P2)
+(1)    1488 : CA 02                      st      2(P2)
+(1)    148A : C4 00                      ldi     0
+(1)    148C : FA 03                      cad     3(P2)
+(1)    148E : CA 03                      st      3(P2)           ; negate multiplicand
+(1)    1490 : 90 02                      jmp     umul16
+(1)    1492 :                    mulsi2_exit_1:
+(1)    1492 : 90 9B                      jmp     mulsi2_exit
+(1)    1494 :                    ;;; Unsigned multiply; product = multiplicand * multiplier
+(1)    1494 :                    ;;; @param P2[1:0] multiplier
+(1)    1494 :                    ;;; @param P2[3:2] multiplicand
+(1)    1494 :                    ;;; @return P1[1:0] product
+(1)    1494 :                    ;;; @clobber multiplier multiplicand
+(1)    1494 :                    ;;; @unchanged P1
+(1)    1494 :                    umul16:
+(1)    1494 : C4 00                      ldi     0
+(1)    1496 : C9 00                      st      0(P1)
+(1)    1498 : C9 01                      st      1(P1)           ; P1[1:0]=product
+(1)    149A : 90 2A                      jmp     umul16_check
+(1)    149C :                    umul16_loop:
+(1)    149C : C2 01                      ld      1(P2)           ; P2[1:0]=multiplier
+(1)    149E : 02                         ccl
+(1)    149F : 1F                         rrl
+(1)    14A0 : CA 01                      st      1(P2)
+(1)    14A2 : C2 00                      ld      0(P2)
+(1)    14A4 : 1F                         rrl
+(1)    14A5 : CA 00                      st      0(P2)           ; multiplier >>= 1
+(1)    14A7 : 06                         csa
+(1)    14A8 : D4 80                      ani     S_CY
+(1)    14AA : 98 0D                      jz      umul16_next     ; if lsb(multiplier) == 0
+(1)    14AC : 02                         ccl
+(1)    14AD : C2 02                      ld      2(P2)           ; P2[3:2]=multiplicand
+(1)    14AF : F1 00                      add     0(P1)           ; P1[1:0]=product
+(1)    14B1 : C9 00                      st      0(P1)
+(1)    14B3 : C2 03                      ld      3(P2)
+(1)    14B5 : F1 01                      add     1(P1)
+(1)    14B7 : C9 01                      st      1(P1)           ; product += multiplicand
+(1)    14B9 :                    umul16_next:
+(1)    14B9 : 02                         ccl
+(1)    14BA : C2 02                      ld      2(P2)           ; P2[3:2]=multiplicand
+(1)    14BC : F2 02                      add     2(P2)
+(1)    14BE : CA 02                      st      2(P2)
+(1)    14C0 : C2 03                      ld      3(P2)
+(1)    14C2 : F2 03                      add     3(P2)
+(1)    14C4 : CA 03                      st      3(P2)           ; multiplicand <<= 1
+(1)    14C6 :                    umul16_check:
+(1)    14C6 : C2 00                      ld      0(P2)           ; P2[1:0]=multiplier
+(1)    14C8 : DA 01                      or      1(P2)
+(1)    14CA : 9C D0                      jnz     umul16_loop     ; while multiplier != 0
+(1)    14CC :                    umul16_end:
+(1)    14CC : C2 04                      ld      4(P2)           ; H(multiplier^multiplicand)
+(1)    14CE : 94 C2                      jp      mulsi2_exit_1
+(1)    14D0 : 03                         scl                     ; clear borrow
+(1)    14D1 : C4 00                      ldi     0
+(1)    14D3 : F9 00                      cad     0(P1)           ; P1[1:0]=product
+(1)    14D5 : C9 00                      st      0(P1)
+(1)    14D7 : C4 00                      ldi     0
+(1)    14D9 : F9 01                      cad     1(P1)
+(1)    14DB : C9 01                      st      1(P1)           ; negate product
+(1)    14DD : 90 B3                      jmp     mulsi2_exit_1
+(1)    14DF :
+(1)    14DF :                    ;;; Signed divide; dividend /= divisor ... reminder
+(1)    14DF :                    ;;;   xppc   P1
+(1)    14DF :                    ;;;   .dbyte &divisor
+(1)    14DF :                    ;;;   .dbyte &dividend
+(1)    14DF :                    ;;; @return vREMINDER |dividend| % |divisor|
+(1)    14DF :                    ;;; @local P2[1:0] &divisor, divisor
+(1)    14DF :                    ;;; @local P2[3:2] &dividend, dividend
+(1)    14DF :                    ;;; @local P2[4]   H(dividend^divisor)
+(1)    14DF :                    ;;; @local P2[5]   udiv16 local
+(1)    14DF :                    ;;; @local P2[7:6] return address
+(1)    14DF : 00 00              vREMINDER:      .dbyte  0
+(1)    14E1 :                    divsi2_exit:
+(1)    14E1 : C2 02                      ld      2(P2)           ; P2[3:2]dividend/reminder
+(1)    14E3 : C8 FB                      st      vREMINDER
+(1)    14E5 : C2 03                      ld      3(P2)
+(1)    14E7 : C8 F8                      st      vREMINDER+1
+(1)    14E9 : C6 06                      ld      @6(P2)          ; discard locals
+(1)    14EB : C6 01                      ld      @1(P2)
+(1)    14ED : 31                         xpal    P1
+(1)    14EE : C6 01                      ld      @1(P2)
+(1)    14F0 : 35                         xpah    P1
+(1)    14F1 : 3D                         xppc    P1              ; return
+(1)    14F2 :                    divsi2:
+(1)    14F2 : C5 01                      ld      @1(P1)          ; point to &divisor
+(1)    14F4 : C5 01                      ld      @1(P1)
+(1)    14F6 : CE F8                      st      @-8(P2)         ; P2[1:0]=&divisor
+(1)    14F8 : C5 01                      ld      @1(P1)
+(1)    14FA : CA 01                      st      1(P2)
+(1)    14FC : C5 01                      ld      @1(P1)
+(1)    14FE : CA 02                      st      2(P2)           ; P2[3:2]=&dividend
+(1)    1500 : C1 00                      ld      0(P1)           ; P1=return address
+(1)    1502 : CA 03                      st      3(P2)
+(1)    1504 : C2 00                      ld      0(P2)           ; P2[1:0=&divisor
+(1)    1506 : 31                         xpal    P1
+(1)    1507 : CA 06                      st      6(P2)           ; P2[7:6]=return address
+(1)    1509 : C2 01                      ld      1(P2)
+(1)    150B : 35                         xpah    P1              ; P1=&divisor
+(1)    150C : CA 07                      st      7(P2)
+(1)    150E : C1 00                      ld      0(P1)
+(1)    1510 : CA 00                      st      0(P2)           ; P2[1:0]=divisor
+(1)    1512 : C1 01                      ld      1(P1)
+(1)    1514 : CA 01                      st      1(P2)
+(1)    1516 : C2 02                      ld      2(P2)           ; P2[3:2]=&dividend
+(1)    1518 : 31                         xpal    P1
+(1)    1519 : C2 03                      ld      3(P2)
+(1)    151B : 35                         xpah    P1              ; P1=&dividend
+(1)    151C : C1 00                      ld      0(P1)
+(1)    151E : CA 02                      st      2(P2)           ; P2[3:2]=dividend
+(1)    1520 : C1 01                      ld      1(P1)
+(1)    1522 : CA 03                      st      3(P2)
+(1)    1524 : E2 01                      xor     1(P2)           ; P2[1]=H(divisor)
+(1)    1526 : CA 04                      st      4(P2)           ; P2[4]=H(dividend^divisor)
+(1)    1528 : C2 01                      ld      1(P2)           ; H(divisor)
+(1)    152A : 94 0D                      jp      divsi2_dividend
+(1)    152C : 03                         scl                     ; clear borrow
+(1)    152D : C4 00                      ldi     0
+(1)    152F : FA 00                      cad     0(P2)           ; P2[1:0]=divisor
+(1)    1531 : CA 00                      st      0(P2)
+(1)    1533 : C4 00                      ldi     0
+(1)    1535 : FA 01                      cad     1(P2)
+(1)    1537 : CA 01                      st      1(P2)           ; negate divisor
+(1)    1539 :                    divsi2_dividend:
+(1)    1539 : C2 03                      ld      3(P2)           ; H(dividend)
+(1)    153B : 94 11                      jp      udiv16
+(1)    153D : 03                         scl                     ; clear borrow
+(1)    153E : C4 00                      ldi     0
+(1)    1540 : FA 02                      cad     2(P2)
+(1)    1542 : CA 02                      st      2(P2)
+(1)    1544 : C4 00                      ldi     0
+(1)    1546 : FA 03                      cad     3(P2)
+(1)    1548 : CA 03                      st      3(P2)           ; negate dividend
+(1)    154A : 90 02                      jmp     udiv16
+(1)    154C :                    divsi2_exit_1:
+(1)    154C : 90 93                      jmp     divsi2_exit
+(1)    154E :                    ;;; Unsigned divide; quotient = dividend / divisor ... reminder
+(1)    154E :                    ;;; @param P2[1:0] divisor
+(1)    154E :                    ;;; @param P2[3:2] dividend
+(1)    154E :                    ;;; @return P1[1:0] quotient
+(1)    154E :                    ;;; @local P2[5] bits
+(1)    154E :                    ;;; @clobber divisor dividend
+(1)    154E :                    ;;; @unchanged P1
+(1)    154E :                    udiv16:
+(1)    154E : C2 00                      ld      0(P2)           ; P2[1:0]=divisor
+(1)    1550 : DA 01                      or      1(P2)
+(1)    1552 : 98 F8                      jz      divsi2_exit_1   ; divide by zero
+(1)    1554 : C4 01                      ldi     1
+(1)    1556 : CA 05                      st      5(P2)           ; bits=1
+(1)    1558 : 90 0F                      jmp     udiv16_prep
+(1)    155A :                    udiv16_prep_loop:
+(1)    155A : 02                         ccl
+(1)    155B : C2 00                      ld      0(P2)           ; P2[1:0]=divisor
+(1)    155D : F2 00                      add     0(P2)
+(1)    155F : CA 00                      st      0(P2)
+(1)    1561 : C2 01                      ld      1(P2)
+(1)    1563 : F2 01                      add     1(P2)
+(1)    1565 : CA 01                      st      1(P2)           ; divisor <<= 1
+(1)    1567 : AA 05                      ild     5(P2)           ; ++bits
+(1)    1569 :                    udiv16_prep:
+(1)    1569 : C2 01                      ld      1(P2)           ; P2[1]=H(divisor)
+(1)    156B : 94 ED                      jp      udiv16_prep_loop ; while msb(divisor) == 0
+(1)    156D : C4 00                      ldi     0
+(1)    156F : C9 00                      st      0(P1)           ; P1[1:0]=quotient
+(1)    1571 : C9 01                      st      1(P1)
+(1)    1573 : 90 18                      jmp     udiv16_enter_loop
+(1)    1575 :                    udiv16_loop:
+(1)    1575 : 02                         ccl
+(1)    1576 : C2 01                      ld      1(P2)           ; P2[1:0]=divisor
+(1)    1578 : 1F                         rrl
+(1)    1579 : CA 01                      st      1(P2)
+(1)    157B : C2 00                      ld      0(P2)
+(1)    157D : 1F                         rrl
+(1)    157E : CA 00                      st      0(P2)           ; divisor >>= 1
+(1)    1580 : 02                         ccl
+(1)    1581 : C1 00                      ld      0(P1)           ; P1[1:0]=quotient
+(1)    1583 : F1 00                      add     0(P1)
+(1)    1585 : C9 00                      st      0(P1)
+(1)    1587 : C1 01                      ld      1(P1)
+(1)    1589 : F1 01                      add     1(P1)
+(1)    158B : C9 01                      st      1(P1)           ; quotient <<= 1
+(1)    158D :                    udiv16_enter_loop:
+(1)    158D : 03                         scl                     ; clear borrow
+(1)    158E : C2 02                      ld      2(P2)           ; P2[3:2]=dividend
+(1)    1590 : FA 00                      cad     0(P2)           ; P2[1:0]=divisor
+(1)    1592 : CA 02                      st      2(P2)
+(1)    1594 : C2 03                      ld      3(P2)
+(1)    1596 : FA 01                      cad     1(P2)
+(1)    1598 : CA 03                      st      3(P2)           ; dividend -= divisor
+(1)    159A : 06                         csa
+(1)    159B : D4 80                      ani     S_CY
+(1)    159D : 98 04                      jz      udiv16_readd    ; if dividend < divisor
+(1)    159F : A9 00                      ild     0(P1)           ; P1[0]=L(quotient)
+(1)    15A1 : 90 0D                      jmp     udiv16_next
+(1)    15A3 :                    udiv16_readd:
+(1)    15A3 : 02                         ccl
+(1)    15A4 : C2 02                      ld      2(P2)           ; P2[3:2]=dividend
+(1)    15A6 : F2 00                      add     0(P2)           ; P2[1:0]=divisor
+(1)    15A8 : CA 02                      st      2(P2)
+(1)    15AA : C2 03                      ld      3(P2)
+(1)    15AC : F2 01                      add     1(P2)
+(1)    15AE : CA 03                      st      3(P2)           ; dividend += divisor
+(1)    15B0 :                    udiv16_next:
+(1)    15B0 : BA 05                      dld     5(P2)           ; P2[5]=bits
+(1)    15B2 : 9C C1                      jnz     udiv16_loop     ; while bits !=0
+(1)    15B4 :                    udiv16_end:
+(1)    15B4 : C2 04                      ld      4(P2)           ; P2[4]=H(dividend^divisor)
+(1)    15B6 : 94 94                      jp      divsi2_exit_1
+(1)    15B8 : 03                         scl                     ; clear borrow
+(1)    15B9 : C4 00                      ldi     0
+(1)    15BB : F9 00                      cad     0(P1)           ; P1[1:0]=quotient
+(1)    15BD : C9 00                      st      0(P1)
+(1)    15BF : C4 00                      ldi     0
+(1)    15C1 : F9 01                      cad     1(P1)
+(1)    15C3 : C9 01                      st      1(P1)           ; negate quotient
+(1)    15C5 : 90 85                      jmp     divsi2_exit_1
+       15C7 :
+       15C7 :                    ;;; Get character
+       15C7 :                    ;;; @return E char
+       15C7 :                    ;;; @return A 0 if no char received
+       15C7 :                    getchar_exit:
+       15C7 : C6 01                      ld      @1(P2)          ; pop P1
+       15C9 : 31                         xpal    P1
+       15CA : C6 01                      ld      @1(P2)
+       15CC : 35                         xpah    P1
+       15CD : C6 01                      ld      @1(P2)          ; pop return value
+       15CF : 3D                         xppc    P1
+       15D0 :                    getchar:
+       15D0 : CE FF                      st      @-1(P2)         ; for return value
+       15D2 : C4 AC                      ldi     L(ADDR(queue_remove))
+       15D4 : 31                         xpal    P1
+       15D5 : CE FE                      st      @-2(P2)
+       15D7 : C4 16                      ldi     H(ADDR(queue_remove))
+       15D9 : 35                         xpah    P1
+       15DA : CA 01                      st      1(P2)           ; push P1
+       15DC : 04                         dint                    ; disable IRQ
+       15DD : 3D                         xppc    P1              ; call queue_remove
+       15DE : 00 20                      .dbyte  rx_queue
+       15E0 : 05                         ien                     ; enable IRQ
+       15E1 : CA 02                      st      2(P2)           ; save return value
+       15E3 : 90 E2                      jmp     getchar_exit
+       15E5 :
+       15E5 :                    ;;; Put character
+       15E5 :                    ;;; @param A char
+       15E5 :                    putchar_exit:
+       15E5 : C6 01                      ld      @1(P2)          ; pop P1
+       15E7 : 31                         xpal    P1
+       15E8 : C6 01                      ld      @1(P2)
+       15EA : 35                         xpah    P1
+       15EB : C6 01                      ld      @1(P2)          ; pop E
+       15ED : 01                         xae
+       15EE : C6 01                      ld      @1(P2)          ; pop A
+       15F0 : 3D                         xppc    P1
+       15F1 :                    putchar:
+       15F1 : CE FF                      st      @-1(P2)         ; push A
+       15F3 : 40                         lde
+       15F4 : CE FF                      st      @-1(P2)         ; push E
+       15F6 : C4 5F                      ldi     L(ADDR(queue_add))
+       15F8 : 31                         xpal    P1
+       15F9 : CE FE                      st      @-2(P2)
+       15FB : C4 16                      ldi     H(ADDR(queue_add))
+       15FD : 35                         xpah    P1
+       15FE : CA 01                      st      1(P2)           ; push P1
+       1600 : C2 03                      ld      3(P2)           ; restore char
+       1602 : 01                         xae                     ; E=char
+       1603 :                    putchar_retry:
+       1603 : 04                         dint                    ; disable interrupt
+       1604 : 3D                         xppc    P1              ; call queue_add
+       1605 : 10 20                      .dbyte  tx_queue
+       1607 : 05                         ien                     ; enable interrupt
+       1608 : 98 F9                      jz      putchar_retry   ; queue is full
+       160A : 04                         dint                    ; disable interrupt
+       160B : C4 00                      ldi     L(ACIA)
+       160D : 31                         xpal    P1
+       160E : C4 DF                      ldi     H(ACIA)
+       1610 : 35                         xpah    P1
+       1611 : C4 B4                      ldi     RX_INT_TX_INT   ; enable Tx interrupt
+       1613 : C9 00                      st      ACIA_C(P1)
+       1615 :                    putchar_return:
+       1615 : 05                         ien                     ; enable interrupt
+       1616 : 90 CD                      jmp     putchar_exit
+       1618 :
+       1618 :                            include "queue.inc"
+(1)    1618 :                    ;;; -*- mode: asm; mode: flyspell-prog; -*-
+(1)    1618 :                    ;;; [queue] queue structure
+(1)    1618 : =0                 queue_len       =       0       ; queue length
+(1)    1618 : =1                 queue_size      =       1       ; buffer size
+(1)    1618 : =2                 queue_put       =       2       ; queue put index
+(1)    1618 : =3                 queue_get       =       3       ; queue get index
+(1)    1618 : =4                 queue_buf       =       4       ; buffer start offset
+(1)    1618 :
+(1)    1618 :                    ;;; [queue] Initialize queue
+(1)    1618 :                    ;;; @param A queue space size
+(1)    1618 :                    ;;; @param P1 return address pointer
+(1)    1618 :                    ;;; @param P1[1:2] queue space pointer
+(1)    1618 :                    ;;; @clobber A
+(1)    1618 :                    queue_init_exit:
+(1)    1618 : C6 01                      ld      @1(P2)          ; pop P1
+(1)    161A : 31                         xpal    P1
+(1)    161B : C6 01                      ld      @1(P2)
+(1)    161D : 35                         xpah    P1
+(1)    161E : C6 01                      ld      @1(P2)          ; discard work area
+(1)    1620 : 3D                         xppc    P1
+(1)    1621 :                    queue_init:
+(1)    1621 : CE FF                      st      @-1(P2)         ; save queue space size
+(1)    1623 : C5 01                      ld      @1(P1)          ; advance to queue space pointer
+(1)    1625 : C5 01                      ld      @1(P1)          ; load queue work space pointer (le16)
+(1)    1627 : CE FE                      st      @-2(P2)         ; save lo(queue space)
+(1)    1629 : C1 00                      ld      0(P1)
+(1)    162B : 35                         xpah    P1
+(1)    162C : CA 01                      st      1(P2)           ; P[1:0] push P1
+(1)    162E : C2 00                      ld      0(P2)
+(1)    1630 : 31                         xpal    P1              ; P1=queue space pointer
+(1)    1631 : CA 00                      st      0(P2)
+(1)    1633 : C4 00                      ldi     0
+(1)    1635 : C9 00                      st      queue_len(P1)   ; clear queue_len
+(1)    1637 : C9 02                      st      queue_put(P1)
+(1)    1639 : C9 03                      st      queue_get(P1)
+(1)    163B : C2 02                      ld      2(P2)           ; queue space size
+(1)    163D : 03                         scl
+(1)    163E : FC 04                      cai     queue_buf
+(1)    1640 : C9 01                      st      queue_size(P1)
+(1)    1642 : CA 02                      st      2(P2)           ; counter
+(1)    1644 : C5 04                      ld      @queue_buf(P1)  ; advanced pointer
+(1)    1646 :                    queue_init_loop:
+(1)    1646 : C4 00                      ldi     0
+(1)    1648 : CD 01                      st      @1(P1)
+(1)    164A : BA 02                      dld     2(P2)
+(1)    164C : 9C F8                      jnz     queue_init_loop
+(1)    164E : 90 C8                      jmp     queue_init_exit
+(1)    1650 :
+(1)    1650 :                    ;;; [queue] Add an element to queue
+(1)    1650 :                    ;;; @param E an element
+(1)    1650 :                    ;;; @param P1 return address pointer
+(1)    1650 :                    ;;; @param P1[1:2] queue space pointer
+(1)    1650 :                    ;;; @return E an element
+(1)    1650 :                    ;;; @return A 0 if queue is full
+(1)    1650 :                    ;;; @clobber P1
+(1)    1650 :                    queue_add_exit:
+(1)    1650 : CA 05                      st      5(P2)           ; P2[5] return flag
+(1)    1652 : C6 02                      ld      @2(P2)          ; discard queue space pointer
+(1)    1654 : C6 01                      ld      @1(P2)          ; pop P1
+(1)    1656 : 31                         xpal    P1
+(1)    1657 : C6 01                      ld      @1(P2)
+(1)    1659 : 35                         xpah    P1
+(1)    165A : C6 01                      ld      @1(P2)          ; restore E
+(1)    165C : 01                         xae
+(1)    165D : C6 01                      ld      @1(P2)          ; return flag
+(1)    165F : 3D                         xppc    P1
+(1)    1660 :                    queue_add:
+(1)    1660 : C5 01                      ld      @1(P1)          ; advanced to queue space pointer
+(1)    1662 : C5 01                      ld      @1(P1)          ; load queue space pointer (le16)
+(1)    1664 : CE FA                      st      @-6(P2)         ; param, P1, elem, return flag
+(1)    1666 : C1 00                      ld      0(P1)
+(1)    1668 : CA 01                      st      1(P2)           ; P2[1:0] queue space pointer
+(1)    166A : 35                         xpah    P1
+(1)    166B : CA 03                      st      3(P2)           ; P2[3:2] saved P1
+(1)    166D : C2 00                      ld      0(P2)
+(1)    166F : 31                         xpal    P1
+(1)    1670 : CA 02                      st      2(P2)
+(1)    1672 : 40                         lde
+(1)    1673 : CA 04                      st      4(P2)           ; P2[4] save an element
+(1)    1675 : C1 00                      ld      queue_len(P1)
+(1)    1677 : E1 01                      xor     queue_size(P1)
+(1)    1679 : 98 D5                      jz      queue_add_exit  ; queue is full, A=0
+(1)    167B :                    queue_not_full:
+(1)    167B : A9 00                      ild     queue_len(P1)    ; update queue_len
+(1)    167D : C2 00                      ld      0(P2)
+(1)    167F : 02                         ccl
+(1)    1680 : F1 02                      add     queue_put(P1)
+(1)    1682 : 01                         xae
+(1)    1683 : C2 01                      ld      1(P2)
+(1)    1685 : F4 00                      adi     0
+(1)    1687 : 35                         xpah    P1
+(1)    1688 : 01                         xae
+(1)    1689 : 31                         xpal    P1
+(1)    168A : C2 04                      ld      4(P2)           ; an element
+(1)    168C : C9 04                      st      queue_buf(P1)   ; store element
+(1)    168E : C2 00                      ld      0(P2)
+(1)    1690 : 31                         xpal    P1
+(1)    1691 : C2 01                      ld      1(P2)
+(1)    1693 : 35                         xpah    P1
+(1)    1694 : A9 02                      ild     queue_put(P1)   ; advanced queue_put
+(1)    1696 : E1 01                      xor     queue_size(P1)
+(1)    1698 : 9C 02                      jnz     queue_add_end   ; branch if queue_put != queue_size
+(1)    169A : C9 02                      st      queue_put(P1)   ; reset queue_put
+(1)    169C :                    queue_add_end:
+(1)    169C : C4 01                      ldi     1
+(1)    169E : 90 B0                      jmp     queue_add_exit  ; an element added, A=1
+(1)    16A0 :
+(1)    16A0 :                    ;;; [queue] Remove an element from queue
+(1)    16A0 :                    ;;; @param P1 return address pointer
+(1)    16A0 :                    ;;; @param P1[1:2] queue space pointer
+(1)    16A0 :                    ;;; @return E an element
+(1)    16A0 :                    ;;; @return A 0 if queue is empty
+(1)    16A0 :                    ;;; @clobber P1
+(1)    16A0 :                    queue_remove_exit:
+(1)    16A0 : CA 04                      st      4(P2)           ; return flag
+(1)    16A2 : C6 02                      ld      @2(P2)          ; discard work area
+(1)    16A4 : C6 01                      ld      @1(P2)          ; pop P1
+(1)    16A6 : 31                         xpal    P1
+(1)    16A7 : C6 01                      ld      @1(P2)
+(1)    16A9 : 35                         xpah    P1
+(1)    16AA : C6 01                      ld      @1(P2)          ; return flag
+(1)    16AC : 3D                         xppc    P1              ; return
+(1)    16AD :                    queue_remove:
+(1)    16AD : C5 01                      ld      @1(P1)          ; advanced to queue space pointer
+(1)    16AF : C5 01                      ld      @1(P1)          ; load queue space pointer (le16)
+(1)    16B1 : CE FB                      st      @-5(P2)         ; param, P1, return flag
+(1)    16B3 : C1 00                      ld      0(P1)
+(1)    16B5 : CA 01                      st      1(P2)           ; P2[1:0] queue space pointer
+(1)    16B7 : 35                         xpah    P1
+(1)    16B8 : CA 03                      st      3(P2)           ; P2[3:2] saved P1
+(1)    16BA : C2 00                      ld      0(P2)
+(1)    16BC : 31                         xpal    P1
+(1)    16BD : CA 02                      st      2(P2)
+(1)    16BF : C1 00                      ld      queue_len(P1)
+(1)    16C1 : 98 DD                      jz      queue_remove_exit ; queue is empty, A=0
+(1)    16C3 :                    queue_not_empty:
+(1)    16C3 : B9 00                      dld     queue_len(P1)    ; update queue_len
+(1)    16C5 : C2 00                      ld      0(P2)
+(1)    16C7 : 02                         ccl
+(1)    16C8 : F1 03                      add     queue_get(P1)
+(1)    16CA : 01                         xae
+(1)    16CB : C2 01                      ld      1(P2)
+(1)    16CD : F4 00                      adi     0
+(1)    16CF : 35                         xpah    P1
+(1)    16D0 : 40                         lde
+(1)    16D1 : 31                         xpal    P1
+(1)    16D2 : C1 04                      ld      queue_buf(P1)   ; load element
+(1)    16D4 : 01                         xae                     ; E=element
+(1)    16D5 : C2 00                      ld      0(P2)
+(1)    16D7 : 31                         xpal    P1
+(1)    16D8 : C2 01                      ld      1(P2)
+(1)    16DA : 35                         xpah    P1
+(1)    16DB : A9 03                      ild     queue_get(P1)   ; advanced queue_get
+(1)    16DD : E1 01                      xor     queue_size(P1)
+(1)    16DF : 9C 02                      jnz     queue_remove_end ; branch if queue_put != queue_size
+(1)    16E1 : C9 03                      st      queue_get(P1)   ; reset queue_get
+(1)    16E3 :                    queue_remove_end:
+(1)    16E3 : C4 01                      ldi     1
+(1)    16E5 : 90 B9                      jmp     queue_remove_exit
+       16E7 :
+       16E7 :                    isr_sensea_exit:
+       16E7 : C6 01                      ld      @1(P2)          ; pop P1
+       16E9 : 31                         xpal    P1
+       16EA : C6 01                      ld      @1(P2)
+       16EC : 35                         xpah    P1
+       16ED : C6 01                      ld      @1(P2)          ; pop E
+       16EF : 01                         xae
+       16F0 : C6 01                      ld      @1(P2)          ; pop D
+       16F2 : 05                         ien                     ; enable interrupt
+       16F3 : 3F                         xppc    P3              ; return from interrupt
+       16F4 :                    isr_sensea:
+       16F4 : CE FF                      st      @-1(P2)         ; save A
+       16F6 : 40                         lde
+       16F7 : CE FF                      st      @-1(P2)         ; save E
+       16F9 : C4 00                      ldi     L(ACIA)         ; save P1 and load P1
+       16FB : 31                         xpal    P1
+       16FC : CE FE                      st      @-2(P2)
+       16FE : C4 DF                      ldi     H(ACIA)
+       1700 : 35                         xpah    P1
+       1701 : CA 01                      st      1(P2)
+       1703 : C1 00                      ld      ACIA_S(P1)
+       1705 : CE FF                      st      @-1(P2)         ; save ACIA_status
+       1707 : D4 01                      ani     RDRF_bm
+       1709 : 98 0C                      jz      isr_send
+       170B : C1 01                      ld      ACIA_D(P1)      ; receive character
+       170D : 01                         xae                     ; E=char
+       170E : C4 5F                      ldi     L(ADDR(queue_add))
+       1710 : 31                         xpal    P1
+       1711 : C4 16                      ldi     H(ADDR(queue_add))
+       1713 : 35                         xpah    P1
+       1714 : 3D                         xppc    P1              ; call queue_add
+       1715 : 00 20                      .dbyte  rx_queue
+       1717 :                    isr_send:
+       1717 : C6 01                      ld      @1(P2)          ; pop ACIA status
+       1719 : D4 02                      ani     TDRE_bm
+       171B : 98 CA                      jz      isr_sensea_exit
+       171D : C4 AC                      ldi     L(ADDR(queue_remove))
+       171F : 31                         xpal    P1
+       1720 : C4 16                      ldi     H(ADDR(queue_remove))
+       1722 : 35                         xpah    P1
+       1723 : 3D                         xppc    P1              ; call queue_remove
+       1724 : 10 20                      .dbyte  tx_queue
+       1726 : 98 0B                      jz      isr_send_empty
+       1728 : C4 00                      ldi     L(ACIA)
+       172A : 31                         xpal    P1
+       172B : C4 DF                      ldi     H(ACIA)
+       172D : 35                         xpah    P1
+       172E : 40                         lde
+       172F : C9 01                      st      ACIA_D(P1)      ; send character
+       1731 : 90 B4                      jmp     isr_sensea_exit
+       1733 :                    isr_send_empty:
+       1733 : C4 00                      ldi     L(ACIA)
+       1735 : 31                         xpal    P1
+       1736 : C4 DF                      ldi     H(ACIA)
+       1738 : 35                         xpah    P1
+       1739 : C4 94                      ldi     RX_INT_TX_NO
+       173B : C9 00                      st      ACIA_C(P1)      ; disable Tx interrupt
+       173D : 90 A8                      jmp     isr_sensea_exit
+       173F :
+       173F :                            end
