@@ -1,7 +1,7 @@
 # Z8002 DIP definition
 # https://github.com/tgtakaoka/dip
-name = "Z16C02"
-title = "Z08002/Z16C02 (Z8002)"
+name = "Z8002"
+title = "Z8002"
 dip = 40
 width = 600
  1 = "AD9"
