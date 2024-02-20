@@ -1,6 +1,6 @@
-# MC146805 DIP definition
+# MC146805E2 DIP definition
 # https://github.com/tgtakaoka/dip
-name = "MC146805"
+name = "MC146805E2"
 title = "MC146805E2"
 dip = 40
 width = 600
