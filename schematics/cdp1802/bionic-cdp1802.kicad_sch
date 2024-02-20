@@ -5,13 +5,51 @@
   (paper "A4")
 
   (title_block
-    (title "BionicCDP1802 Mezzanine")
+    (title "BionicCDP1802")
     (date "2024-01-09")
     (rev "4")
     (company "Tadashi G. Takaoka")
   )
 
   (lib_symbols
+    (symbol "0-LocalLibrary:11AA010-I_TO" (pin_names (offset 0.254)) (in_bom yes) (on_board yes)
+      (property "Reference" "U" (at 2.54 1.27 0)
+        (effects (font (size 1.524 1.524)))
+      )
+      (property "Value" "11AA010-I/TO" (at 3.81 -13.97 0)
+        (effects (font (size 1.524 1.524)))
+      )
+      (property "Footprint" "TO-92_MC_MCH" (at 2.54 -17.78 0)
+        (effects (font (size 1.27 1.27) italic) hide)
+      )
+      (property "Datasheet" "11AA010-I/TO" (at 3.81 -20.32 0)
+        (effects (font (size 1.27 1.27) italic) hide)
+      )
+      (property "ki_keywords" "11AA010-I/TO" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_fp_filters" "TO-92_MC_MCH" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (symbol "11AA010-I_TO_1_1"
+        (rectangle (start 0 0) (end 6.35 -12.7)
+          (stroke (width 0) (type default))
+          (fill (type background))
+        )
+        (pin power_in line (at -2.54 -11.43 0) (length 2.54)
+          (name "VSS" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin bidirectional line (at -2.54 -1.27 0) (length 2.54)
+          (name "SCIO" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+        (pin power_in line (at -2.54 -6.35 0) (length 2.54)
+          (name "VCC" (effects (font (size 1.27 1.27))))
+          (number "3" (effects (font (size 1.27 1.27))))
+        )
+      )
+    )
     (symbol "0-LocalLibrary:74HCT126" (pin_names (offset 1.016)) (in_bom yes) (on_board yes)
       (property "Reference" "U" (at 0 16.51 0)
         (effects (font (size 1.27 1.27)))
@@ -1031,6 +1069,9 @@
   (junction (at 135.89 35.56) (diameter 0) (color 0 0 0 0)
     (uuid 27879e05-df2d-43fe-9be4-30ecac64de33)
   )
+  (junction (at 193.04 104.14) (diameter 0) (color 0 0 0 0)
+    (uuid 6139a8a3-a7e4-4b7b-80c7-83110a7c2c13)
+  )
   (junction (at 161.29 125.73) (diameter 0) (color 0 0 0 0)
     (uuid 714744dc-32e2-4fe3-99bf-7ee3766651f3)
   )
@@ -1057,7 +1098,6 @@
   (no_connect (at 187.96 88.9) (uuid 51993127-fb90-4402-a100-e44f869aabef))
   (no_connect (at 187.96 68.58) (uuid 80332005-f716-4d6f-83a7-3c2a798b1aa5))
   (no_connect (at 187.96 78.74) (uuid 818ff36f-d8ab-4fac-b21f-0dd87fd8ad17))
-  (no_connect (at 187.96 101.6) (uuid 90ee42e4-b895-4f4e-904b-56e0435f8df3))
   (no_connect (at 187.96 91.44) (uuid a30ee3f9-fae7-499d-9c04-bafbbe1a60b4))
   (no_connect (at 175.26 68.58) (uuid bb875f7d-6933-4872-a995-ca6b8403a732))
   (no_connect (at 175.26 91.44) (uuid cfd7f1e3-b62b-4e9b-bf67-ab8135840296))
@@ -1288,6 +1328,10 @@
     (uuid fdf40767-7dfc-4c38-90b9-b9f7850d16d3)
   )
 
+  (wire (pts (xy 190.5 99.06) (xy 207.645 99.06))
+    (stroke (width 0) (type default))
+    (uuid 03288934-95a4-42d3-aaa6-735315f4ff9f)
+  )
   (bus (pts (xy 130.81 60.96) (xy 130.81 63.5))
     (stroke (width 0) (type default))
     (uuid 04f50326-6fcf-4205-82b0-5a7bc0ebf3ad)
@@ -1313,6 +1357,10 @@
   (wire (pts (xy 96.52 55.88) (xy 87.63 55.88))
     (stroke (width 0) (type default))
     (uuid 0ab87873-00af-49c2-a993-9d8e8caa2c36)
+  )
+  (bus (pts (xy 85.09 40.64) (xy 163.83 40.64))
+    (stroke (width 0) (type default))
+    (uuid 0b6d4250-98e0-4d28-b480-02b5d83fcb2b)
   )
   (bus (pts (xy 161.29 73.66) (xy 161.29 76.2))
     (stroke (width 0) (type default))
@@ -1431,7 +1479,11 @@
     (stroke (width 0) (type default))
     (uuid 30668ba4-48aa-4da5-97e4-a6a03f2e3c7a)
   )
-  (wire (pts (xy 187.96 104.14) (xy 191.77 104.14))
+  (wire (pts (xy 190.5 101.6) (xy 190.5 99.06))
+    (stroke (width 0) (type default))
+    (uuid 32bdfc79-8d13-4917-9b8a-dd97e82e6f76)
+  )
+  (wire (pts (xy 187.96 104.14) (xy 193.04 104.14))
     (stroke (width 0) (type default))
     (uuid 348cc688-d5dc-4981-888e-abf22ba8e5cb)
   )
@@ -1508,10 +1560,6 @@
     (stroke (width 0) (type default))
     (uuid 50098637-403c-4d7c-b835-f89927e4186b)
   )
-  (bus (pts (xy 133.35 66.04) (xy 161.29 66.04))
-    (stroke (width 0) (type default))
-    (uuid 55efaad2-8c6c-456e-9556-1a7b0dbc15b5)
-  )
 
   (wire (pts (xy 86.36 96.52) (xy 96.52 96.52))
     (stroke (width 0) (type default))
@@ -1560,6 +1608,15 @@
     (stroke (width 0) (type default))
     (uuid 657ea3a5-8019-4c1b-b326-7bcf9d6c4907)
   )
+  (bus (pts (xy 130.81 38.1) (xy 199.39 38.1))
+    (stroke (width 0) (type default))
+    (uuid 6667f18a-46d3-4f7c-9f42-a92a8ed74a26)
+  )
+  (bus (pts (xy 133.35 66.04) (xy 161.29 66.04))
+    (stroke (width 0) (type default))
+    (uuid 6839a36f-db05-4bd2-9738-27ce916e34d6)
+  )
+
   (wire (pts (xy 175.26 99.06) (xy 167.64 99.06))
     (stroke (width 0) (type default))
     (uuid 6862e3c1-828d-4fee-81c3-fa8b094970ac)
@@ -1606,10 +1663,6 @@
   (wire (pts (xy 143.51 118.11) (xy 86.36 118.11))
     (stroke (width 0) (type default))
     (uuid 75621840-716f-4e23-a48e-797e47219961)
-  )
-  (bus (pts (xy 130.81 38.1) (xy 199.39 38.1))
-    (stroke (width 0) (type default))
-    (uuid 77ca1d2b-3dbe-4ae7-bde6-37946e88bd9d)
   )
   (bus (pts (xy 85.09 50.8) (xy 85.09 53.34))
     (stroke (width 0) (type default))
@@ -1670,13 +1723,13 @@
     (uuid 848dc739-ded1-4992-9004-1a6c7056e368)
   )
 
-  (wire (pts (xy 91.44 104.14) (xy 91.44 102.87))
-    (stroke (width 0) (type default))
-    (uuid 867803e8-6f87-4a05-b21e-01cd75ddea7c)
-  )
   (wire (pts (xy 96.52 60.96) (xy 87.63 60.96))
     (stroke (width 0) (type default))
     (uuid 86c176a4-fd09-4316-adc8-f45a270b8304)
+  )
+  (wire (pts (xy 193.04 104.14) (xy 207.645 104.14))
+    (stroke (width 0) (type default))
+    (uuid 86c69b9a-5349-4ac5-be01-a10905baf5bb)
   )
   (bus (pts (xy 201.93 78.74) (xy 201.93 81.28))
     (stroke (width 0) (type default))
@@ -1725,6 +1778,10 @@
   (wire (pts (xy 175.26 48.26) (xy 166.37 48.26))
     (stroke (width 0) (type default))
     (uuid 993c5f72-c5f3-4fa5-83b8-591c00dccc50)
+  )
+  (wire (pts (xy 187.96 101.6) (xy 190.5 101.6))
+    (stroke (width 0) (type default))
+    (uuid 995eff36-1d79-483e-af69-abe83865dabb)
   )
   (wire (pts (xy 96.52 58.42) (xy 87.63 58.42))
     (stroke (width 0) (type default))
@@ -1811,10 +1868,6 @@
   (wire (pts (xy 82.55 76.2) (xy 96.52 76.2))
     (stroke (width 0) (type default))
     (uuid b26730ba-9277-4f08-b283-bd9fa14c2703)
-  )
-  (bus (pts (xy 85.09 40.64) (xy 163.83 40.64))
-    (stroke (width 0) (type default))
-    (uuid b36221c3-799b-4bd2-8e2a-bd0221417b7e)
   )
   (bus (pts (xy 161.29 83.82) (xy 161.29 86.36))
     (stroke (width 0) (type default))
@@ -1985,7 +2038,7 @@
     (uuid fafb2b80-a18b-4b0d-9d38-2424103bbab8)
   )
 
-  (wire (pts (xy 91.44 110.49) (xy 91.44 109.22))
+  (wire (pts (xy 91.44 109.855) (xy 91.44 109.22))
     (stroke (width 0) (type default))
     (uuid fb831108-347e-41f5-937f-29df70444e14)
   )
@@ -2087,7 +2140,7 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 3a1cadf8-52ab-4766-a28d-bfc158380dff)
   )
-  (label "P4[0..5]" (at 107.95 35.56 0) (fields_autoplaced)
+  (label "P4[0..5]" (at 143.51 35.56 0) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 3cd37b16-53ae-47a8-8c97-656eea1f0631)
   )
@@ -2095,7 +2148,7 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 3dc37464-27e0-474e-b269-a31134800afe)
   )
-  (label "P2[0..7]" (at 191.77 38.1 0) (fields_autoplaced)
+  (label "P2[0..7]" (at 143.51 38.1 0) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 3e00e575-478e-4bc3-8968-c4bdac614c72)
   )
@@ -2139,7 +2192,7 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 5f024fa0-668e-49b1-95be-71dc750f0afd)
   )
-  (label "P3[0..7]" (at 146.05 66.04 0) (fields_autoplaced)
+  (label "P3[0..7]" (at 144.145 66.04 0) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 5fd61a03-3dd3-42f4-a8f8-c126f1ab6069)
   )
@@ -2187,7 +2240,7 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 85634461-316d-466a-b91e-5e340689c64f)
   )
-  (label "P1[0..7]" (at 107.95 40.64 0) (fields_autoplaced)
+  (label "P1[0..7]" (at 143.51 40.64 0) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 85806625-d51f-4182-a985-44aab1c3b58d)
   )
@@ -2342,7 +2395,7 @@
     (pin "1" (uuid 90aaf1d0-e336-4af3-9b4e-afa1c559c4b6))
     (pin "2" (uuid 06c41cde-09a0-49ed-a3d2-ca217f271bbb))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "C1") (unit 1)
         )
@@ -2380,7 +2433,7 @@
     (pin "8" (uuid 54c30bbf-dc34-4d75-8fee-75fa85dcd5a7))
     (pin "9" (uuid b6fc2f96-1411-47b2-97cc-215125f3d628))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "U2") (unit 1)
         )
@@ -2444,7 +2497,7 @@
     (pin "3" (uuid 36d22f3e-dec4-4a77-9e8b-7cd42ddd602b))
     (pin "1" (uuid 7bba167a-514a-44b9-9048-a785b2ea8e5d))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "U1") (unit 1)
         )
@@ -2492,7 +2545,7 @@
     (pin "1" (uuid b88e9775-6b0b-42ed-b178-db98c26e8831))
     (pin "9" (uuid 2d84721e-7839-47d4-86cd-b90ae9e1e87c))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "J1") (unit 1)
         )
@@ -2500,24 +2553,51 @@
     )
   )
 
-  (symbol (lib_name "VCC_1") (lib_id "power:VCC") (at 91.44 102.87 0) (unit 1)
+  (symbol (lib_id "0-LocalLibrary:11AA010-I_TO") (at 210.185 97.79 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no)
+    (uuid 2bfd73fe-9596-403e-af82-2154e3b6b6a6)
+    (property "Reference" "U3" (at 211.455 96.52 0)
+      (effects (font (size 1.524 1.524)) (justify left))
+    )
+    (property "Value" "11AA010-I/TO" (at 210.185 112.395 0)
+      (effects (font (size 1.524 1.524)) (justify left))
+    )
+    (property "Footprint" "TO-92_MC_MCH" (at 212.725 115.57 0)
+      (effects (font (size 1.27 1.27) italic) hide)
+    )
+    (property "Datasheet" "11AA010-I/TO" (at 213.995 118.11 0)
+      (effects (font (size 1.27 1.27) italic) hide)
+    )
+    (pin "2" (uuid 215f8a9a-4390-405c-a41e-960308034067))
+    (pin "3" (uuid adc85634-c419-4930-ba34-228b95b07f03))
+    (pin "1" (uuid 87ddca00-3e2f-4994-ac1c-9a6f480c3629))
+    (instances
+      (project "bionic-cdp1802"
+        (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
+          (reference "U3") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_name "VCC_1") (lib_id "power:VCC") (at 91.44 104.14 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 67d98cd6-03d6-4f29-b1e0-43f3a11237fb)
-    (property "Reference" "#PWR01" (at 91.44 106.68 0)
+    (property "Reference" "#PWR01" (at 91.44 107.95 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "VCC" (at 91.44 99.06 0)
+    (property "Value" "VCC" (at 91.44 100.33 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "" (at 91.44 102.87 0)
+    (property "Footprint" "" (at 91.44 104.14 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (at 91.44 102.87 0)
+    (property "Datasheet" "" (at 91.44 104.14 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid 6344dea6-dc53-4eb0-9dad-92a6786fa8d6))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR01") (unit 1)
         )
@@ -2542,7 +2622,7 @@
     )
     (pin "1" (uuid 9d6c5090-e637-4dfd-b3ed-96616f7e5622))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR02") (unit 1)
         )
@@ -2567,7 +2647,7 @@
     )
     (pin "1" (uuid 1bda529e-1ce1-4f22-881e-ca0ed70665d0))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR06") (unit 1)
         )
@@ -2575,26 +2655,51 @@
     )
   )
 
-  (symbol (lib_name "GND_1") (lib_id "power:GND") (at 91.44 110.49 0) (unit 1)
+  (symbol (lib_name "GND_1") (lib_id "power:GND") (at 91.44 109.855 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid a446b790-4b4c-45da-ab71-9d30cd2c66b0)
-    (property "Reference" "#PWR04" (at 91.44 116.84 0)
+    (property "Reference" "#PWR04" (at 91.44 116.205 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "GND" (at 91.44 114.3 0)
+    (property "Value" "GND" (at 91.44 113.665 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "" (at 91.44 110.49 0)
+    (property "Footprint" "" (at 91.44 109.855 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (at 91.44 110.49 0)
+    (property "Datasheet" "" (at 91.44 109.855 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid 5bc70a51-9184-4ffe-8344-a0bdb808ce82))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR04") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_name "GND_1") (lib_id "power:GND") (at 207.645 109.22 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no)
+    (uuid a5be7153-4e3f-431b-8280-7f79a1c0f5f3)
+    (property "Reference" "#PWR08" (at 207.645 115.57 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Value" "GND" (at 207.645 113.03 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Footprint" "" (at 207.645 109.22 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "" (at 207.645 109.22 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 532b1e22-223d-45fb-a8a5-815761950d85))
+    (instances
+      (project "bionic-cdp1802"
+        (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
+          (reference "#PWR08") (unit 1)
         )
       )
     )
@@ -2640,7 +2745,7 @@
     (pin "29" (uuid 50f827a1-6e4f-4e84-ae55-892d86e4940b))
     (pin "28" (uuid e9ad2b1f-3b11-4e5e-b7b4-157963799fb0))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "J2") (unit 1)
         )
@@ -2665,7 +2770,7 @@
     )
     (pin "1" (uuid 541b601b-c37d-4712-8f20-9ce54fb32250))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR07") (unit 1)
         )
@@ -2673,24 +2778,24 @@
     )
   )
 
-  (symbol (lib_name "VCC_1") (lib_id "power:VCC") (at 191.77 104.14 0) (unit 1)
+  (symbol (lib_name "VCC_1") (lib_id "power:VCC") (at 193.04 104.14 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid d1f8ab16-d179-47d5-bfc8-3e490d47c1e6)
-    (property "Reference" "#PWR05" (at 191.77 107.95 0)
+    (property "Reference" "#PWR05" (at 193.04 107.95 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "VCC" (at 191.77 100.33 0)
+    (property "Value" "VCC" (at 193.04 106.045 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "" (at 191.77 104.14 0)
+    (property "Footprint" "" (at 193.04 104.14 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (at 191.77 104.14 0)
+    (property "Datasheet" "" (at 193.04 104.14 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid c2f0614d-4c7e-458c-b424-a368671ff530))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR05") (unit 1)
         )
@@ -2715,7 +2820,7 @@
     )
     (pin "1" (uuid fb3039ab-c8aa-442b-9e2a-477a16d81e2c))
     (instances
-      (project "Prototype1"
+      (project "bionic-cdp1802"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR03") (unit 1)
         )
