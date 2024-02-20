@@ -9,6 +9,7 @@
     (title "BionicF3850")
     (date "2023-12-16")
     (rev "3")
+    (company "Tadashi G. Takaoka")
   )
 
   (layers

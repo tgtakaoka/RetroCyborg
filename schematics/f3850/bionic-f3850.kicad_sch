@@ -5,7 +5,7 @@
   (paper "A4")
 
   (title_block
-    (title "BionicF3850 Mezzanine")
+    (title "BionicF3850")
     (date "2023-12-16")
     (rev "3")
     (company "Tadashi G. Takaoka")
@@ -31,41 +31,11 @@
       (property "ki_fp_filters" "TO-92_MC_MCH" (at 0 0 0)
         (effects (font (size 1.27 1.27)) hide)
       )
-      (symbol "11AA010-I_TO_0_1"
-        (polyline
-          (pts
-            (xy 0 -12.7)
-            (xy 6.35 -12.7)
-          )
-          (stroke (width 0.127) (type default))
-          (fill (type none))
-        )
-        (polyline
-          (pts
-            (xy 0 0)
-            (xy 0 -12.7)
-          )
-          (stroke (width 0.127) (type default))
-          (fill (type none))
-        )
-        (polyline
-          (pts
-            (xy 6.35 -12.7)
-            (xy 6.35 0)
-          )
-          (stroke (width 0.127) (type default))
-          (fill (type none))
-        )
-        (polyline
-          (pts
-            (xy 6.35 0)
-            (xy 0 0)
-          )
-          (stroke (width 0.127) (type default))
-          (fill (type none))
-        )
-      )
       (symbol "11AA010-I_TO_1_1"
+        (rectangle (start 0 0) (end 6.35 -12.7)
+          (stroke (width 0) (type default))
+          (fill (type background))
+        )
         (pin power_in line (at -2.54 -11.43 0) (length 2.54)
           (name "VSS" (effects (font (size 1.27 1.27))))
           (number "1" (effects (font (size 1.27 1.27))))
@@ -1160,11 +1130,11 @@
   (junction (at 187.96 45.72) (diameter 0) (color 0 0 0 0)
     (uuid b61db7ab-3543-401f-a83a-9c3437513a2c)
   )
-  (junction (at 164.465 156.21) (diameter 0) (color 0 0 0 0)
-    (uuid bc399cb3-7550-4b29-81f5-ad3c5134870a)
-  )
   (junction (at 91.44 104.14) (diameter 0) (color 0 0 0 0)
     (uuid d2aa664b-37ac-4c77-9d59-38c67b5f2cc2)
+  )
+  (junction (at 161.29 156.21) (diameter 0) (color 0 0 0 0)
+    (uuid e357e071-d884-470f-b747-a30992c94fc8)
   )
   (junction (at 161.29 133.35) (diameter 0) (color 0 0 0 0)
     (uuid e6876026-272e-4171-bcff-d612563cabb2)
@@ -1654,10 +1624,6 @@
     (stroke (width 0) (type default))
     (uuid 4f7464e2-acdb-491c-8072-3994373734c6)
   )
-  (wire (pts (xy 161.29 146.05) (xy 164.465 146.05))
-    (stroke (width 0) (type default))
-    (uuid 51685c8c-3fb5-4fdb-9912-de72376816a3)
-  )
   (wire (pts (xy 187.96 76.2) (xy 199.39 76.2))
     (stroke (width 0) (type default))
     (uuid 529408a8-a8cd-4052-9cac-5abb7cdf468c)
@@ -1702,6 +1668,10 @@
   (bus (pts (xy 163.83 50.8) (xy 163.83 53.34))
     (stroke (width 0) (type default))
     (uuid 6202bc31-5c70-4f38-8882-7e217e9dff5b)
+  )
+  (bus (pts (xy 130.81 35.56) (xy 201.93 35.56))
+    (stroke (width 0) (type default))
+    (uuid 62d424a8-651e-4271-9200-2fdf1c1a4a6f)
   )
 
   (wire (pts (xy 82.55 72.39) (xy 96.52 72.39))
@@ -1756,7 +1726,7 @@
     (uuid 75eabb83-64ca-409b-acfc-38c05833c355)
   )
 
-  (wire (pts (xy 158.75 156.21) (xy 164.465 156.21))
+  (wire (pts (xy 158.75 156.21) (xy 161.29 156.21))
     (stroke (width 0) (type default))
     (uuid 7620805f-acac-42ca-8df3-5d10b096665a)
   )
@@ -1790,10 +1760,6 @@
     (stroke (width 0) (type default))
     (uuid 7dc865c5-3956-4e58-83dc-b7275f10aed6)
   )
-  (wire (pts (xy 161.29 151.13) (xy 161.29 149.86))
-    (stroke (width 0) (type default))
-    (uuid 805afd58-5108-477d-9320-22a5af09ddc8)
-  )
   (wire (pts (xy 191.77 104.14) (xy 212.09 104.14))
     (stroke (width 0) (type default))
     (uuid 80c85c38-41e1-4dd6-85ed-854d1942a3e6)
@@ -1806,7 +1772,7 @@
     (stroke (width 0) (type default))
     (uuid 82a266df-c5cd-4be1-b57e-cc3d1941b9d4)
   )
-  (wire (pts (xy 91.44 104.14) (xy 91.44 102.87))
+  (wire (pts (xy 91.44 104.14) (xy 91.44 103.505))
     (stroke (width 0) (type default))
     (uuid 867803e8-6f87-4a05-b21e-01cd75ddea7c)
   )
@@ -1975,6 +1941,10 @@
     (stroke (width 0) (type default))
     (uuid ab14e182-d201-4cd4-9daf-2c4aadbb0100)
   )
+  (wire (pts (xy 161.29 156.845) (xy 161.29 156.21))
+    (stroke (width 0) (type default))
+    (uuid ab1615f5-ce18-42f4-89e9-dc0eb9cc7d41)
+  )
   (bus (pts (xy 161.29 60.96) (xy 161.29 68.58))
     (stroke (width 0) (type default))
     (uuid ac62505e-4e03-4900-8c37-e67f106cde84)
@@ -1997,11 +1967,6 @@
     (stroke (width 0) (type default))
     (uuid b26730ba-9277-4f08-b283-bd9fa14c2703)
   )
-  (bus (pts (xy 85.09 40.64) (xy 163.83 40.64))
-    (stroke (width 0) (type default))
-    (uuid b36221c3-799b-4bd2-8e2a-bd0221417b7e)
-  )
-
   (wire (pts (xy 82.55 78.74) (xy 82.55 135.89))
     (stroke (width 0) (type default))
     (uuid b39f0142-0d65-40bb-a402-d45a0b200bf2)
@@ -2014,12 +1979,16 @@
     (stroke (width 0) (type default))
     (uuid b848f4f2-84bc-460f-a579-afa900ca138e)
   )
+  (bus (pts (xy 133.35 38.1) (xy 199.39 38.1))
+    (stroke (width 0) (type default))
+    (uuid b9865804-82f3-405c-b01d-82cc1ab5e4c6)
+  )
 
   (wire (pts (xy 175.26 104.14) (xy 187.96 104.14))
     (stroke (width 0) (type default))
     (uuid bb4a767b-2a42-430a-9a88-567c61ef909c)
   )
-  (wire (pts (xy 164.465 146.05) (xy 164.465 156.21))
+  (wire (pts (xy 161.29 146.05) (xy 161.29 156.21))
     (stroke (width 0) (type default))
     (uuid c0e89fce-5e5f-446a-a0aa-0e32009ab596)
   )
@@ -2031,6 +2000,11 @@
     (stroke (width 0) (type default))
     (uuid c22ae571-4e55-4974-a965-0d0ee943e69c)
   )
+  (bus (pts (xy 85.09 40.64) (xy 163.83 40.64))
+    (stroke (width 0) (type default))
+    (uuid c3c3bc3d-a194-47ae-8229-22b4900735d0)
+  )
+
   (wire (pts (xy 168.91 135.89) (xy 158.75 135.89))
     (stroke (width 0) (type default))
     (uuid c66f883d-9fd2-4633-914e-0fc2577c4a45)
@@ -2065,10 +2039,6 @@
     (stroke (width 0) (type default))
     (uuid cbf52518-1d70-480d-a3a5-e928c4d4ef64)
   )
-  (bus (pts (xy 130.81 35.56) (xy 201.93 35.56))
-    (stroke (width 0) (type default))
-    (uuid cc700038-663b-4099-91f6-d70b6c16c29a)
-  )
 
   (wire (pts (xy 161.29 133.35) (xy 158.75 133.35))
     (stroke (width 0) (type default))
@@ -2085,10 +2055,6 @@
   (wire (pts (xy 175.26 50.8) (xy 166.37 50.8))
     (stroke (width 0) (type default))
     (uuid d50e2af3-ed9d-4872-9b9f-606f965d7562)
-  )
-  (bus (pts (xy 199.39 38.1) (xy 133.35 38.1))
-    (stroke (width 0) (type default))
-    (uuid d7b7751f-49e0-44a9-a62c-fbbc91ad4411)
   )
   (bus (pts (xy 163.83 60.96) (xy 163.83 63.5))
     (stroke (width 0) (type default))
@@ -2111,7 +2077,7 @@
     (stroke (width 0) (type default))
     (uuid db5e3534-0c2a-4e66-b5d4-b66052e480d5)
   )
-  (wire (pts (xy 161.29 151.13) (xy 158.75 151.13))
+  (wire (pts (xy 158.75 151.13) (xy 165.735 151.13))
     (stroke (width 0) (type default))
     (uuid dbbbd8fd-ccd0-41fe-9f16-3e1df5e2ed85)
   )
@@ -2203,7 +2169,7 @@
     (stroke (width 0) (type default))
     (uuid f688ab06-c3b5-4250-a55f-be36442b772b)
   )
-  (wire (pts (xy 91.44 110.49) (xy 91.44 109.22))
+  (wire (pts (xy 91.44 109.855) (xy 91.44 109.22))
     (stroke (width 0) (type default))
     (uuid fb831108-347e-41f5-937f-29df70444e14)
   )
@@ -2301,7 +2267,7 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 3dc37464-27e0-474e-b269-a31134800afe)
   )
-  (label "P2[0..7]" (at 191.77 38.1 0) (fields_autoplaced)
+  (label "P2[0..7]" (at 143.51 38.1 0) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 3e00e575-478e-4bc3-8968-c4bdac614c72)
   )
@@ -2341,7 +2307,7 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 56204c44-7d34-46c7-b679-18f6c9e69de7)
   )
-  (label "P4[0..6]" (at 160.02 35.56 0) (fields_autoplaced)
+  (label "P4[0..6]" (at 143.51 35.56 0) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 5856bd7e-7a6d-4947-9547-cff3ca106d22)
   )
@@ -2393,7 +2359,7 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 84f4a80d-ac01-4c0e-a15b-9186acd006b1)
   )
-  (label "P1[0..7]" (at 107.95 40.64 0) (fields_autoplaced)
+  (label "P1[0..7]" (at 143.51 40.64 0) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 85806625-d51f-4182-a985-44aab1c3b58d)
   )
@@ -2536,7 +2502,7 @@
     (pin "1" (uuid 90aaf1d0-e336-4af3-9b4e-afa1c559c4b6))
     (pin "2" (uuid 06c41cde-09a0-49ed-a3d2-ca217f271bbb))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "C1") (unit 1)
         )
@@ -2574,7 +2540,7 @@
     (pin "8" (uuid 54c30bbf-dc34-4d75-8fee-75fa85dcd5a7))
     (pin "9" (uuid b6fc2f96-1411-47b2-97cc-215125f3d628))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "U2") (unit 1)
         )
@@ -2622,7 +2588,7 @@
     (pin "23" (uuid 426dfc92-a093-4567-ada9-5e9e4696f6b9))
     (pin "1" (uuid fff1ba15-4535-46f9-84c8-62c42bd12583))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "J1") (unit 1)
         )
@@ -2647,7 +2613,7 @@
     )
     (pin "1" (uuid fd980e07-e8d4-462a-91df-88e887075f8f))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR05") (unit 1)
         )
@@ -2711,7 +2677,7 @@
     (pin "8" (uuid da373170-d532-411b-94c5-80274e907b4b))
     (pin "9" (uuid 2525941b-baf5-47a5-8782-9bb6aedbd8ea))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "U1") (unit 1)
         )
@@ -2737,7 +2703,7 @@
     (pin "1" (uuid 6458e2db-b631-496b-9a2f-f69a816cd5d0))
     (pin "2" (uuid b7e7b09f-733f-424a-9505-4207e4a7165b))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "C4") (unit 1)
         )
@@ -2745,24 +2711,24 @@
     )
   )
 
-  (symbol (lib_name "VCC_1") (lib_id "power:VCC") (at 91.44 102.87 0) (unit 1)
+  (symbol (lib_name "VCC_1") (lib_id "power:VCC") (at 91.44 103.505 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 2d395501-8d6e-4074-864d-2c489092dc5d)
-    (property "Reference" "#PWR03" (at 91.44 106.68 0)
+    (property "Reference" "#PWR03" (at 91.44 107.315 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "VCC" (at 87.63 101.6 0)
+    (property "Value" "VCC" (at 87.63 102.235 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "" (at 91.44 102.87 0)
+    (property "Footprint" "" (at 91.44 103.505 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (at 91.44 102.87 0)
+    (property "Datasheet" "" (at 91.44 103.505 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid d7dc056e-1d22-425e-be32-bfd26b5471c4))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR03") (unit 1)
         )
@@ -2788,7 +2754,7 @@
     (pin "1" (uuid 7fbb9b2c-2c9d-4282-bf51-3f711cef9345))
     (pin "2" (uuid b5b02329-6de4-484f-9aa3-272d14a7e4ad))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "C3") (unit 1)
         )
@@ -2813,7 +2779,7 @@
     )
     (pin "1" (uuid 14af40c6-1818-415d-9b57-09b44f31af7e))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR02") (unit 1)
         )
@@ -2821,24 +2787,24 @@
     )
   )
 
-  (symbol (lib_name "VCC_1") (lib_id "power:VCC") (at 161.29 149.86 0) (unit 1)
+  (symbol (lib_name "VCC_1") (lib_id "power:VCC") (at 165.735 151.13 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 480e3f20-cc71-46e3-9a50-1c7ce527789b)
-    (property "Reference" "#PWR08" (at 161.29 153.67 0)
+    (property "Reference" "#PWR08" (at 165.735 154.94 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "VCC" (at 161.29 152.4 0)
+    (property "Value" "VCC" (at 165.735 147.32 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "" (at 161.29 149.86 0)
+    (property "Footprint" "" (at 165.735 151.13 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (at 161.29 149.86 0)
+    (property "Datasheet" "" (at 165.735 151.13 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid ec716c65-7549-4549-a0c0-ccf25dd429e3))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR08") (unit 1)
         )
@@ -2863,7 +2829,7 @@
     )
     (pin "1" (uuid a594b672-e40d-41e1-b33b-7a1451500cc4))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR06") (unit 1)
         )
@@ -2888,7 +2854,7 @@
     )
     (pin "1" (uuid 070929d4-2b3c-48b8-862f-44ecfd79f67b))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR07") (unit 1)
         )
@@ -2913,7 +2879,7 @@
     )
     (pin "1" (uuid a90f5c89-586c-4890-8da6-96902428d8c1))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR04") (unit 1)
         )
@@ -2940,7 +2906,7 @@
     (pin "2" (uuid dc14eb4f-3daf-4c0d-8868-4bd57f096416))
     (pin "3" (uuid 1b99b95a-baa3-43ee-8a16-50ed6ac5b625))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "U3") (unit 1)
         )
@@ -2948,24 +2914,24 @@
     )
   )
 
-  (symbol (lib_name "GND_1") (lib_id "power:GND") (at 164.465 156.21 0) (unit 1)
+  (symbol (lib_name "GND_1") (lib_id "power:GND") (at 161.29 156.845 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid c3991734-6cae-4235-8267-9aaf0531e77c)
-    (property "Reference" "#PWR010" (at 164.465 162.56 0)
+    (property "Reference" "#PWR010" (at 161.29 163.195 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "GND" (at 164.465 161.29 0)
+    (property "Value" "GND" (at 161.29 161.925 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "" (at 164.465 156.21 0)
+    (property "Footprint" "" (at 161.29 156.845 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (at 164.465 156.21 0)
+    (property "Datasheet" "" (at 161.29 156.845 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid 7d0540f3-6a78-47ae-8e95-f08ef0c19ef8))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR010") (unit 1)
         )
@@ -2973,24 +2939,24 @@
     )
   )
 
-  (symbol (lib_name "GND_1") (lib_id "power:GND") (at 91.44 110.49 0) (unit 1)
+  (symbol (lib_name "GND_1") (lib_id "power:GND") (at 91.44 109.855 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid dca3f864-bf3b-454b-9463-99228bf00271)
-    (property "Reference" "#PWR012" (at 91.44 116.84 0)
+    (property "Reference" "#PWR012" (at 91.44 116.205 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "GND" (at 91.44 115.57 0)
+    (property "Value" "GND" (at 91.44 114.935 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "" (at 91.44 110.49 0)
+    (property "Footprint" "" (at 91.44 109.855 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (at 91.44 110.49 0)
+    (property "Datasheet" "" (at 91.44 109.855 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid 1f7cb5e6-ad5d-4967-905f-6962e5ad70bf))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR012") (unit 1)
         )
@@ -3015,7 +2981,7 @@
     )
     (pin "1" (uuid 167ce815-9cac-4cef-8d82-911fdf4bf420))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "#PWR01") (unit 1)
         )
@@ -3063,7 +3029,7 @@
     (pin "34" (uuid aaae1b9b-c69d-4ded-b830-51ecfe656fb9))
     (pin "47" (uuid 6fbad1be-c118-4c10-afab-6280169f9cff))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "J2") (unit 1)
         )
@@ -3080,7 +3046,7 @@
     (property "Value" "11AA010-I/TO" (at 214.63 112.395 0)
       (effects (font (size 1.524 1.524)) (justify left))
     )
-    (property "Footprint" "0-LocalLibrary:TO-92_MC_MCH" (at 217.17 115.57 0)
+    (property "Footprint" "TO-92_MC_MCH" (at 217.17 115.57 0)
       (effects (font (size 1.27 1.27) italic) hide)
     )
     (property "Datasheet" "11AA010-I/TO" (at 218.44 118.11 0)
@@ -3090,7 +3056,7 @@
     (pin "3" (uuid 8348bf93-01d3-4342-9b49-6fc4a29d9857))
     (pin "2" (uuid 058c5954-1806-4a2b-a206-4349f2ff6743))
     (instances
-      (project "Prototype1"
+      (project "bionic-f3850"
         (path "/e34a8143-c171-446f-a8b3-383ff98fd174"
           (reference "U4") (unit 1)
         )
