@@ -1,7 +1,7 @@
-# MSM80C39RS DIP definition
+# P8048AH DIP definition
 # https://github.com/tgtakaoka/dip
-name = "80C39"
-title = "MSM80C39RS"
+name = "P8048"
+title = "P8048AH"
 dip = 40
 width = 600
  1 = "P44, T0"
