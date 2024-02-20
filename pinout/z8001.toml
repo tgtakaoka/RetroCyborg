@@ -1,7 +1,7 @@
 # Z8001 DIP definition
 # https://github.com/tgtakaoka/dip
-name = "Z16C01"
-title = "Z08001/Z16C01 (Z8001)"
+name = "Z8001"
+title = "Z8001"
 dip = 48
 width = 600
  1 = "AD0"
