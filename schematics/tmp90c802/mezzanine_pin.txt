@@ -1,4 +1,4 @@
-                       BionicTMP90P802 (backside)
+                        BionicTMP90C802 (backside)
                _________                       _____
         VCC 40|        *|1  P45 RxD    GND  48|    *|1   GND
     A15 P37 39|         |2  P54 #RTS   P20  47|     |2   P10
@@ -18,15 +18,10 @@
      A1 P21 25|         |16 P14 D4     P45  33|  e  |16  P35
      A0 P20 24|         |17 P15 D5     P46  32|  c  |17  P36
  #RESET P53 23|         |18 P16 D6     P47  31|  t  |18  P37
-     X2     22|         |19 P17 D7      E3  30|  o  |19  E2
+     X2     22|         |19 P17 D7     15V  30|  o  |19  15V
      X1 P46 21|_________|20 GND        P54  29|  r  |20  P50
-                 3     4 V             P55  28|     |21  P51
-             3 3 O 4 4 O c             P56  27|     |22  P52
-             Y A E Y A E c             P57  26|     |23  P53
-            +-------------+            VCC  25|_____|24  VCC
-            |             |               Bionic Connector
-            |   74126    *|           
-            +-------------+
-             G 2 2 2 1 1 1 
-             N Y A O Y A O 
-             D     E     E 
+                                       P55  28|     |21  P51
+                                       P56  27|     |22  P52
+                                       P57  26|     |23  P53
+                                       VCC  25|_____|24  VCC
+                                          Bionic Connector
