@@ -19,6 +19,7 @@ void Signals::getData() {
 }
 
 void Signals::print() const {
+    LOG(cli.printDec(pos(), -4));
     // clang-format off
     static char buffer[] = {
         ' ',                       // I/D/H=0

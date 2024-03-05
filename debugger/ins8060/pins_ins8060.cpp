@@ -203,7 +203,7 @@ void PinsIns8060::reset() {
     Regs.save();
 }
 
-Signals *PinsIns8060::prepareCycle() {
+Signals *PinsIns8060::prepareCycle() const {
     auto s = Signals::put();
     // XIN=H
     goto enout_check;
@@ -235,7 +235,7 @@ Signals *PinsIns8060::prepareCycle() {
     return s;
 }
 
-Signals *PinsIns8060::completeCycle(Signals *s) {
+Signals *PinsIns8060::completeCycle(Signals *s) const {
     // XIN=L
     xin_lo();
     delayNanoseconds(xin_lo_begin);
@@ -286,21 +286,21 @@ Signals *PinsIns8060::completeCycle(Signals *s) {
     return s;
 }
 
-Signals *PinsIns8060::cycle(uint8_t data) {
+Signals *PinsIns8060::cycle(uint8_t data) const {
     return completeCycle(prepareCycle()->inject(data));
 }
 
-void PinsIns8060::execInst(const uint8_t *inst, uint8_t len) {
+void PinsIns8060::execInst(const uint8_t *inst, uint8_t len) const {
     execute(inst, len, nullptr, nullptr, 0);
 }
 
-uint8_t PinsIns8060::captureWrites(const uint8_t *inst, uint8_t len,
-        uint16_t *addr, uint8_t *buf, uint8_t max) {
-    return execute(inst, len, addr, buf, max);
+void PinsIns8060::captureWrites(const uint8_t *inst, uint8_t len,
+        uint16_t *addr, uint8_t *buf, uint8_t max) const {
+    execute(inst, len, addr, buf, max);
 }
 
-uint8_t PinsIns8060::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
-        uint8_t *buf, uint8_t max) {
+void PinsIns8060::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
+        uint8_t *buf, uint8_t max) const {
     uint8_t inj = 0;
     uint8_t cap = 0;
     assert_enin();
@@ -322,7 +322,6 @@ uint8_t PinsIns8060::execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
         }
     }
     suspend();
-    return cap;
 }
 
 void PinsIns8060::idle() {
@@ -338,7 +337,10 @@ void PinsIns8060::loop() {
             const auto inst = Memory.raw_read(s->addr);
             const auto len = InstIns8060::instLen(inst);
             if (len == 0 || inst == InstIns8060::HALT) {
-                suspend();
+                completeCycle(s->inject(InstIns8060::JMP));
+                cycle(InstIns8060::JMP_HERE);
+                negate_enin();
+                //Signals::discard(s);
                 return;
             }
         }
@@ -350,9 +352,23 @@ void PinsIns8060::loop() {
     }
 }
 
+void PinsIns8060::suspend() const {
+    while (true) {
+        auto s = prepareCycle();
+        if (s->fetch()) {
+            completeCycle(s->inject(InstIns8060::JMP));
+            cycle(InstIns8060::JMP_HERE);
+            negate_enin();
+            //Signals::discard(s);
+            return;
+        }
+        completeCycle(s);
+    }
+}
+
 void PinsIns8060::run() {
     Regs.restore();
-    Signals::resetCycles();
+    //Signals::resetCycles();
     saveBreakInsts();
     assert_enin();
     loop();
@@ -361,21 +377,7 @@ void PinsIns8060::run() {
     Regs.save();
 }
 
-void PinsIns8060::suspend() {
-    while (true) {
-        auto s = prepareCycle();
-        if (s->fetch()) {
-            completeCycle(s->inject(InstIns8060::JMP));
-            cycle(InstIns8060::JMP_HERE);
-            negate_enin();
-            Signals::discard(s);
-            return;
-        }
-        completeCycle(s);
-    }
-}
-
-bool PinsIns8060::rawStep() {
+bool PinsIns8060::rawStep() const {
     assert_enin();
     auto s = prepareCycle();
     const auto inst = Memory.raw_read(s->addr);
@@ -384,7 +386,7 @@ bool PinsIns8060::rawStep() {
         // HALT or unknown instruction
         completeCycle(s->inject(InstIns8060::JMP));
         cycle(InstIns8060::JMP_HERE);
-        Signals::discard(s);
+        //        Signals::discard(s);
         return false;
     }
     completeCycle(s);
@@ -394,7 +396,7 @@ bool PinsIns8060::rawStep() {
 
 bool PinsIns8060::step(bool show) {
     Regs.restore();
-    Signals::resetCycles();
+    //Signals::resetCycles();
     if (rawStep()) {
         if (show)
             printCycles();

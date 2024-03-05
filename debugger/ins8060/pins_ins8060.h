@@ -71,19 +71,19 @@ struct PinsIns8060 final : Pins {
     void negateInt(uint8_t name) override;
     void setBreakInst(uint32_t addr) const override;
 
-    void execInst(const uint8_t *inst, uint8_t len);
-    uint8_t captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
-            uint8_t *buf, uint8_t max);
+    void execInst(const uint8_t *inst, uint8_t len) const;
+    void captureWrites(const uint8_t *inst, uint8_t len, uint16_t *addr,
+            uint8_t *buf, uint8_t max) const;
 
 private:
-    Signals *prepareCycle();
-    Signals *completeCycle(Signals *signals);
-    Signals *cycle(uint8_t data);
+    Signals *prepareCycle() const;
+    Signals *completeCycle(Signals *signals) const;
+    Signals *cycle(uint8_t data) const;
     void loop();
-    void suspend();
-    bool rawStep();
-    uint8_t execute(const uint8_t *inst, uint8_t len, uint16_t *addr,
-            uint8_t *buf, uint8_t max);
+    void suspend() const;
+    bool rawStep() const;
+    void execute(const uint8_t *inst, uint8_t len, uint16_t *addr, uint8_t *buf,
+            uint8_t max) const;
 
     void printCycles();
     void disassembleCycles();
