@@ -64,11 +64,11 @@
       35,
       36
     ],
-    "visible_layers": "003ffff_80000000",
+    "visible_layers": "003ffff_80000001",
     "zone_display_mode": 0
   },
   "meta": {
-    "filename": "ins8060.kicad_prl",
+    "filename": "bionic-ins8060.kicad_prl",
     "version": 3
   },
   "project": {
