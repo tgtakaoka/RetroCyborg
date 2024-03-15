@@ -1,4 +1,4 @@
-                       BionicTMP90P802 (backside)
+                        BionicF3850 (backside)
                _________                       _____
    XTLZ GND 40|        *|1  P50 PHI    GND  48|    *|1   GND
    XTLX     39|         |2  P51 WRITE  P20  47|     |2   P10
@@ -20,13 +20,8 @@
 #INTREQ P55 23|         |18 P41 ROMC1  P47  31|  t  |18  P37
    #ICB P54 22|         |19 P42 ROMC2 +15V  30|  o  |19  +15V
   ROMC4 P46 21|_________|20 P43 ROMC3  P54  29|  r  |20  P50
-                 3     4 V             P55  28|     |21  P51
-             3 3 O 4 4 O c             P56  27|     |22  P52
-             Y A E Y A E c             P57  26|     |23  P53
-            +-------------+            VCC  25|_____|24  VCC
-            |             |               Bionic Connector
-            |   74126    *|
-            +-------------+
-             G 2 2 2 1 1 1
-             N Y A O Y A O
-             D     E     E
+                                       P55  28|     |21  P51
+                                       P56  27|     |22  P52
+                                       P57  26|     |23  P53
+                                       VCC  25|_____|24  VCC
+                                          Bionic Connector
