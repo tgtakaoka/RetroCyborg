@@ -1,5 +1,4 @@
                       BionicZ8800 (backside)
-
               _________                       _____
     A8 P20 48|        *|1  P10 AD0    GND  48|    *|1   GND
     A9 P21 47|         |2  P11 AD1    P20  47|     |2   P10
@@ -19,19 +18,10 @@
            33|         |16            P45  33|  e  |16  P35
            32|         |17            P46  32|  c  |17  P36
   R/#W P41 31|         |18            P47  31|  t  |18  P37
-#RESET P53 30|         |19             E3  30|  o  |19  E2
+#RESET P53 30|         |19            15V  30|  o  |19  15V
            29|         |20            P54  29|  r  |20  P50
            28|         |21 P43 #IRQ0  P55  28|     |21  P51
            27|         |22            P56  27|     |22  P52
  #IRQ2 P50 26|         |23 P42 #IRQ1  P57  26|     |23  P53
    RxD P45 25|_________|24 P44 TxD    VCC  25|_____|24  VCC
-                3     4 V               Bionic Connector
-            3 3 O 4 4 O c
-            Y A E Y A E c
-           +-------------+
-           |             |
-           |   74126    *|
-           +-------------+
-            G 2 2 2 1 1 1
-            N Y A O Y A O
-            D     E     E
+                                         Bionic Connector
