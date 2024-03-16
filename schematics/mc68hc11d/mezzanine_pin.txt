@@ -18,15 +18,10 @@
    PA2     25|         |16 P44 TxD    P45  33|  e  |16  P35
    PA3     24|         |17     MISO   P46  32|  c  |17  P36
    PA5     23|         |18     MOSI   P47  31|  t  |18  P37
-   PA7     22|         |19     SCK     E3  30|  o  |19  E2
+   PA7     22|         |19     SCK    15V  30|  o  |19  15V
        VDD 21|_________|20     #SS    P54  29|  r  |20  P50
-                3     4 V             P55  28|     |21  P51
-            3 3 O 4 4 O c             P56  27|     |22  P52
-            Y A E Y A E c             P57  26|     |23  P53
-           +-------------+            VCC  25|_____|24  VCC
-           |             |               Bionic Connector
-           |   74126    *|
-           +-------------+
-            G 2 2 2 1 1 1
-            N Y A O Y A O
-            D     E     E
+                                      P55  28|     |21  P51
+                                      P56  27|     |22  P52
+                                      P57  26|     |23  P53
+                                      VCC  25|_____|24  VCC
+                                         Bionic Connector
